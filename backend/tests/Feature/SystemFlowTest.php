@@ -19,7 +19,7 @@ test('end-to-end system flow: from creation to logbook review', function () {
         'nama' => 'Manager 1',
         'email' => 'manager1@test.com',
         'npp' => '198001012000011002',
-        'role' => 'MANAGER',
+        'role' => 'Staff',
         'password' => 'password123',
     ];
     $response = $this->postJson('/api/v1/users', $managerData);
@@ -94,10 +94,13 @@ test('end-to-end system flow: from creation to logbook review', function () {
 
     Carbon::setTestNow(Carbon::create(2026, 3, 19, 17, 30, 0));
 
-    $submitData = [
-        'end_kerja' => '17:30',
-    ];
-    $response = $this->postJson("/api/v1/logbooks/{$logbookId}/submit", $submitData);
+    // Update end_kerja before submit (per plan spec section 9.2)
+    $updateData = ['end_kerja' => '17:30'];
+    $response = $this->patchJson("/api/v1/logbooks/{$logbookId}", $updateData);
+    $response->assertStatus(200)->assertJsonPath('message', 'Logbook berhasil diperbarui');
+
+    // Now submit the logbook
+    $response = $this->postJson("/api/v1/logbooks/{$logbookId}/submit");
     $response->assertStatus(200)->assertJsonPath('status', 'SUBMITTED');
 
     // 5. Manager reviews the logbook.

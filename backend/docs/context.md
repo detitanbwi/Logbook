@@ -53,14 +53,27 @@ Aplikasi ini dirancang untuk mendigitalisasi pelaporan kerja harian (Logbook) da
   - ✅ `PATCH /api/v1/logbooks/{logbook}/kpi/{detail}/progress` with `{ capaian_angka }`
 
 ### Quality Verification
-- Full backend test suite status after refactor:
-  - **55 tests passed**, **253 assertions**
-- New feature coverage added for:
-  - manual time validation and multiple logbooks per day
-  - numeric KPI progress and per-KPI attachment lifecycle
-  - manager review with `ACCEPTED/REJECTED` + `reviewer_comment`
-  - summary endpoint access and payload baseline
-  - migration/seeder compatibility and summary backfill behavior
+- Full backend test suite status after latest hardening:
+  - **85 tests passed**, **329 assertions**
+- Additional edge-case coverage now includes:
+  - review requires `reviewer_comment`
+  - non-manager without subordinates cannot review
+  - attachment update is blocked for non-DRAFT logbooks
+  - summary date filtering and period zero-target fallback
+  - team daily access behavior for admin vs staff
+  - submit requires at least one KPI progress before `SUBMITTED`
+  - submit sends manager notification (`LOGBOOK_SUBMITTED`)
+  - duration endpoint payload (`gross/break/net` minutes)
+  - **summary recalculation when logbook date changes** (both old and new dates)
+  - start time exactly at 07:00 boundary accepted
+  - end time earlier than start time rejected
+  - rating below 1 or above 5 rejected
+  - invalid decision value "REVIEWED" rejected (only ACCEPTED/REJECTED)
+  - attachment operations blocked in ACCEPTED/REJECTED status
+  - KPI progress update blocked in SUBMITTED/ACCEPTED status
+  - negative capaian_angka rejected
+  - cannot re-submit already submitted/accepted logbooks
+  - cannot review DRAFT or already-reviewed logbooks
 
 ## Notification Data Contract (Backend → Frontend)
 
@@ -91,3 +104,6 @@ Endpoint read bersifat idempotent:
 - PHP: 8.3
 - DB: Relational (SQLite/PostgreSQL)
 - Auth: Sanctum / JWT
+
+## API Documentation
+- Canonical API reference is documented at: `backend/docs/api_reference.md`

@@ -96,6 +96,7 @@ it('staff can submit logbook', function () {
         'tanggal' => now()->toDateString(),
         'status' => 'DRAFT',
         'start_kerja' => '08:00:00',
+        'end_kerja' => '16:00:00',
         'lokasi' => 'loc',
     ]);
 
@@ -104,12 +105,10 @@ it('staff can submit logbook', function () {
         'kpi_id' => $kpi->id,
         'kpi_nama' => $kpi->nama,
         'target_angka' => 10,
-        'capaian_angka' => 0,
+        'capaian_angka' => 1,
     ]);
 
-    $response = $this->actingAs($staff)->postJson("/api/v1/logbooks/{$logbook->id}/submit", [
-        'end_kerja' => '16:00',
-    ]);
+    $response = $this->actingAs($staff)->postJson("/api/v1/logbooks/{$logbook->id}/submit");
 
     $response->assertStatus(200)
         ->assertJsonPath('status', 'SUBMITTED');
@@ -121,7 +120,9 @@ it('staff can submit logbook', function () {
     ]);
 
     $notification = Notification::where('user_id', $manager->id)->latest()->first();
-    expect($notification)->toBeNull();
+    expect($notification)->not->toBeNull();
+    expect($notification?->type)->toBe('LOGBOOK_SUBMITTED');
+    expect($notification?->reference_id)->toBe($logbook->id);
 });
 
 it('manager can review submitted logbook', function () {
@@ -383,6 +384,172 @@ it('manager review supports accepted and rejected with reviewer_comment', functi
     ]);
 });
 
+it('manager review requires reviewer comment', function () {
+    $manager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'status' => 'SUBMITTED',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $this->actingAs($manager)
+        ->putJson("/api/v1/logbooks/{$logbook->id}/review", [
+            'decision' => 'ACCEPTED',
+            'rating' => 4,
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('reviewer_comment');
+});
+
+it('manager without subordinates cannot review logbook', function () {
+    $managerLike = User::factory()->create(['role' => 'MANAGER']);
+    $realManager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $realManager->id]);
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'status' => 'SUBMITTED',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $this->actingAs($managerLike)
+        ->putJson("/api/v1/logbooks/{$logbook->id}/review", [
+            'decision' => 'ACCEPTED',
+            'rating' => 4,
+            'reviewer_comment' => 'ok',
+        ])
+        ->assertForbidden();
+});
+
+it('staff cannot upload attachment to submitted logbook', function () {
+    Storage::fake('public');
+
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    $kpi = KpiMaster::factory()->create();
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'SUBMITTED',
+        'start_kerja' => '08:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $detail = $logbook->kpiDetails()->create([
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => $kpi->nama,
+        'target_angka' => 10,
+        'capaian_angka' => 0,
+    ]);
+
+    $this->actingAs($staff)
+        ->postJson("/api/v1/logbooks/{$logbook->id}/kpi/{$detail->id}/attachment", [
+            'lampiran_file' => UploadedFile::fake()->create('blocked.pdf', 50, 'application/pdf'),
+        ])
+        ->assertStatus(400);
+});
+
+it('staff with subordinates can still create their own logbook', function () {
+    $managerStaff = User::factory()->create(['role' => 'STAFF']);
+    User::factory()->create(['role' => 'STAFF', 'manager_id' => $managerStaff->id]);
+
+    $response = $this->actingAs($managerStaff)->postJson('/api/v1/logbooks/start', [
+        'tanggal' => '2026-03-20',
+        'start_kerja' => '08:00',
+        'lokasi' => '-6.2,106.8',
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.status', 'DRAFT');
+});
+
+it('submit requires at least one kpi progress greater than zero', function () {
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    $kpi = KpiMaster::factory()->create();
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'DRAFT',
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $logbook->kpiDetails()->create([
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => $kpi->nama,
+        'target_angka' => 10,
+        'capaian_angka' => 0,
+    ]);
+
+    $this->actingAs($staff)
+        ->postJson("/api/v1/logbooks/{$logbook->id}/submit")
+        ->assertStatus(422)
+        ->assertJsonPath('message', 'Minimal satu KPI harus memiliki capaian lebih dari 0 sebelum submit');
+});
+
+it('submit notifies manager when subordinate submits', function () {
+    $manager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+    $kpi = KpiMaster::factory()->create();
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'DRAFT',
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $logbook->kpiDetails()->create([
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => $kpi->nama,
+        'target_angka' => 10,
+        'capaian_angka' => 2,
+    ]);
+
+    $this->actingAs($staff)
+        ->postJson("/api/v1/logbooks/{$logbook->id}/submit")
+        ->assertOk()
+        ->assertJsonPath('status', 'SUBMITTED');
+
+    $this->assertDatabaseHas('notifications', [
+        'user_id' => $manager->id,
+        'type' => 'LOGBOOK_SUBMITTED',
+        'reference_id' => $logbook->id,
+    ]);
+});
+
+it('returns computed duration breakdown for logbook', function () {
+    $staff = User::factory()->create(['role' => 'STAFF']);
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => '2026-03-20',
+        'status' => 'DRAFT',
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $this->actingAs($staff)
+        ->getJson("/api/v1/logbooks/{$logbook->id}/duration")
+        ->assertOk()
+        ->assertJsonPath('gross_work_minutes', 540)
+        ->assertJsonPath('break_overlap_minutes', 60)
+        ->assertJsonPath('net_work_minutes', 480);
+});
+
 it('legacy compatibility endpoints are removed', function () {
     $manager = User::factory()->create(['role' => 'MANAGER']);
     $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
@@ -408,11 +575,406 @@ it('legacy compatibility endpoints are removed', function () {
         ->putJson("/api/v1/logbooks/{$logbook->id}/rate", ['rating' => 4])
         ->assertStatus(404);
 
-    $this->actingAs($manager)
-        ->postJson("/api/v1/logbooks/{$logbook->id}/revert")
-        ->assertStatus(404);
+    // Note: revert endpoint is now active per spec 4.7
 
     $this->actingAs($staff)
         ->patchJson("/api/v1/logbooks/{$logbook->id}/kpi/{$detail->id}/toggle", ['is_finished' => true])
         ->assertStatus(404);
+});
+
+// ============================================================
+// Edge Case Tests for Validation Boundaries
+// ============================================================
+
+it('allows start time exactly at 07:00 boundary', function () {
+    Carbon::setTestNow('2026-03-19 08:00:00');
+
+    $staff = User::factory()->create(['role' => 'STAFF']);
+
+    $response = $this->actingAs($staff)->postJson('/api/v1/logbooks/start', [
+        'tanggal' => '2026-03-19',
+        'start_kerja' => '07:00',
+        'lokasi' => 'office',
+    ]);
+
+    $response->assertStatus(201)
+        ->assertJsonPath('data.start_kerja', '07:00');
+
+    Carbon::setTestNow();
+});
+
+it('rejects end time earlier than start time', function () {
+    Carbon::setTestNow('2026-03-19 10:00:00');
+
+    $staff = User::factory()->create(['role' => 'STAFF']);
+
+    $response = $this->actingAs($staff)->postJson('/api/v1/logbooks/start', [
+        'tanggal' => '2026-03-19',
+        'start_kerja' => '09:00',
+        'end_kerja' => '08:00',
+        'lokasi' => 'office',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('message', 'Jam selesai harus lebih besar dari jam mulai');
+
+    Carbon::setTestNow();
+});
+
+it('rejects rating below 1', function () {
+    $manager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'status' => 'SUBMITTED',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $this->actingAs($manager)
+        ->putJson("/api/v1/logbooks/{$logbook->id}/review", [
+            'decision' => 'ACCEPTED',
+            'rating' => 0,
+            'reviewer_comment' => 'Comment here',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('rating');
+});
+
+it('rejects rating above 5', function () {
+    $manager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'status' => 'SUBMITTED',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $this->actingAs($manager)
+        ->putJson("/api/v1/logbooks/{$logbook->id}/review", [
+            'decision' => 'ACCEPTED',
+            'rating' => 6,
+            'reviewer_comment' => 'Comment here',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('rating');
+});
+
+it('rejects invalid decision value REVIEWED', function () {
+    $manager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'status' => 'SUBMITTED',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $this->actingAs($manager)
+        ->putJson("/api/v1/logbooks/{$logbook->id}/review", [
+            'decision' => 'REVIEWED',
+            'rating' => 4,
+            'reviewer_comment' => 'Looks good',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('decision');
+});
+
+it('blocks attachment upload in accepted status', function () {
+    Storage::fake('public');
+
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    $kpi = KpiMaster::factory()->create();
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'ACCEPTED',
+        'start_kerja' => '08:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $detail = $logbook->kpiDetails()->create([
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => $kpi->nama,
+        'target_angka' => 10,
+        'capaian_angka' => 5,
+    ]);
+
+    $this->actingAs($staff)
+        ->postJson("/api/v1/logbooks/{$logbook->id}/kpi/{$detail->id}/attachment", [
+            'lampiran_file' => UploadedFile::fake()->create('blocked.pdf', 50, 'application/pdf'),
+        ])
+        ->assertStatus(400)
+        ->assertJsonPath('message', 'Lampiran hanya bisa diubah pada DRAFT');
+});
+
+it('blocks attachment upload in rejected status', function () {
+    Storage::fake('public');
+
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    $kpi = KpiMaster::factory()->create();
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'REJECTED',
+        'start_kerja' => '08:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $detail = $logbook->kpiDetails()->create([
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => $kpi->nama,
+        'target_angka' => 10,
+        'capaian_angka' => 5,
+    ]);
+
+    $this->actingAs($staff)
+        ->postJson("/api/v1/logbooks/{$logbook->id}/kpi/{$detail->id}/attachment", [
+            'lampiran_file' => UploadedFile::fake()->create('blocked.pdf', 50, 'application/pdf'),
+        ])
+        ->assertStatus(400)
+        ->assertJsonPath('message', 'Lampiran hanya bisa diubah pada DRAFT');
+});
+
+it('blocks attachment deletion in non-draft status', function () {
+    Storage::fake('public');
+
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    $kpi = KpiMaster::factory()->create();
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'SUBMITTED',
+        'start_kerja' => '08:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $detail = $logbook->kpiDetails()->create([
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => $kpi->nama,
+        'target_angka' => 10,
+        'capaian_angka' => 5,
+        'lampiran_file' => 'logbook-kpi-attachments/existing.pdf',
+    ]);
+
+    $this->actingAs($staff)
+        ->deleteJson("/api/v1/logbooks/{$logbook->id}/kpi/{$detail->id}/attachment")
+        ->assertStatus(400)
+        ->assertJsonPath('message', 'Lampiran hanya bisa diubah pada DRAFT');
+});
+
+it('blocks kpi progress update in submitted status', function () {
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    $kpi = KpiMaster::factory()->create();
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'SUBMITTED',
+        'start_kerja' => '08:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $detail = $logbook->kpiDetails()->create([
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => $kpi->nama,
+        'target_angka' => 10,
+        'capaian_angka' => 0,
+    ]);
+
+    $this->actingAs($staff)
+        ->patchJson("/api/v1/logbooks/{$logbook->id}/kpi/{$detail->id}/progress", [
+            'capaian_angka' => 5,
+        ])
+        ->assertStatus(400)
+        ->assertJsonPath('message', 'Hanya logbook DRAFT yang dapat diupdate');
+});
+
+it('blocks kpi progress update in accepted status', function () {
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    $kpi = KpiMaster::factory()->create();
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'ACCEPTED',
+        'start_kerja' => '08:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $detail = $logbook->kpiDetails()->create([
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => $kpi->nama,
+        'target_angka' => 10,
+        'capaian_angka' => 5,
+    ]);
+
+    $this->actingAs($staff)
+        ->patchJson("/api/v1/logbooks/{$logbook->id}/kpi/{$detail->id}/progress", [
+            'capaian_angka' => 8,
+        ])
+        ->assertStatus(400)
+        ->assertJsonPath('message', 'Hanya logbook DRAFT yang dapat diupdate');
+});
+
+it('rejects negative capaian_angka value', function () {
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    $kpi = KpiMaster::factory()->create();
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'DRAFT',
+        'start_kerja' => '08:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $detail = $logbook->kpiDetails()->create([
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => $kpi->nama,
+        'target_angka' => 10,
+        'capaian_angka' => 0,
+    ]);
+
+    $this->actingAs($staff)
+        ->patchJson("/api/v1/logbooks/{$logbook->id}/kpi/{$detail->id}/progress", [
+            'capaian_angka' => -5,
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('capaian_angka');
+});
+
+it('cannot submit already submitted logbook', function () {
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    $kpi = KpiMaster::factory()->create();
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'SUBMITTED',
+        'start_kerja' => '08:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $logbook->kpiDetails()->create([
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => $kpi->nama,
+        'target_angka' => 10,
+        'capaian_angka' => 5,
+    ]);
+
+    $this->actingAs($staff)
+        ->postJson("/api/v1/logbooks/{$logbook->id}/submit")
+        ->assertStatus(400)
+        ->assertJsonPath('message', 'Hanya logbook DRAFT yang dapat disubmit');
+});
+
+it('cannot submit accepted logbook', function () {
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    $kpi = KpiMaster::factory()->create();
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'ACCEPTED',
+        'start_kerja' => '08:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $logbook->kpiDetails()->create([
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => $kpi->nama,
+        'target_angka' => 10,
+        'capaian_angka' => 5,
+    ]);
+
+    $this->actingAs($staff)
+        ->postJson("/api/v1/logbooks/{$logbook->id}/submit")
+        ->assertStatus(400)
+        ->assertJsonPath('message', 'Hanya logbook DRAFT yang dapat disubmit');
+});
+
+it('cannot review draft logbook', function () {
+    $manager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'status' => 'DRAFT',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $this->actingAs($manager)
+        ->putJson("/api/v1/logbooks/{$logbook->id}/review", [
+            'decision' => 'ACCEPTED',
+            'rating' => 4,
+            'reviewer_comment' => 'Good work',
+        ])
+        ->assertStatus(400)
+        ->assertJsonPath('message', 'Only SUBMITTED logbooks can be reviewed.');
+});
+
+it('cannot review already accepted logbook', function () {
+    $manager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'status' => 'ACCEPTED',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'loc',
+        'rating' => 5,
+        'reviewed_by' => $manager->id,
+    ]);
+
+    $this->actingAs($manager)
+        ->putJson("/api/v1/logbooks/{$logbook->id}/review", [
+            'decision' => 'REJECTED',
+            'rating' => 2,
+            'reviewer_comment' => 'Changed my mind',
+        ])
+        ->assertStatus(400)
+        ->assertJsonPath('message', 'Only SUBMITTED logbooks can be reviewed.');
+});
+
+it('cannot review already rejected logbook', function () {
+    $manager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'status' => 'REJECTED',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'loc',
+        'rating' => 2,
+        'reviewed_by' => $manager->id,
+    ]);
+
+    $this->actingAs($manager)
+        ->putJson("/api/v1/logbooks/{$logbook->id}/review", [
+            'decision' => 'ACCEPTED',
+            'rating' => 4,
+            'reviewer_comment' => 'Actually it was good',
+        ])
+        ->assertStatus(400)
+        ->assertJsonPath('message', 'Only SUBMITTED logbooks can be reviewed.');
 });

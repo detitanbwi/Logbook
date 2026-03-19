@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 
 class SummaryController extends Controller
 {
+    /**
+     * @group Summaries
+     */
     public function daily(Request $request)
     {
         /** @var User $actor */
@@ -40,6 +43,9 @@ class SummaryController extends Controller
         return response()->json($query->orderByDesc('tanggal')->paginate(min($request->integer('per_page', 15), 100)));
     }
 
+    /**
+     * @group Summaries
+     */
     public function dailyByUser(Request $request, string $userId)
     {
         /** @var User $actor */
@@ -63,6 +69,9 @@ class SummaryController extends Controller
         return response()->json($query->orderByDesc('tanggal')->paginate(min($request->integer('per_page', 15), 100)));
     }
 
+    /**
+     * @group Summaries
+     */
     public function period(Request $request)
     {
         /** @var User $actor */
@@ -110,6 +119,9 @@ class SummaryController extends Controller
         ]);
     }
 
+    /**
+     * @group Summaries
+     */
     public function kpiDaily(Request $request)
     {
         /** @var User $actor */
@@ -132,6 +144,9 @@ class SummaryController extends Controller
         return response()->json($query->orderByDesc('tanggal')->paginate(min($request->integer('per_page', 15), 100)));
     }
 
+    /**
+     * @group Summaries
+     */
     public function kpiPeriod(Request $request)
     {
         /** @var User $actor */
@@ -175,6 +190,9 @@ class SummaryController extends Controller
         ]);
     }
 
+    /**
+     * @group Summaries
+     */
     public function teamDaily(Request $request)
     {
         /** @var User $actor */
@@ -195,6 +213,9 @@ class SummaryController extends Controller
         return response()->json($query->orderByDesc('tanggal')->paginate(min($request->integer('per_page', 15), 100)));
     }
 
+    /**
+     * @group Summaries
+     */
     public function staffPerformance(Request $request)
     {
         /** @var User $actor */

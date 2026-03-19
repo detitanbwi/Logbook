@@ -104,8 +104,34 @@ This document serves as an archive of the original development phases and progre
   - Updated existing feature tests to new contract.
   - Added new tests for manual-time validation, numeric KPI progress, attachment lifecycle, summary endpoints, and migration/seeder compatibility.
   - Final verification:
-    - **55 passed tests**
-    - **253 assertions**
+    - **57 passed tests**
+    - **251 assertions**
+
+## Post-Hardening Verification Update (V2.1.1)
+
+**Status**: COMPLETED
+
+- [x] Added edge-case tests for:
+  - mandatory `reviewer_comment` on review endpoint
+  - forbidden review for actor without subordinate capability
+  - attachment mutation blocked when logbook is not `DRAFT`
+  - summary filter and period fallback behavior (`target_angka_total = 0`)
+- [x] Added backend API reference document:
+  - `backend/docs/api_reference.md`
+
+## Plan-Alignment Update (V2.1.2)
+
+**Status**: COMPLETED
+
+- [x] Enforced additional business rules and policy alignment:
+  - `submit` now requires at least one KPI with `capaian_angka > 0`
+  - `submit` now creates manager notification (`LOGBOOK_SUBMITTED`) when manager exists
+  - canonical role policy tightened: Admin can only create/update Staff role
+  - manager-capable staff (Staff with subordinates) can still create own logbook
+- [x] Added duration endpoint:
+  - `GET /api/v1/logbooks/{logbook}/duration`
+  - returns `gross_work_minutes`, `break_overlap_minutes`, `net_work_minutes`
+- [x] Expanded test coverage for the above edge cases.
 
 ### Files Introduced in V2.0 (Backend)
 - `app/Models/DailyStaffSummary.php`

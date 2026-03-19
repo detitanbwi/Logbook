@@ -85,7 +85,7 @@ class User extends Authenticatable
         $this->attributes['role'] = match ($normalized) {
             'SUPERADMIN' => 'SuperAdmin',
             'ADMIN' => 'Admin',
-            'MANAGER' => 'Manager',
+            'MANAGER' => 'Staff',
             'STAFF' => 'Staff',
             default => $value,
         };
@@ -118,7 +118,7 @@ class User extends Authenticatable
 
     public function isManager(): bool
     {
-        return strcasecmp((string) $this->role, 'Manager') === 0;
+        return $this->isStaff() && $this->hasSubordinates();
     }
 
     public function hasSubordinates(): bool

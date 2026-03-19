@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\LogbookResource;
 use App\Models\Logbook;
 use App\Models\LogbookKpiDetail;
+use App\Models\Notification;
 use App\Models\User;
 use App\Models\UserKpiAssignment;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -88,7 +90,7 @@ class LogbookController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        if (! $user->isStaff() || $user->hasSubordinates()) {
+        if (! $user->isStaff()) {
             return response()->json(['message' => 'Hanya Staff yang dapat membuat logbook'], 403);
         }
 
@@ -121,7 +123,14 @@ class LogbookController extends Controller
             ->where('user_id', $user->id)
             ->get();
 
+        $seenKpiIds = [];
         foreach ($activeAssignments as $assignment) {
+            // Prevent duplicate KPI details from duplicate assignments
+            if (in_array($assignment->kpi_id, $seenKpiIds, true)) {
+                continue;
+            }
+            $seenKpiIds[] = $assignment->kpi_id;
+
             $kpi = $assignment->kpi;
 
             LogbookKpiDetail::create([
@@ -144,6 +153,66 @@ class LogbookController extends Controller
     public function store(Request $request)
     {
         return $this->start($request);
+    }
+
+    /**
+     * Update logbook time fields (DRAFT status only)
+     *
+     * Per plan spec section 9.2: PATCH /logbooks/{id}
+     * Allows updating tanggal, start_kerja, end_kerja for DRAFT logbooks.
+     */
+    public function update(Request $request, Logbook $logbook)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($logbook->user_id !== $user->id) {
+            abort(403);
+        }
+
+        if ($logbook->status !== 'DRAFT') {
+            return response()->json(['message' => 'Hanya logbook DRAFT yang dapat diupdate'], 400);
+        }
+
+        $validated = $request->validate([
+            'tanggal' => 'sometimes|date',
+            'start_kerja' => 'sometimes|date_format:H:i',
+            'end_kerja' => 'sometimes|nullable|date_format:H:i',
+            'lokasi' => 'sometimes|string|max:1000',
+        ]);
+
+        // Determine actual values for validation
+        $startKerja = $validated['start_kerja'] ?? $logbook->start_kerja;
+        $endKerja = $validated['end_kerja'] ?? $logbook->end_kerja;
+
+        // Normalize start_kerja for comparison (handle both string and Carbon instances)
+        $startKerjaStr = $startKerja instanceof Carbon
+            ? $startKerja->format('H:i')
+            : (string) $startKerja;
+
+        if (isset($validated['start_kerja']) && $startKerjaStr < '07:00') {
+            return response()->json(['message' => 'Jam mulai minimal 07:00'], 422);
+        }
+
+        // Validate end_kerja > start_kerja if both are set
+        if ($endKerja !== null) {
+            $endKerjaStr = $endKerja instanceof Carbon
+                ? $endKerja->format('H:i')
+                : (string) $endKerja;
+
+            if ($endKerjaStr <= $startKerjaStr) {
+                return response()->json(['message' => 'Jam selesai harus lebih besar dari jam mulai'], 422);
+            }
+        }
+
+        $logbook->update($validated);
+
+        $logbook->load(['user', 'reviewer', 'kpiDetails.kpi']);
+
+        return response()->json([
+            'message' => 'Logbook berhasil diperbarui',
+            'data' => new LogbookResource($logbook),
+        ]);
     }
 
     public function updateProgress(Request $request, Logbook $logbook, LogbookKpiDetail $detail)
@@ -201,7 +270,7 @@ class LogbookController extends Controller
         }
 
         $validated = $request->validate([
-            'lampiran_file' => 'required|file|max:5120',
+            'lampiran_file' => 'required|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx',
         ]);
 
         if ($detail->lampiran_file) {
@@ -270,11 +339,78 @@ class LogbookController extends Controller
             return response()->json(['message' => 'Hanya logbook DRAFT yang dapat disubmit'], 400);
         }
 
+        if (! $logbook->end_kerja) {
+            return response()->json(['message' => 'Jam selesai harus diisi sebelum submit'], 422);
+        }
+
+        $hasAnyProgress = $logbook->kpiDetails()->where('capaian_angka', '>', 0)->exists();
+        if (! $hasAnyProgress) {
+            return response()->json([
+                'message' => 'Minimal satu KPI harus memiliki capaian lebih dari 0 sebelum submit',
+            ], 422);
+        }
+
         $logbook->update([
             'status' => 'SUBMITTED',
         ]);
 
+        $managerId = $logbook->user?->manager_id;
+        if ($managerId) {
+            Notification::create([
+                'user_id' => $managerId,
+                'title' => 'Logbook Submitted',
+                'message' => 'Terdapat logbook baru yang menunggu review.',
+                'type' => 'LOGBOOK_SUBMITTED',
+                'reference_id' => $logbook->id,
+                'is_read' => false,
+            ]);
+        }
+
         return response()->json((new LogbookResource($logbook->fresh(['user', 'reviewer', 'kpiDetails.kpi'])))->toArray(request()));
+    }
+
+    public function duration(Logbook $logbook)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if (! $this->canAccessLogbook($user, $logbook)) {
+            abort(403);
+        }
+
+        return response()->json([
+            'logbook_id' => $logbook->id,
+            'tanggal' => optional($logbook->tanggal)?->toDateString(),
+            'start_kerja' => (string) $logbook->start_kerja,
+            'end_kerja' => $logbook->end_kerja,
+            'gross_work_minutes' => $logbook->grossWorkMinutes(),
+            'break_overlap_minutes' => $logbook->breakOverlapMinutes(),
+            'net_work_minutes' => $logbook->netWorkMinutes(),
+        ]);
+    }
+
+    /**
+     * Delete a DRAFT logbook.
+     *
+     * Per plan spec section 9.3: DELETE /logbooks/{id}
+     * Only owner can delete, and only DRAFT status allowed.
+     */
+    public function destroy(Logbook $logbook)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($logbook->user_id !== $user->id) {
+            abort(403);
+        }
+
+        if ($logbook->status !== 'DRAFT') {
+            return response()->json(['message' => 'Hanya logbook DRAFT yang dapat dihapus'], 400);
+        }
+
+        $logbook->delete();
+
+        return response()->json(['message' => 'Logbook berhasil dihapus']);
     }
 
     private function canAccessLogbook(User $actor, Logbook $logbook): bool
