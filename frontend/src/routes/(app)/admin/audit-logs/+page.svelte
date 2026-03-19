@@ -20,7 +20,7 @@
 		created_at: string;
 		user?: {
 			id: string;
-			nama: string;
+			name: string;
 			email: string;
 		};
 	}
@@ -104,6 +104,7 @@
 	}
 
 	function getEventColor(event: string) {
+		if (!event) return 'text-info';
 		switch (event.toLowerCase()) {
 			case 'created':
 				return 'text-success';
@@ -213,7 +214,7 @@
 					</td>
 					<td>
 						{#if log.user}
-							<div class="text-sm font-medium">{log.user.nama}</div>
+							<div class="text-sm font-medium">{log.user.name}</div>
 							<div class="text-xs text-base-content/50">{log.user.email}</div>
 						{:else}
 							<span class="text-xs text-base-content/50 italic">System / Unknown</span>

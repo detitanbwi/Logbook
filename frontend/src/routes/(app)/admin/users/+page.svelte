@@ -60,7 +60,7 @@
 	let currentUserId = $state<string | null>(null);
 
 	let formData = $state<UserCreateDto>({
-		nama: '',
+		name: '',
 		email: '',
 		nip: '',
 		password: '',
@@ -77,7 +77,7 @@
 	function openCreate() {
 		isEditMode = false;
 		currentUserId = null;
-		formData = { nama: '', email: '', nip: '', password: '', role: 'Staff' };
+		formData = { name: '', email: '', nip: '', password: '', role: 'Staff' };
 		isModalOpen = true;
 	}
 
@@ -85,7 +85,7 @@
 		isEditMode = true;
 		currentUserId = user.id;
 		formData = {
-			nama: user.nama,
+			name: user.name,
 			email: user.email,
 			nip: user.nip,
 			password: '',
@@ -99,7 +99,7 @@
 		try {
 			if (isEditMode && currentUserId) {
 				const updateData: UserUpdateDto = {
-					nama: formData.nama,
+					name: formData.name,
 					email: formData.email,
 					nip: formData.nip,
 					role: formData.role
@@ -166,7 +166,7 @@
 				onSort={handleSort}
 			/>
 			<SortableHeader
-				column="nama"
+				column="name"
 				label="Nama"
 				currentSort={sortBy}
 				currentDir={sortDir}
@@ -193,7 +193,7 @@
 	{#each users as user}
 		<tr>
 			<td>{user.nip}</td>
-			<td class="font-medium">{user.nama}</td>
+			<td class="font-medium">{user.name}</td>
 			<td>{user.email}</td>
 			<td>
 				<span class="badge badge-outline">{user.role}</span>
@@ -241,7 +241,7 @@
 				id="nama"
 				type="text"
 				class="input-bordered input w-full"
-				bind:value={formData.nama}
+				bind:value={formData.name}
 				required
 			/>
 		</div>

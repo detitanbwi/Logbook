@@ -4,7 +4,7 @@ export type LogbookStatus = 'DRAFT' | 'SUBMITTED' | 'REVIEWED' | 'REVERTED';
 export interface User {
 	id: string;
 	nip: string;
-	nama: string;
+	name: string;
 	email: string;
 	role: UserRole;
 	manager_id: string | null;
@@ -94,7 +94,7 @@ export interface AuditLog {
 	performed_at: string;
 	ip_address: string | null;
 	user_agent: string | null;
-	user?: Pick<User, 'id' | 'nama' | 'nip' | 'role'>;
+	user?: Pick<User, 'id' | 'name' | 'nip' | 'role'>;
 	created_at: string;
 	updated_at: string;
 }

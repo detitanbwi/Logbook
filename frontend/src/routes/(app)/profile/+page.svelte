@@ -57,11 +57,11 @@
 						<div
 							class="w-24 rounded-full bg-primary text-primary-content ring ring-primary ring-offset-2 ring-offset-base-100"
 						>
-							<span class="text-3xl font-bold">{user.nama?.charAt(0).toUpperCase() || 'U'}</span>
+							<span class="text-3xl font-bold">{user.name?.charAt(0).toUpperCase() || 'U'}</span>
 						</div>
 					</div>
 					<div>
-						<h2 class="text-2xl font-bold text-base-content">{user.nama}</h2>
+						<h2 class="text-2xl font-bold text-base-content">{user.name}</h2>
 						<p class="mb-2 font-medium text-base-content/70">{user.nip}</p>
 						<span class="badge font-medium badge-primary">{user.role}</span>
 					</div>

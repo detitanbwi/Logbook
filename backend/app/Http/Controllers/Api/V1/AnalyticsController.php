@@ -156,10 +156,10 @@ class AnalyticsController extends Controller
 
         $missedLogbooksCount = max(0, $workdaysPassed - $logbooksCount);
 
-        $kpiAchievements = LogbookKpiDetail::select('kpi_master.nama_kpi', \Illuminate\Support\Facades\DB::raw('COUNT(logbook_kpi_details.id) as total'), \Illuminate\Support\Facades\DB::raw('SUM(CASE WHEN is_finished = true THEN 1 ELSE 0 END) as completed'))
-            ->join('kpi_master', 'kpi_master.id', '=', 'logbook_kpi_details.kpi_master_id')
+        $kpiAchievements = LogbookKpiDetail::select('kpi_masters.nama as nama_kpi', \Illuminate\Support\Facades\DB::raw('COUNT(logbook_kpi_details.id) as total'), \Illuminate\Support\Facades\DB::raw('SUM(CASE WHEN is_finished = true THEN 1 ELSE 0 END) as completed'))
+            ->join('kpi_masters', 'kpi_masters.id', '=', 'logbook_kpi_details.kpi_id')
             ->whereIn('logbook_id', $logbookIds)
-            ->groupBy('kpi_master.nama_kpi')
+            ->groupBy('kpi_masters.nama')
             ->get()
             ->map(function ($kpi) {
                 return [

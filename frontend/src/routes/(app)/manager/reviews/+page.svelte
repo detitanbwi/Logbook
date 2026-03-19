@@ -182,7 +182,7 @@
 											})}
 										</td>
 										<td>
-											<div class="font-medium">{log.user?.nama || 'Unknown User'}</div>
+											<div class="font-medium">{log.user?.name || 'Unknown User'}</div>
 											<div class="text-xs opacity-70">{log.user?.role || 'Staff'}</div>
 										</td>
 										<td>
@@ -223,7 +223,7 @@
 		<div class="flex flex-col gap-4">
 			<div class="flex items-center justify-between">
 				<div>
-					<div class="font-semibold">{selectedLogbook.user?.nama || 'Staff'}</div>
+					<div class="font-semibold">{selectedLogbook.user?.name || 'Staff'}</div>
 					<div class="text-sm text-base-content/70">
 						{new Date(selectedLogbook.created_at || selectedLogbook.tanggal).toLocaleDateString(
 							'id-ID',

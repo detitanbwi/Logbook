@@ -7,8 +7,8 @@
 
 	let { isSidebarOpen = $bindable(false) }: { isSidebarOpen?: boolean } = $props();
 
-	let userInitial = $derived(auth.user.current?.nama?.charAt(0).toUpperCase() || 'U');
-	let userName = $derived(auth.user.current?.nama || 'User');
+	let userInitial = $derived(auth.user.current?.name?.charAt(0).toUpperCase() || 'U');
+	let userName = $derived(auth.user.current?.name || 'User');
 
 	let notifications = $derived(notificationStore.unread);
 	let unreadCount = $derived(notificationStore.unreadCount);
