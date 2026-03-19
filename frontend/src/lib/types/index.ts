@@ -39,6 +39,7 @@ export interface LogbookKpiDetail {
 	logbook_id: string;
 	kpi_id: string;
 	kpi_nama: string;
+	kpi?: KpiMaster;
 	is_finished: boolean;
 	finished_at?: string;
 	created_at: string;
