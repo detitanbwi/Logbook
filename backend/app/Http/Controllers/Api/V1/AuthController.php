@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\V1\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,14 +15,16 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $request->validate([
-            'nip' => 'required|string',
+        $validated = $request->validate([
+            'npp' => 'required|string',
             'password' => 'required|string',
         ]);
 
-        $user = User::where('nip', $request->nip)->first();
+        $loginNpp = (string) $validated['npp'];
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        $user = User::query()->where('npp', $loginNpp)->first();
+
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
             return response()->json(['message' => 'Kredensial tidak valid'], 401);
         }
 
@@ -31,7 +34,7 @@ class AuthController extends Controller
             'message' => 'Login successful',
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user,
+            'user' => new UserResource($user),
         ]);
     }
 
@@ -44,7 +47,10 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json(['user' => $request->user()]);
+        /** @var User $user */
+        $user = $request->user();
+
+        return response()->json(['user' => new UserResource($user)]);
     }
 
     public function changePassword(Request $request)

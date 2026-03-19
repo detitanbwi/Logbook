@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\LogbookResource;
 use App\Models\Logbook;
 use App\Models\LogbookKpiDetail;
-use App\Models\Notification;
+use App\Models\User;
 use App\Models\UserKpiAssignment;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @group Staff Logbook
@@ -19,46 +19,48 @@ class LogbookController extends Controller
 {
     public function index(Request $request)
     {
+        /** @var User $user */
         $user = Auth::user();
-        $query = Logbook::with(['user', 'reviewer']);
 
-        if ($user->role === 'STAFF') {
+        $query = Logbook::query()->with(['user', 'reviewer', 'kpiDetails.kpi']);
+
+        if ($user->isStaff()) {
             $query->where('user_id', $user->id);
-        } elseif ($user->role === 'MANAGER') {
-            $query->whereHas('user', function ($q) use ($user) {
-                $q->where('manager_id', $user->id)->orWhere('id', $user->id);
+        } elseif (! $user->isPrivileged()) {
+            $query->where(function ($builder) use ($user): void {
+                $builder->where('user_id', $user->id)
+                    ->orWhereHas('user', function ($relation) use ($user): void {
+                        $relation->where('manager_id', $user->id);
+                    });
             });
         }
 
-        // Search by user name (join with users table)
         if ($search = $request->input('search')) {
-            $query->whereHas('user', function ($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%");
+            $query->whereHas('user', function ($relation) use ($search): void {
+                $relation->where('nama', 'LIKE', "%{$search}%")
+                    ->orWhere('npp', 'LIKE', "%{$search}%");
             });
         }
 
-        // Filter by status
         if ($status = $request->input('status')) {
-            $allowedStatuses = ['DRAFT', 'SUBMITTED', 'REVERTED', 'REVIEWED'];
-            if (in_array($status, $allowedStatuses)) {
+            if (in_array($status, ['DRAFT', 'SUBMITTED', 'ACCEPTED', 'REJECTED'], true)) {
                 $query->where('status', $status);
             }
         }
 
-        // Filter by date range
         if ($dateFrom = $request->input('date_from')) {
-            $query->whereDate('start_kerja', '>=', $dateFrom);
+            $query->whereDate('tanggal', '>=', $dateFrom);
         }
+
         if ($dateTo = $request->input('date_to')) {
-            $query->whereDate('start_kerja', '<=', $dateTo);
+            $query->whereDate('tanggal', '<=', $dateTo);
         }
 
-        // Sorting
-        $sortBy = $request->input('sort_by', 'created_at');
+        $sortBy = $request->input('sort_by', 'tanggal');
         $sortDir = $request->input('sort_dir', 'desc');
-        $allowedSorts = ['created_at', 'start_kerja', 'status'];
+        $allowedSorts = ['tanggal', 'start_kerja', 'end_kerja', 'status', 'created_at'];
 
-        if (in_array($sortBy, $allowedSorts)) {
+        if (in_array($sortBy, $allowedSorts, true)) {
             $query->orderBy($sortBy, $sortDir === 'asc' ? 'asc' : 'desc');
         }
 
@@ -69,54 +71,84 @@ class LogbookController extends Controller
 
     public function show(Logbook $logbook)
     {
+        /** @var User $user */
         $user = Auth::user();
 
-        if ($user->role === 'STAFF' && $logbook->user_id !== $user->id) {
-            abort(403);
-        }
-
-        if ($user->role === 'MANAGER' && $logbook->user_id !== $user->id && $logbook->user->manager_id !== $user->id) {
+        if (! $this->canAccessLogbook($user, $logbook)) {
             abort(403);
         }
 
         $logbook->load(['user', 'reviewer', 'kpiDetails.kpi']);
 
-        return response()->json($logbook);
+        return new LogbookResource($logbook);
     }
 
     public function start(Request $request)
     {
-        $request->validate([
-            'gps_location_start' => 'required|string',
+        /** @var User $user */
+        $user = Auth::user();
+
+        if (! $user->isStaff() || $user->hasSubordinates()) {
+            return response()->json(['message' => 'Hanya Staff yang dapat membuat logbook'], 403);
+        }
+
+        $validated = $request->validate([
+            'tanggal' => 'required|date',
+            'start_kerja' => 'required|date_format:H:i',
+            'end_kerja' => 'nullable|date_format:H:i',
+            'lokasi' => 'required|string|max:1000',
         ]);
 
-        $user = Auth::user();
+        if ($validated['start_kerja'] < '07:00') {
+            return response()->json(['message' => 'Jam mulai minimal 07:00'], 422);
+        }
+
+        if (($validated['end_kerja'] ?? null) !== null && $validated['end_kerja'] <= $validated['start_kerja']) {
+            return response()->json(['message' => 'Jam selesai harus lebih besar dari jam mulai'], 422);
+        }
 
         $logbook = Logbook::create([
             'user_id' => $user->id,
+            'tanggal' => $validated['tanggal'],
+            'start_kerja' => $validated['start_kerja'],
+            'end_kerja' => $validated['end_kerja'] ?? null,
+            'lokasi' => $validated['lokasi'],
             'status' => 'DRAFT',
-            'start_kerja' => now(),
-            'lokasi_start' => $request->gps_location_start,
         ]);
 
-        $activeAssignments = UserKpiAssignment::with('kpi')->where('user_id', $user->id)->get();
+        $activeAssignments = UserKpiAssignment::query()
+            ->with('kpi')
+            ->where('user_id', $user->id)
+            ->get();
 
         foreach ($activeAssignments as $assignment) {
+            $kpi = $assignment->kpi;
+
             LogbookKpiDetail::create([
                 'logbook_id' => $logbook->id,
                 'kpi_id' => $assignment->kpi_id,
-                'kpi_nama' => $assignment->kpi->nama ?? 'Unknown KPI',
-                'is_finished' => false,
+                'kpi_nama' => (string) ($kpi?->nama ?? 'Unknown KPI'),
+                'target_angka' => (float) ($kpi?->target_angka ?? 0),
+                'satuan' => $kpi?->satuan,
+                'capaian_angka' => 0,
             ]);
         }
 
-        $logbook->load('kpiDetails');
+        $logbook->load(['user', 'reviewer', 'kpiDetails.kpi']);
 
-        return response()->json($logbook, 201);
+        return (new LogbookResource($logbook))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    public function toggleKpi(Request $request, Logbook $logbook, LogbookKpiDetail $detail)
+    public function store(Request $request)
     {
+        return $this->start($request);
+    }
+
+    public function updateProgress(Request $request, Logbook $logbook, LogbookKpiDetail $detail)
+    {
+        /** @var User $user */
         $user = Auth::user();
 
         if ($logbook->user_id !== $user->id) {
@@ -128,23 +160,106 @@ class LogbookController extends Controller
         }
 
         if ($logbook->status !== 'DRAFT') {
-            return response()->json(['message' => 'Can only toggle KPIs on DRAFT logbook'], 400);
+            return response()->json(['message' => 'Hanya logbook DRAFT yang dapat diupdate'], 400);
         }
 
-        $request->validate([
-            'is_finished' => 'required|boolean',
+        $validated = $request->validate([
+            'capaian_angka' => 'required|numeric|min:0',
         ]);
+
+        $capaianAngka = (float) $validated['capaian_angka'];
 
         $detail->update([
-            'is_finished' => $request->is_finished,
-            'finished_at' => $request->is_finished ? now() : null,
+            'capaian_angka' => $capaianAngka,
+            'finished_at' => $capaianAngka > 0 ? now() : null,
         ]);
 
-        return response()->json($detail);
+        return response()->json([
+            'id' => $detail->id,
+            'capaian_angka' => (float) $detail->capaian_angka,
+            'target_angka' => (float) $detail->target_angka,
+            'satuan' => $detail->satuan,
+            'finished_at' => optional($detail->finished_at)?->toISOString(),
+        ]);
     }
 
-    public function submit(Request $request, Logbook $logbook)
+    public function uploadAttachment(Request $request, Logbook $logbook, LogbookKpiDetail $detail)
     {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($logbook->user_id !== $user->id) {
+            abort(403);
+        }
+
+        if ($detail->logbook_id !== $logbook->id) {
+            return response()->json(['message' => 'Detail mismatch'], 400);
+        }
+
+        if ($logbook->status !== 'DRAFT') {
+            return response()->json(['message' => 'Lampiran hanya bisa diubah pada DRAFT'], 400);
+        }
+
+        $validated = $request->validate([
+            'lampiran_file' => 'required|file|max:5120',
+        ]);
+
+        if ($detail->lampiran_file) {
+            Storage::disk('public')->delete($detail->lampiran_file);
+        }
+
+        $path = $validated['lampiran_file']->store('logbook-kpi-attachments', 'public');
+
+        $detail->update([
+            'lampiran_file' => $path,
+        ]);
+
+        return response()->json([
+            'message' => 'Lampiran KPI berhasil diunggah',
+            'data' => [
+                'id' => $detail->id,
+                'lampiran_file' => $detail->lampiran_file,
+            ],
+        ]);
+    }
+
+    public function deleteAttachment(Logbook $logbook, LogbookKpiDetail $detail)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($logbook->user_id !== $user->id) {
+            abort(403);
+        }
+
+        if ($detail->logbook_id !== $logbook->id) {
+            return response()->json(['message' => 'Detail mismatch'], 400);
+        }
+
+        if ($logbook->status !== 'DRAFT') {
+            return response()->json(['message' => 'Lampiran hanya bisa diubah pada DRAFT'], 400);
+        }
+
+        if ($detail->lampiran_file) {
+            Storage::disk('public')->delete($detail->lampiran_file);
+        }
+
+        $detail->update([
+            'lampiran_file' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'Lampiran KPI berhasil dihapus',
+            'data' => [
+                'id' => $detail->id,
+                'lampiran_file' => null,
+            ],
+        ]);
+    }
+
+    public function submit(Logbook $logbook)
+    {
+        /** @var User $user */
         $user = Auth::user();
 
         if ($logbook->user_id !== $user->id) {
@@ -155,42 +270,27 @@ class LogbookController extends Controller
             return response()->json(['message' => 'Hanya logbook DRAFT yang dapat disubmit'], 400);
         }
 
-        $request->validate([
-            'gps_location_end' => 'required|string',
-            'gambar_bukti' => 'nullable|array',
-            'gambar_bukti.*' => 'nullable|image|max:5120', // 5MB max per image
-        ]);
-
-        $proofs = [];
-        if ($request->has('gambar_bukti')) {
-            foreach ($request->gambar_bukti as $bukti) {
-                if ($bukti instanceof UploadedFile) {
-                    $path = $bukti->store('proofs', 'public');
-                    $proofs[] = '/storage/'.$path;
-                } elseif (is_string($bukti)) {
-                    $proofs[] = $bukti;
-                }
-            }
-        }
-
         $logbook->update([
             'status' => 'SUBMITTED',
-            'end_kerja' => now(),
-            'lokasi_end' => $request->gps_location_end,
-            'gambar_bukti' => empty($proofs) ? [] : $proofs,
         ]);
 
-        if ($user->manager_id) {
-            Notification::create([
-                'user_id' => $user->manager_id,
-                'title' => 'Logbook Menunggu Review',
-                'message' => "{$user->name} telah mensubmit logbook mereka.",
-                'type' => 'LOGBOOK_SUBMITTED',
-                'reference_id' => $logbook->id,
-                'is_read' => false,
-            ]);
+        return response()->json((new LogbookResource($logbook->fresh(['user', 'reviewer', 'kpiDetails.kpi'])))->toArray(request()));
+    }
+
+    private function canAccessLogbook(User $actor, Logbook $logbook): bool
+    {
+        if ($actor->isPrivileged()) {
+            return true;
         }
 
-        return response()->json($logbook);
+        if ($logbook->user_id === $actor->id) {
+            return true;
+        }
+
+        if ($actor->hasSubordinates()) {
+            return $logbook->user?->manager_id === $actor->id;
+        }
+
+        return false;
     }
 }

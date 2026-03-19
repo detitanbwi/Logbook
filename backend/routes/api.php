@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\LogbookController;
 use App\Http\Controllers\Api\V1\ManagerLogbookController;
 use App\Http\Controllers\Api\V1\MasterKpiController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\SummaryController;
 use App\Http\Controllers\Api\V1\UsersController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,14 +39,27 @@ Route::prefix('v1')->group(function () {
         Route::delete('kpi/assignments/{assignment}', [KpiAssignmentController::class, 'destroy']);
         Route::get('kpi/me', [KpiAssignmentController::class, 'me']);
 
-        Route::post('logbooks/{logbook}/revert', [ManagerLogbookController::class, 'revert']);
-        Route::put('logbooks/{logbook}/rate', [ManagerLogbookController::class, 'rate']);
+        Route::put('logbooks/{logbook}/review', [ManagerLogbookController::class, 'review']);
 
         Route::post('logbooks/start', [LogbookController::class, 'start']);
+        Route::post('logbooks', [LogbookController::class, 'store']);
         Route::get('logbooks', [LogbookController::class, 'index']);
         Route::get('logbooks/{logbook}', [LogbookController::class, 'show']);
-        Route::patch('logbooks/{logbook}/kpi/{detail}/toggle', [LogbookController::class, 'toggleKpi']);
+        Route::patch('logbooks/{logbook}/kpi/{detail}/progress', [LogbookController::class, 'updateProgress']);
+        Route::post('logbooks/{logbook}/kpi/{detail}/attachment', [LogbookController::class, 'uploadAttachment']);
+        Route::delete('logbooks/{logbook}/kpi/{detail}/attachment', [LogbookController::class, 'deleteAttachment']);
+
         Route::post('logbooks/{logbook}/submit', [LogbookController::class, 'submit']);
+
+        Route::prefix('summaries')->group(function () {
+            Route::get('daily', [SummaryController::class, 'daily']);
+            Route::get('daily/{user_id}', [SummaryController::class, 'dailyByUser']);
+            Route::get('period', [SummaryController::class, 'period']);
+            Route::get('kpi/daily', [SummaryController::class, 'kpiDaily']);
+            Route::get('kpi/period', [SummaryController::class, 'kpiPeriod']);
+            Route::get('team/daily', [SummaryController::class, 'teamDaily']);
+            Route::get('staff-performance', [SummaryController::class, 'staffPerformance']);
+        });
 
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::put('notifications/read-all', [NotificationController::class, 'readAll']);

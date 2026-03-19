@@ -36,15 +36,15 @@ test('admin can create user', function () {
     Sanctum::actingAs($admin);
 
     $response = $this->postJson('/api/v1/users', [
-        'name' => 'New User',
+        'nama' => 'New User',
         'email' => 'new@user.com',
-        'nip' => '99999999',
+        'npp' => '99999999',
         'role' => 'STAFF',
         'password' => 'password123',
     ]);
 
     $response->assertStatus(201)
-        ->assertJsonFragment(['name' => 'New User']);
+        ->assertJsonFragment(['nama' => 'New User']);
 });
 
 test('admin can update user', function () {
@@ -54,11 +54,11 @@ test('admin can update user', function () {
     Sanctum::actingAs($admin);
 
     $response = $this->putJson("/api/v1/users/{$user->id}", [
-        'name' => 'Updated User',
+        'nama' => 'Updated User',
     ]);
 
     $response->assertStatus(200)
-        ->assertJsonFragment(['name' => 'Updated User']);
+        ->assertJsonFragment(['nama' => 'Updated User']);
 });
 
 test('admin can reset user password', function () {

@@ -5,8 +5,23 @@ use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 
 test('user can login', function () {
-    $user = User::factory()->create([
-        'nip' => '12345678',
+    User::factory()->create([
+        'npp' => '12345678',
+        'password' => Hash::make('password123'),
+    ]);
+
+    $response = $this->postJson('/api/v1/auth/login', [
+        'npp' => '12345678',
+        'password' => 'password123',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJsonStructure(['access_token', 'token_type', 'user']);
+});
+
+test('user cannot login with nip payload alias', function () {
+    User::factory()->create([
+        'npp' => '12345678',
         'password' => Hash::make('password123'),
     ]);
 
@@ -15,18 +30,17 @@ test('user can login', function () {
         'password' => 'password123',
     ]);
 
-    $response->assertStatus(200)
-        ->assertJsonStructure(['access_token', 'token_type', 'user']);
+    $response->assertStatus(422);
 });
 
 test('user cannot login with invalid credentials', function () {
-    $user = User::factory()->create([
-        'nip' => '12345678',
+    User::factory()->create([
+        'npp' => '12345678',
         'password' => Hash::make('password123'),
     ]);
 
     $response = $this->postJson('/api/v1/auth/login', [
-        'nip' => '12345678',
+        'npp' => '12345678',
         'password' => 'wrongpassword',
     ]);
 

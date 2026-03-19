@@ -16,11 +16,12 @@ class UserResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'nip' => (string) ($this->nip ?? ''),
-            'name' => (string) ($this->name ?? ''),
+            'npp' => (string) ($this->npp ?? ''),
+            'nama' => (string) ($this->nama ?? ''),
             'email' => (string) ($this->email ?? ''),
             'role' => (string) ($this->role ?? ''),
             'manager_id' => $this->manager_id,
+            'has_subordinates' => method_exists($this->resource, 'hasSubordinates') ? $this->hasSubordinates() : false,
             'manager' => new UserResource($this->whenLoaded('manager')),
             'last_password_change' => optional($this->last_password_change)?->toISOString(),
             'created_at' => optional($this->created_at)?->toISOString(),

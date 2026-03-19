@@ -9,9 +9,9 @@ test('audit log is created when user is created', function () {
     Sanctum::actingAs($admin);
 
     $response = $this->postJson('/api/v1/users', [
-        'name' => 'Audit Test User',
+        'nama' => 'Audit Test User',
         'email' => 'audit@test.com',
-        'nip' => '88888888',
+        'npp' => '88888888',
         'role' => 'STAFF',
         'password' => 'password123',
     ]);
@@ -69,9 +69,9 @@ test('admin can view audit logs', function () {
 
     // Create a log indirectly by acting as admin and doing something
     $this->postJson('/api/v1/users', [
-        'name' => 'Audit Test User 2',
+        'nama' => 'Audit Test User 2',
         'email' => 'audit2@test.com',
-        'nip' => '88888889',
+        'npp' => '88888889',
         'role' => 'STAFF',
         'password' => 'password123',
     ]);
