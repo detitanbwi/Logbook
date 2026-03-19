@@ -19,15 +19,21 @@ export const load: LayoutLoad = async ({ url }) => {
 	const role = auth.role?.toLowerCase();
 	const path = url.pathname;
 
-	// Simple route guarding
+	// Simple route guarding - redirect unauthorized users to their proper dashboard
 	if (path.startsWith('/admin') && role !== 'admin') {
-		throw redirect(302, '/');
+		if (role === 'manager') throw redirect(302, '/manager/dashboard');
+		if (role === 'staff') throw redirect(302, '/staff/dashboard');
+		throw redirect(302, '/login');
 	}
 	if (path.startsWith('/manager') && role !== 'manager') {
-		throw redirect(302, '/');
+		if (role === 'admin') throw redirect(302, '/admin/dashboard');
+		if (role === 'staff') throw redirect(302, '/staff/dashboard');
+		throw redirect(302, '/login');
 	}
 	if (path.startsWith('/staff') && role !== 'staff') {
-		throw redirect(302, '/');
+		if (role === 'admin') throw redirect(302, '/admin/dashboard');
+		if (role === 'manager') throw redirect(302, '/manager/dashboard');
+		throw redirect(302, '/login');
 	}
 
 	return {
