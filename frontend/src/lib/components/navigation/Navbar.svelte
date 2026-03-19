@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
-	import { LogOut, User, Settings, Bell, Menu } from 'lucide-svelte';
+	import { LogOut, User, Bell, Menu } from 'lucide-svelte';
 	import { notificationStore } from '$lib/stores/notification.svelte';
 	import { onMount } from 'svelte';
 

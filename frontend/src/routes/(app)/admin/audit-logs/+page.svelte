@@ -142,15 +142,17 @@
 			/>
 
 			<div class="flex items-center gap-2">
-				<label class="text-sm text-base-content/70">Dari:</label>
+				<label class="text-sm text-base-content/70" for="date-from">Dari:</label>
 				<input
+					id="date-from"
 					type="date"
 					class="input-bordered input input-sm"
 					value={dateFrom}
 					onchange={(e) => updateUrl({ date_from: e.currentTarget.value })}
 				/>
-				<label class="text-sm text-base-content/70">Sampai:</label>
+				<label class="text-sm text-base-content/70" for="date-to">Sampai:</label>
 				<input
+					id="date-to"
 					type="date"
 					class="input-bordered input input-sm"
 					value={dateTo}
