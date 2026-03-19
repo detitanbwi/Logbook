@@ -24,7 +24,7 @@
 			<span class="label-text font-medium">
 				{label}
 				{#if required}
-					<span class="text-error ml-1">*</span>
+					<span class="ml-1 text-error">*</span>
 				{/if}
 			</span>
 		</label>

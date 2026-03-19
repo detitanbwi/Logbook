@@ -42,21 +42,19 @@
 	}
 
 	let btnClass = $derived(
-		type === 'error' ? 'btn-error' :
-		type === 'warning' ? 'btn-warning' :
-		'btn-primary'
+		type === 'error' ? 'btn-error' : type === 'warning' ? 'btn-warning' : 'btn-primary'
 	);
 </script>
 
-<dialog bind:this={dialog} class="modal" onclose={() => open = false}>
+<dialog bind:this={dialog} class="modal" onclose={() => (open = false)}>
 	<div class="modal-box">
-		<h3 class="font-bold text-lg">{title}</h3>
+		<h3 class="text-lg font-bold">{title}</h3>
 		<p class="py-4">{message}</p>
 		<div class="modal-action">
 			<button class="btn btn-ghost" onclick={handleCancel} disabled={loading}>{cancelText}</button>
 			<button class="btn {btnClass}" onclick={handleConfirm} disabled={loading}>
 				{#if loading}
-					<span class="loading loading-spinner loading-sm"></span>
+					<span class="loading loading-sm loading-spinner"></span>
 				{/if}
 				{confirmText}
 			</button>

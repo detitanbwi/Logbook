@@ -47,14 +47,18 @@
 	<li class="mt-2 mb-1 menu-title text-xs tracking-widest uppercase">Menu Utama ({displayRole})</li>
 	{#each links as link}
 		<li>
-		<a
-			href={link.href}
-			class="mb-1 rounded-md px-4 py-2 hover:bg-base-200 block {page.url.pathname.startsWith(link.href) ? 'bg-primary text-primary-content font-semibold hover:bg-primary-focus' : ''}"
-			onclick={closeSidebar}
-			aria-current={page.url.pathname.startsWith(link.href) ? 'page' : undefined}
-		>
-			{link.label}
-		</a>
+			<a
+				href={link.href}
+				class="mb-1 block rounded-md px-4 py-2 hover:bg-base-200 {page.url.pathname.startsWith(
+					link.href
+				)
+					? 'hover:bg-primary-focus bg-primary font-semibold text-primary-content'
+					: ''}"
+				onclick={closeSidebar}
+				aria-current={page.url.pathname.startsWith(link.href) ? 'page' : undefined}
+			>
+				{link.label}
+			</a>
 		</li>
 	{/each}
 
@@ -64,7 +68,9 @@
 	<li>
 		<a
 			href="/profile"
-			class="mb-1 rounded-md px-4 py-2 hover:bg-base-200 block {page.url.pathname === '/profile' ? 'bg-primary text-primary-content font-semibold hover:bg-primary-focus' : ''}"
+			class="mb-1 block rounded-md px-4 py-2 hover:bg-base-200 {page.url.pathname === '/profile'
+				? 'hover:bg-primary-focus bg-primary font-semibold text-primary-content'
+				: ''}"
 			onclick={closeSidebar}
 			aria-current={page.url.pathname === '/profile' ? 'page' : undefined}
 		>

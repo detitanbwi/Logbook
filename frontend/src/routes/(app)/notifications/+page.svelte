@@ -12,11 +12,13 @@
 	let loading = $state(true);
 
 	const readStatusOptions = [
+		{ label: 'Semua', value: '' },
 		{ label: 'Belum Dibaca', value: 'false' },
 		{ label: 'Sudah Dibaca', value: 'true' }
 	];
 
 	const typeOptions = [
+		{ label: 'Semua', value: '' },
 		{ label: 'Penugasan KPI', value: 'KPI_ASSIGNMENT' },
 		{ label: 'Logbook Diajukan', value: 'LOGBOOK_SUBMITTED' },
 		{ label: 'Logbook Dikembalikan', value: 'LOGBOOK_REVERTED' },
@@ -24,6 +26,7 @@
 	];
 
 	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
+	let perPage = $derived(Number($page.url.searchParams.get('per_page')) || 15);
 	let isRead = $derived($page.url.searchParams.get('is_read') || '');
 	let type = $derived($page.url.searchParams.get('type') || '');
 
@@ -43,10 +46,17 @@
 		goto(url.toString(), { replaceState: true, keepFocus: true });
 	}
 
+	function handlePageSizeChange(size: number) {
+		const url = new URL($page.url);
+		url.searchParams.set('per_page', size.toString());
+		url.searchParams.set('page', '1');
+		goto(url.toString(), { replaceState: true, keepFocus: true });
+	}
+
 	async function fetchNotifications(pageNum: number, isReadFilter: string, typeFilter: string) {
 		loading = true;
 		try {
-			const params: Record<string, any> = { page: pageNum };
+			const params: Record<string, any> = { page: pageNum, per_page: perPage };
 			if (isReadFilter) params.is_read = isReadFilter === 'true';
 			if (typeFilter) params.type = typeFilter;
 
@@ -95,6 +105,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Notifikasi</title>
+</svelte:head>
+
 <div class="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
 	<div class="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
 		<div>
@@ -102,7 +116,7 @@
 			<p class="mt-1 text-sm text-base-content/70">Pemberitahuan sistem dan aktivitas tim Anda</p>
 		</div>
 
-		{#if notifications.some((n) => !n.read_at)}
+		{#if !loading && notifications.some((n) => !n.read_at)}
 			<button class="btn btn-outline btn-sm btn-primary" onclick={markAllAsRead}>
 				<CheckCircle2 class="mr-2 h-4 w-4" />
 				Tandai Semua Dibaca
@@ -128,9 +142,24 @@
 	<div class="card border border-base-200 bg-base-100 shadow-sm">
 		<div class="card-body p-0">
 			{#if loading}
-				<div class="flex flex-col items-center justify-center p-12 text-base-content/50">
-					<span class="loading loading-lg loading-spinner"></span>
-					<p class="mt-4 text-sm">Memuat notifikasi...</p>
+				<div class="divide-y divide-base-200">
+					{#each Array(5) as _}
+						<div class="flex items-start gap-4 p-4">
+							<div class="mt-1 flex-shrink-0">
+								<div class="h-5 w-5 animate-pulse rounded-full bg-base-300"></div>
+							</div>
+							<div class="min-w-0 flex-1">
+								<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+									<div class="h-4 w-32 animate-pulse rounded bg-base-300"></div>
+									<div class="h-3 w-24 animate-pulse rounded bg-base-300"></div>
+								</div>
+								<div class="mt-2 h-4 w-full max-w-md animate-pulse rounded bg-base-300"></div>
+							</div>
+							<div class="ml-4 flex-shrink-0">
+								<div class="h-6 w-24 animate-pulse rounded bg-base-300"></div>
+							</div>
+						</div>
+					{/each}
 				</div>
 			{:else if notifications.length === 0}
 				<div class="flex flex-col items-center justify-center p-12 text-base-content/50">
@@ -189,7 +218,7 @@
 					{/each}
 				</div>
 				<div class="border-t border-base-200 p-4">
-					<Pagination {meta} />
+					<Pagination {meta} onPageSizeChange={handlePageSizeChange} />
 				</div>
 			{/if}
 		</div>

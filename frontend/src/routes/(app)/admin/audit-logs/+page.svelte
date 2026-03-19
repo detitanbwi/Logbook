@@ -1,42 +1,25 @@
 <script lang="ts">
-	import { auditService } from '$lib/api/services/auditService';
-	import DataTable from '$lib/components/ui/DataTable.svelte';
-	import Pagination from '$lib/components/ui/Pagination.svelte';
-	import { SearchInput, FilterDropdown, SortableHeader } from '$lib/components/ui';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+import { auditService } from '$lib/api/services/auditService';
+import DataTable from '$lib/components/ui/DataTable.svelte';
+import Pagination from '$lib/components/ui/Pagination.svelte';
+import { SearchInput, FilterDropdown, SortableHeader, Popover } from '$lib/components/ui';
+import { normalizeAuditLog, type NormalizedAuditLog } from '$lib/utils/auditLog';
+import { goto } from '$app/navigation';
+import { page } from '$app/stores';
 
-	interface AuditLog {
-		id: string;
-		user_id: string;
-		event: string;
-		auditable_type: string;
-		auditable_id: string;
-		old_values: Record<string, any>;
-		new_values: Record<string, any>;
-		url: string;
-		ip_address: string;
-		user_agent: string;
-		created_at: string;
-		user?: {
-			id: string;
-			name: string;
-			email: string;
-		};
-	}
-
-	let logs = $state<AuditLog[]>([]);
+	let logs = $state<NormalizedAuditLog[]>([]);
 	let meta = $state<any>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
-	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
-	let search = $derived($page.url.searchParams.get('search') || '');
-	let action = $derived($page.url.searchParams.get('action') || '');
-	let dateFrom = $derived($page.url.searchParams.get('date_from') || '');
-	let dateTo = $derived($page.url.searchParams.get('date_to') || '');
-	let sortBy = $derived($page.url.searchParams.get('sort_by') || 'created_at');
-	let sortDir = $derived(($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc');
+let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
+let perPage = $derived(Number($page.url.searchParams.get('per_page')) || 15);
+let search = $derived($page.url.searchParams.get('search') || '');
+let action = $derived($page.url.searchParams.get('action') || '');
+let dateFrom = $derived($page.url.searchParams.get('date_from') || '');
+let dateTo = $derived($page.url.searchParams.get('date_to') || '');
+let sortBy = $derived($page.url.searchParams.get('sort_by') || 'created_at');
+let sortDir = $derived(($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc');
 
 	function updateUrl(params: Record<string, string>) {
 		const url = new URL($page.url);
@@ -55,14 +38,14 @@
 		{ label: 'Dihapus (deleted)', value: 'deleted' }
 	];
 
-	async function fetchLogs() {
-		loading = true;
-		error = null;
+async function fetchLogs() {
+  loading = true;
+  error = null;
 
-		const params: Record<string, unknown> = {
-			page: currentPage,
-			per_page: 15
-		};
+  const params: Record<string, unknown> = {
+    page: currentPage,
+    per_page: perPage
+  };
 
 		if (search) params.search = search;
 		if (action) params.action = action;
@@ -74,10 +57,10 @@
 		try {
 			const data = await auditService.getAuditLogs(params);
 			if ('data' in data && Array.isArray((data as any).data)) {
-				logs = (data as any).data;
+				logs = (data as any).data.map(normalizeAuditLog);
 				meta = (data as any).meta || null;
 			} else {
-				logs = data as unknown as AuditLog[];
+				logs = (Array.isArray(data) ? data : []).map(normalizeAuditLog);
 			}
 		} catch (e: any) {
 			console.error('Failed to fetch audit logs', e);
@@ -92,10 +75,20 @@
 	});
 
 	function formatDate(dateStr: string) {
-		return new Date(dateStr).toLocaleString('id-ID', {
+		if (!dateStr) return '-';
+
+		const date = new Date(dateStr);
+		if (Number.isNaN(date.getTime())) return '-';
+
+		return date.toLocaleString('id-ID', {
 			dateStyle: 'medium',
 			timeStyle: 'short'
 		});
+	}
+
+	function getEntityLabel(type: string | undefined) {
+		const safeType = typeof type === 'string' && type.length > 0 ? type : '-';
+		return safeType.split('\\').pop() || safeType;
 	}
 
 	function formatValues(values: Record<string, any> | undefined | null) {
@@ -103,19 +96,26 @@
 		return JSON.stringify(values, null, 2);
 	}
 
-	function getEventColor(event: string) {
-		if (!event) return 'text-info';
-		switch (event.toLowerCase()) {
-			case 'created':
-				return 'text-success';
-			case 'updated':
-				return 'text-warning';
-			case 'deleted':
-				return 'text-error';
-			default:
-				return 'text-info';
-		}
-	}
+function getEventColor(event: string) {
+  if (!event) return 'text-info';
+  switch (event.toLowerCase()) {
+    case 'created':
+      return 'text-success';
+    case 'updated':
+      return 'text-warning';
+    case 'deleted':
+      return 'text-error';
+    default:
+      return 'text-info';
+  }
+}
+
+function handlePageSizeChange(size: number) {
+  const url = new URL($page.url);
+  url.searchParams.set('per_page', size.toString());
+  url.searchParams.set('page', '1');
+  goto(url.toString(), { replaceState: true, noScroll: true });
+}
 </script>
 
 <div class="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -210,7 +210,7 @@
 					</td>
 					<td>
 						<div class="text-sm font-medium">
-							{log.auditable_type.split('\\').pop() || log.auditable_type}
+							{getEntityLabel(log.auditable_type)}
 						</div>
 						<div class="text-xs text-base-content/50">ID: {log.auditable_id}</div>
 					</td>
@@ -222,35 +222,34 @@
 							<span class="text-xs text-base-content/50 italic">System / Unknown</span>
 						{/if}
 					</td>
-					<td class="max-w-xs xl:max-w-md">
-						<div class="dropdown-hover dropdown dropdown-end">
-							<div tabindex="0" role="button" class="btn btn-ghost btn-xs">Lihat Detail</div>
-							<div
-								tabindex="-1"
-								class="dropdown-content menu z-[1] w-80 rounded-box border border-base-200 bg-base-100 p-4 text-xs shadow-lg"
-							>
-								<div class="mb-2">
-									<p class="font-bold text-base-content">Old Values:</p>
-									<pre
-										class="mt-1 overflow-x-auto rounded bg-base-200 p-2 text-[10px]">{formatValues(
-											log.old_values
-										)}</pre>
-								</div>
-								<div>
-									<p class="font-bold text-base-content">New Values:</p>
-									<pre
-										class="mt-1 overflow-x-auto rounded bg-base-200 p-2 text-[10px]">{formatValues(
-											log.new_values
-										)}</pre>
-								</div>
-							</div>
-						</div>
-					</td>
+<td class="max-w-xs xl:max-w-md">
+            <Popover>
+              {#snippet trigger()}
+                <span class="btn btn-ghost btn-xs">Lihat Detail</span>
+              {/snippet}
+              {#snippet content()}
+                <div class="mb-2">
+                  <p class="font-bold text-base-content">Old Values:</p>
+                  <pre
+                    class="mt-1 overflow-x-auto rounded bg-base-200 p-2 text-[10px]">{formatValues(
+                    log.old_values
+                  )}</pre>
+                </div>
+                <div>
+                  <p class="font-bold text-base-content">New Values:</p>
+                  <pre
+                    class="mt-1 overflow-x-auto rounded bg-base-200 p-2 text-[10px]">{formatValues(
+                    log.new_values
+                  )}</pre>
+                </div>
+              {/snippet}
+            </Popover>
+          </td>
 				</tr>
 			{/each}
 		{/if}
 	</DataTable>
-	<div class="mt-4">
-		<Pagination {meta} />
-	</div>
+<div class="mt-4">
+    <Pagination {meta} onPageSizeChange={handlePageSizeChange} />
+  </div>
 </div>

@@ -31,10 +31,18 @@ describe('API DTO Schemas', () => {
 	});
 
 	it('should validate ChangePasswordRequest with min length 8', () => {
-		const valid = { old_password: 'password123', new_password: 'newpassword123' };
+		const valid = {
+			old_password: 'password123',
+			new_password: 'newpassword123',
+			new_password_confirmation: 'newpassword123'
+		};
 		expect(v.safeParse(ChangePasswordRequestSchema, valid).success).toBe(true);
 
-		const invalidLen = { old_password: 'password123', new_password: 'short' };
+		const invalidLen = {
+			old_password: 'password123',
+			new_password: 'short',
+			new_password_confirmation: 'short'
+		};
 		expect(v.safeParse(ChangePasswordRequestSchema, invalidLen).success).toBe(false);
 	});
 
@@ -101,21 +109,21 @@ describe('API DTO Schemas', () => {
 	describe('User Schema', () => {
 		it('should validate UserCreateSchema', () => {
 			const valid = {
-				nama: 'Test User',
+				name: 'Test User',
 				email: 'test@example.com',
 				nip: '12345',
 				password: 'password123',
 				role: 'Staff'
 			};
 			expect(v.safeParse(UserCreateSchema, valid).success).toBe(true);
-			const invalid = { nama: 'Test', email: 'test@example.com' };
+			const invalid = { name: 'Test', email: 'test@example.com' };
 			expect(v.safeParse(UserCreateSchema, invalid).success).toBe(false);
 		});
 
 		it('should validate UserUpdateSchema', () => {
-			expect(v.safeParse(UserUpdateSchema, { nama: 'Test' }).success).toBe(true);
+			expect(v.safeParse(UserUpdateSchema, { name: 'Test' }).success).toBe(true);
 			expect(v.safeParse(UserUpdateSchema, {}).success).toBe(true);
-			expect(v.safeParse(UserUpdateSchema, { nama: 123 }).success).toBe(false);
+			expect(v.safeParse(UserUpdateSchema, { name: 123 as any }).success).toBe(false);
 		});
 	});
 

@@ -20,7 +20,7 @@ function createToastStore() {
 				remove(id);
 			}, duration);
 		}
-		
+
 		return id;
 	}
 

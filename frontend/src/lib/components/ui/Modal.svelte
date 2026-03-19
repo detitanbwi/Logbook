@@ -19,12 +19,13 @@
 		if (isOpen && dialog && !dialog.open) {
 			dialog.showModal();
 			// Focus management: focus first focusable element
-			const focusable = dialog.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') as HTMLElement;
+			const focusable = dialog.querySelector(
+				'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+			) as HTMLElement;
 			if (focusable) {
 				focusable.focus();
 			}
-		}
-		else if (!isOpen && dialog && dialog.open) dialog.close();
+		} else if (!isOpen && dialog && dialog.open) dialog.close();
 	});
 
 	function close() {
@@ -32,9 +33,9 @@
 	}
 </script>
 
-<dialog 
-	bind:this={dialog} 
-	class="modal modal-bottom sm:modal-middle" 
+<dialog
+	bind:this={dialog}
+	class="modal modal-bottom sm:modal-middle"
 	onclose={close}
 	aria-labelledby="modal-title"
 	aria-modal="true"

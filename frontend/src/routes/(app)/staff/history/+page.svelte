@@ -8,6 +8,7 @@
 	import type { LogbookFilters } from '$lib/api/services/staffLogbookService';
 
 	const statusOptions = [
+		{ label: 'Semua', value: '' },
 		{ label: 'Draft', value: 'DRAFT' },
 		{ label: 'Diajukan', value: 'SUBMITTED' },
 		{ label: 'Dikembalikan', value: 'REVERTED' },
@@ -15,6 +16,7 @@
 	];
 
 	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
+	let perPage = $derived(Number($page.url.searchParams.get('per_page')) || 15);
 	let status = $derived($page.url.searchParams.get('status') || '');
 	let dateFrom = $derived($page.url.searchParams.get('date_from') || '');
 	let dateTo = $derived($page.url.searchParams.get('date_to') || '');
@@ -31,10 +33,17 @@
 		goto(url.toString(), { replaceState: true, noScroll: true });
 	}
 
+	function handlePageSizeChange(size: number) {
+		const url = new URL($page.url);
+		url.searchParams.set('per_page', size.toString());
+		url.searchParams.set('page', '1');
+		goto(url.toString(), { replaceState: true, noScroll: true });
+	}
+
 	$effect(() => {
 		const filters: LogbookFilters = {
 			page: currentPage,
-			per_page: 15
+			per_page: perPage
 		};
 
 		if (status) filters.status = status;
@@ -50,6 +59,10 @@
 
 	let sortedLogbooks = $derived(logbookStore.logbooks);
 </script>
+
+<svelte:head>
+	<title>Riwayat Logbook | Staff</title>
+</svelte:head>
 
 <div class="flex flex-col gap-6">
 	<div class="flex items-center justify-between">
@@ -91,8 +104,39 @@
 	<div class="card border border-base-300 bg-base-100 shadow-sm">
 		<div class="card-body p-0">
 			{#if logbookStore.isLoading && logbookStore.logbooks.length === 0}
-				<div class="flex justify-center p-8">
-					<span class="loading loading-lg loading-spinner text-primary"></span>
+				<div class="overflow-x-auto rounded-box">
+					<table class="table w-full table-zebra">
+						<thead class="bg-base-200 text-base-content">
+							<tr>
+								<th>Tanggal</th>
+								<th>Status</th>
+								<th>Waktu Mulai</th>
+								<th>Waktu Selesai</th>
+								<th>Tugas Selesai</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each Array(5) as _}
+								<tr>
+									<td>
+										<div class="h-4 w-40 animate-pulse rounded bg-base-300"></div>
+									</td>
+									<td>
+										<div class="h-5 w-20 animate-pulse rounded bg-base-300"></div>
+									</td>
+									<td>
+										<div class="h-4 w-16 animate-pulse rounded bg-base-300"></div>
+									</td>
+									<td>
+										<div class="h-4 w-16 animate-pulse rounded bg-base-300"></div>
+									</td>
+									<td>
+										<div class="h-4 w-12 animate-pulse rounded bg-base-300"></div>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
 				</div>
 			{:else}
 				<div class="overflow-x-auto rounded-box">
@@ -150,7 +194,7 @@
 												: '-'}
 										</td>
 										<td>
-											{#if log.details && log.details.length > 0}
+											{#if Array.isArray(log.details) && log.details.length > 0}
 												{log.details.filter((d) => d.is_finished).length} / {log.details.length}
 											{:else}
 												-
@@ -163,7 +207,7 @@
 					</table>
 				</div>
 				<div class="p-4">
-					<Pagination meta={logbookStore.meta} />
+					<Pagination meta={logbookStore.meta} onPageSizeChange={handlePageSizeChange} />
 				</div>
 			{/if}
 		</div>

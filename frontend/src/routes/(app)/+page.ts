@@ -16,4 +16,4 @@ export const load: PageLoad = async ({ parent }) => {
 	}
 
 	throw redirect(302, '/login');
-}
+};

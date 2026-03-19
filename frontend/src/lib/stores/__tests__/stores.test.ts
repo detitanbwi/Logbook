@@ -59,7 +59,7 @@ describe('Store State Flow', () => {
 			expect(auth.error).toBeNull();
 
 			if (typeof localStorage !== 'undefined') {
-				expect(localStorage.getItem('auth-token')).toBe(mockToken);
+				expect(localStorage.getItem('auth-token')).toBe(JSON.stringify(mockToken));
 			}
 		});
 

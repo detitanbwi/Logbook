@@ -2,11 +2,11 @@
 	let { rows = 5, cols = 4 } = $props();
 </script>
 
-<div class="animate-pulse w-full">
+<div class="w-full animate-pulse">
 	{#each Array(rows) as _, i}
-		<div class="flex gap-4 mb-4" role="status" aria-label="Loading">
+		<div class="mb-4 flex gap-4" role="status" aria-label="Loading">
 			{#each Array(cols) as _, j}
-				<div class="h-8 bg-base-300 rounded w-full"></div>
+				<div class="h-8 w-full rounded bg-base-300"></div>
 			{/each}
 		</div>
 	{/each}

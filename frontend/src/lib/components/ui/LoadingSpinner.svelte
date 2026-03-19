@@ -1,11 +1,15 @@
 <script lang="ts">
-	let { size = 'md', class: className = '' }: { size?: 'xs' | 'sm' | 'md' | 'lg', class?: string } = $props();
+	let { size = 'md', class: className = '' }: { size?: 'xs' | 'sm' | 'md' | 'lg'; class?: string } =
+		$props();
 
 	let sizeClass = $derived(
-		size === 'xs' ? 'loading-xs' :
-		size === 'sm' ? 'loading-sm' :
-		size === 'lg' ? 'loading-lg' :
-		'loading-md'
+		size === 'xs'
+			? 'loading-xs'
+			: size === 'sm'
+				? 'loading-sm'
+				: size === 'lg'
+					? 'loading-lg'
+					: 'loading-md'
 	);
 </script>
 

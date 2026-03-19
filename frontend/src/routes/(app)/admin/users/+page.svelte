@@ -15,20 +15,59 @@
 	import type { UserCreateDto, UserUpdateDto } from '$lib/api/schemas/user.schema';
 
 	let { data } = $props();
-	let users = $derived(data.users);
-	let meta = $derived(data.meta);
+	let initialLoad = $derived(data?.initialLoad ?? false);
+
+	// State
+	let users = $state<any[]>([]);
+	let meta = $state<any>(null);
+	let loading = $state(true);
+	let error = $state<string | null>(null);
 
 	// Read current filter values from URL
+	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
+	let perPage = $derived(Number($page.url.searchParams.get('per_page')) || 15);
 	let search = $derived($page.url.searchParams.get('search') || '');
 	let role = $derived($page.url.searchParams.get('role') || '');
 	let sortBy = $derived($page.url.searchParams.get('sort_by') || 'created_at');
 	let sortDir = $derived(($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc');
 
 	const roleOptions = [
+		{ label: 'Semua', value: '' },
 		{ label: 'Admin', value: 'Admin' },
 		{ label: 'Manager', value: 'Manager' },
 		{ label: 'Staff', value: 'Staff' }
 	];
+
+	async function fetchUsers() {
+		loading = true;
+		error = null;
+
+		const params: Record<string, unknown> = {
+			page: currentPage,
+			per_page: perPage
+		};
+
+		if (search) params.search = search;
+		if (role) params.role = role;
+		if (sortBy) params.sort_by = sortBy;
+		if (sortDir) params.sort_dir = sortDir;
+
+		try {
+			const response = await usersService.getAll(params);
+			users = Array.isArray(response) ? response : (response as any).data || [];
+			meta = (response as any).meta || null;
+		} catch (e: any) {
+			console.error('Failed to fetch users', e);
+			error = e.message || 'Gagal memuat data user';
+		} finally {
+			loading = false;
+		}
+	}
+
+	// Fetch on mount and when URL params change
+	$effect(() => {
+		fetchUsers();
+	});
 
 	function updateUrl(params: Record<string, string>) {
 		const url = new URL($page.url);
@@ -55,6 +94,13 @@
 		updateUrl({ sort_by: column, sort_dir: dir });
 	}
 
+	function handlePageSizeChange(size: number) {
+		const url = new URL($page.url);
+		url.searchParams.set('per_page', size.toString());
+		url.searchParams.set('page', '1');
+		goto(url.toString(), { replaceState: true, noScroll: true });
+	}
+
 	let isModalOpen = $state(false);
 	let isEditMode = $state(false);
 	let currentUserId = $state<string | null>(null);
@@ -68,7 +114,7 @@
 	});
 
 	let isSubmitting = $state(false);
-	
+
 	let showDeleteConfirm = $state(false);
 	let userToDelete = $state<string | null>(null);
 
@@ -111,7 +157,7 @@
 				toastStore.success('User berhasil ditambahkan.');
 			}
 			isModalOpen = false;
-			invalidate('users:list');
+			fetchUsers();
 		} catch (error) {
 			console.error('Error submitting user:', error);
 			toastStore.error('Gagal menyimpan user.');
@@ -130,7 +176,7 @@
 		try {
 			await usersService.delete(userToDelete);
 			toastStore.success('User berhasil dinonaktifkan/dihapus.');
-			invalidate('users:list');
+			fetchUsers();
 		} catch (error) {
 			console.error('Error deleting user:', error);
 			toastStore.error('Gagal menghapus user.');
@@ -154,6 +200,13 @@
 	<SearchInput value={search} placeholder="Cari nama, email, atau NIP..." onSearch={handleSearch} />
 	<FilterDropdown label="Role" options={roleOptions} value={role} onChange={handleRoleFilter} />
 </div>
+
+{#if error}
+	<div class="alert alert-error mb-4">
+		<span>{error}</span>
+		<button class="btn btn-ghost btn-sm" onclick={() => fetchUsers()}>Coba Lagi</button>
+	</div>
+{/if}
 
 <DataTable>
 	{#snippet head()}
@@ -190,33 +243,58 @@
 		</tr>
 	{/snippet}
 
-	{#each users as user}
-		<tr>
-			<td>{user.nip}</td>
-			<td class="font-medium">{user.name}</td>
-			<td>{user.email}</td>
-			<td>
-				<span class="badge badge-outline">{user.role}</span>
-			</td>
-			<td>
-				<div class="flex gap-2">
-					<button class="btn btn-outline btn-sm btn-secondary" onclick={() => openEdit(user)}>
-						Edit
-					</button>
-					<button class="btn btn-outline btn-sm btn-error" onclick={() => confirmDelete(user.id)}>
-						Hapus
-					</button>
-				</div>
-			</td>
-		</tr>
-	{:else}
+	{#if loading}
+		{#each Array(5) as _}
+			<tr>
+				<td>
+					<div class="h-4 w-24 animate-pulse rounded bg-base-300"></div>
+				</td>
+				<td>
+					<div class="h-4 w-32 animate-pulse rounded bg-base-300"></div>
+				</td>
+				<td>
+					<div class="h-4 w-40 animate-pulse rounded bg-base-300"></div>
+				</td>
+				<td>
+					<div class="h-5 w-16 animate-pulse rounded bg-base-300"></div>
+				</td>
+				<td>
+					<div class="flex gap-2">
+						<div class="h-7 w-16 animate-pulse rounded bg-base-300"></div>
+						<div class="h-7 w-16 animate-pulse rounded bg-base-300"></div>
+					</div>
+				</td>
+			</tr>
+		{/each}
+	{:else if users.length === 0}
 		<tr>
 			<td colspan="5" class="py-4 text-center text-base-content/50"> Belum ada data User. </td>
 		</tr>
-	{/each}
+	{:else}
+		{#each users as user}
+			<tr>
+				<td>{user.nip}</td>
+				<td class="font-medium">{user.name}</td>
+				<td>{user.email}</td>
+				<td>
+					<span class="badge badge-outline">{user.role}</span>
+				</td>
+				<td>
+					<div class="flex gap-2">
+						<button class="btn btn-outline btn-sm btn-secondary" onclick={() => openEdit(user)}>
+							Edit
+						</button>
+						<button class="btn btn-outline btn-sm btn-error" onclick={() => confirmDelete(user.id)}>
+							Hapus
+						</button>
+					</div>
+				</td>
+			</tr>
+		{/each}
+	{/if}
 </DataTable>
 
-<Pagination {meta} />
+<Pagination {meta} onPageSizeChange={handlePageSizeChange} />
 
 <Modal bind:isOpen={isModalOpen} title={isEditMode ? 'Edit User' : 'Tambah User Baru'}>
 	<form class="flex flex-col gap-4">

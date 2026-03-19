@@ -25,7 +25,7 @@
 		import('leaflet').then((L) => {
 			if (!isMounted) return;
 			leaflet = L;
-			
+
 			// Fix default icon path issues in leaflet with webpack/vite
 			delete (L.Icon.Default.prototype as any)._getIconUrl;
 			L.Icon.Default.mergeOptions({
@@ -54,11 +54,11 @@
 
 	function updateMarkers(newMarkers: Array<{ lat: number; lng: number; title?: string }>) {
 		if (!map || !leaflet) return;
-		
+
 		// Clear existing markers
-		currentMarkers.forEach(m => m.remove());
+		currentMarkers.forEach((m) => m.remove());
 		currentMarkers = [];
-		
+
 		// Add new markers
 		newMarkers.forEach((markerData) => {
 			const marker = leaflet.marker([markerData.lat, markerData.lng]).addTo(map);
@@ -74,7 +74,7 @@
 			map.setView([lat, lng], zoom);
 		}
 	});
-	
+
 	$effect(() => {
 		if (map && markers) {
 			updateMarkers(markers);

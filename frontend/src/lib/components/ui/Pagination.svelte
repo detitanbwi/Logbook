@@ -2,7 +2,10 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
-	let { meta, onPageSizeChange }: {
+	let {
+		meta,
+		onPageSizeChange
+	}: {
 		meta: {
 			current_page: number;
 			last_page: number;
@@ -21,7 +24,7 @@
 		url.searchParams.set('page', pageNum.toString());
 		return url.toString();
 	}
-	
+
 	function handlePageSizeChange(e: Event) {
 		const select = e.target as HTMLSelectElement;
 		const size = parseInt(select.value);
@@ -38,31 +41,40 @@
 </script>
 
 {#if meta && meta.total > 0}
-	<nav class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4" aria-label="Navigasi Halaman">
-		<div class="flex items-center gap-2 text-sm text-base-content/70">
-			<label for="per_page_select">Tampilkan</label>
-			<select 
-				id="per_page_select"
-				class="select select-bordered select-sm" 
-				value={per_page}
-				onchange={handlePageSizeChange}
-				aria-label="Jumlah item per halaman"
-			>
-				<option value={10}>10</option>
-				<option value={15}>15</option>
-				<option value={25}>25</option>
-				<option value={50}>50</option>
-				<option value={100}>100</option>
-			</select>
-			<span>dari total {meta.total} data</span>
-		</div>
+<nav
+  class="mt-4 flex flex-wrap items-center justify-between gap-4"
+  aria-label="Navigasi Halaman"
+>
+  <div class="flex flex-wrap items-center gap-2 text-sm text-base-content/70">
+    <label for="per_page_select" class="whitespace-nowrap">Tampilkan</label>
+    <select
+      id="per_page_select"
+      class="select-bordered select select-sm"
+      value={per_page}
+      onchange={handlePageSizeChange}
+      aria-label="Jumlah item per halaman"
+    >
+      <option value={10}>10</option>
+      <option value={15}>15</option>
+      <option value={25}>25</option>
+      <option value={50}>50</option>
+      <option value={100}>100</option>
+    </select>
+    <span class="whitespace-nowrap">dari total {meta.total} data</span>
+  </div>
 
 		{#if meta.last_page > 1}
 			<div class="join">
 				{#if current_page > 1}
-					<a href={getPageUrl(current_page - 1)} class="btn join-item btn-sm" aria-label="Halaman Sebelumnya">«</a>
+					<a
+						href={getPageUrl(current_page - 1)}
+						class="btn join-item btn-sm"
+						aria-label="Halaman Sebelumnya">«</a
+					>
 				{:else}
-					<button class="btn btn-disabled join-item btn-sm" aria-label="Halaman Sebelumnya">«</button>
+					<button class="btn btn-disabled join-item btn-sm" aria-label="Halaman Sebelumnya"
+						>«</button
+					>
 				{/if}
 
 				<span class="no-animation btn pointer-events-none join-item btn-sm" aria-current="page">
@@ -70,9 +82,15 @@
 				</span>
 
 				{#if current_page < last_page}
-					<a href={getPageUrl(current_page + 1)} class="btn join-item btn-sm" aria-label="Halaman Berikutnya">»</a>
+					<a
+						href={getPageUrl(current_page + 1)}
+						class="btn join-item btn-sm"
+						aria-label="Halaman Berikutnya">»</a
+					>
 				{:else}
-					<button class="btn btn-disabled join-item btn-sm" aria-label="Halaman Berikutnya">»</button>
+					<button class="btn btn-disabled join-item btn-sm" aria-label="Halaman Berikutnya"
+						>»</button
+					>
 				{/if}
 			</div>
 		{/if}

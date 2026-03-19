@@ -57,7 +57,7 @@
 						<div
 							class="w-24 rounded-full bg-primary text-primary-content ring ring-primary ring-offset-2 ring-offset-base-100"
 						>
-							<span class="text-3xl font-bold">{user.name?.charAt(0).toUpperCase() || 'U'}</span>
+							<span class="text-3xl font-bold">{(user.name?.charAt(0) || 'U').toUpperCase()}</span>
 						</div>
 					</div>
 					<div>
@@ -74,13 +74,15 @@
 		<div class="card-body">
 			<h3 class="mb-4 card-title text-xl">Ubah Password</h3>
 
-		{#if message}
-			<div class="alert mb-4 rounded-lg p-3 text-sm" 
-				class:alert-success={message.type === 'success'}
-				class:alert-error={message.type === 'error'}>
-				<span>{message.text}</span>
-			</div>
-		{/if}
+			{#if message}
+				<div
+					class="mb-4 alert rounded-lg p-3 text-sm"
+					class:alert-success={message.type === 'success'}
+					class:alert-error={message.type === 'error'}
+				>
+					<span>{message.text}</span>
+				</div>
+			{/if}
 
 			<form onsubmit={handleChangePassword} class="space-y-4">
 				<div class="form-control w-full max-w-md">

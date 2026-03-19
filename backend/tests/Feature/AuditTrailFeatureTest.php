@@ -82,8 +82,7 @@ test('admin can view audit logs', function () {
             'data' => [
                 '*' => ['id', 'table_name', 'action', 'performed_by', 'performed_at'],
             ],
-            'current_page',
-            'total',
+            'meta' => ['current_page', 'total'],
         ]);
 });
 

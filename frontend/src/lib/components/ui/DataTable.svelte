@@ -3,16 +3,16 @@
 	import LoadingSkeleton from './LoadingSkeleton.svelte';
 	import EmptyState from './EmptyState.svelte';
 
-	let { 
-		head, 
+	let {
+		head,
 		children,
 		loading = false,
 		empty = false,
 		emptyTitle = 'Data tidak ditemukan',
 		emptyDescription = 'Tidak ada data yang sesuai dengan kriteria.',
 		columnsCount = 5
-	}: { 
-		head: Snippet; 
+	}: {
+		head: Snippet;
 		children?: Snippet;
 		loading?: boolean;
 		empty?: boolean;
@@ -22,7 +22,11 @@
 	} = $props();
 </script>
 
-<div class="overflow-x-auto rounded-box border border-base-300 bg-base-100 shadow-sm" role="region" aria-label="Tabel Data">
+<div
+	class="overflow-x-auto rounded-box border border-base-300 bg-base-100 shadow-sm"
+	role="region"
+	aria-label="Tabel Data"
+>
 	<table class="table w-full table-zebra">
 		<thead class="bg-base-200 text-base-content">
 			{@render head()}

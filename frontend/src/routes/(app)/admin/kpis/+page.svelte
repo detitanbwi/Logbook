@@ -11,19 +11,57 @@
 	import type { MasterKpiCreateDto, MasterKpiUpdateDto } from '$lib/api/schemas/kpi.schema';
 
 	let { data } = $props();
-	let kpis = $derived(data.kpis);
-	let meta = $derived(data.meta);
+	let initialLoad = $derived(data?.initialLoad ?? false);
+
+	// State
+	let kpis = $state<any[]>([]);
+	let meta = $state<any>(null);
+	let loading = $state(true);
+	let error = $state<string | null>(null);
 
 	// URL-based state
+	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
+	let perPage = $derived(Number($page.url.searchParams.get('per_page')) || 15);
 	let search = $derived($page.url.searchParams.get('search') || '');
 	let statusAktif = $derived($page.url.searchParams.get('status_aktif') || '');
 	let sortBy = $derived($page.url.searchParams.get('sort_by') || 'created_at');
 	let sortDir = $derived(($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc');
 
 	const statusOptions = [
+		{ label: 'Semua', value: '' },
 		{ label: 'Aktif', value: 'true' },
 		{ label: 'Tidak Aktif', value: 'false' }
 	];
+
+	async function fetchKpis() {
+		loading = true;
+		error = null;
+
+		const params: Record<string, unknown> = {
+			page: currentPage,
+			per_page: perPage
+		};
+
+		if (search) params.search = search;
+		if (statusAktif) params.status_aktif = statusAktif === 'true';
+		if (sortBy) params.sort_by = sortBy;
+		if (sortDir) params.sort_dir = sortDir;
+
+		try {
+			const response = await kpiService.getAllMaster(params);
+			kpis = Array.isArray(response) ? response : (response as any).data || [];
+			meta = (response as any).meta || null;
+		} catch (e: any) {
+			console.error('Failed to fetch KPIs', e);
+			error = e.message || 'Gagal memuat data KPI';
+		} finally {
+			loading = false;
+		}
+	}
+
+	$effect(() => {
+		fetchKpis();
+	});
 
 	function updateUrl(params: Record<string, string>) {
 		const url = new URL($page.url);
@@ -38,6 +76,13 @@
 		goto(url.toString(), { replaceState: true, noScroll: true });
 	}
 
+	function handlePageSizeChange(size: number) {
+		const url = new URL($page.url);
+		url.searchParams.set('per_page', size.toString());
+		url.searchParams.set('page', '1');
+		goto(url.toString(), { replaceState: true, noScroll: true });
+	}
+
 	let isModalOpen = $state(false);
 	let isEditMode = $state(false);
 	let currentKpiId = $state<string | null>(null);
@@ -48,7 +93,7 @@
 	});
 
 	let isSubmitting = $state(false);
-	
+
 	let showDeleteConfirm = $state(false);
 	let kpiToDelete = $state<string | null>(null);
 
@@ -84,7 +129,7 @@
 				toastStore.success('KPI berhasil ditambahkan.');
 			}
 			isModalOpen = false;
-			invalidate('kpi:list');
+			fetchKpis();
 		} catch (error) {
 			console.error('Error submitting KPI:', error);
 			toastStore.error('Gagal menyimpan KPI.');
@@ -103,7 +148,7 @@
 		try {
 			await kpiService.deleteMaster(kpiToDelete);
 			toastStore.success('KPI berhasil dihapus.');
-			invalidate('kpi:list');
+			fetchKpis();
 		} catch (error) {
 			console.error('Error deleting KPI:', error);
 			toastStore.error('Gagal menghapus KPI.');
@@ -137,6 +182,13 @@
 	/>
 </div>
 
+{#if error}
+	<div class="alert alert-error mb-4">
+		<span>{error}</span>
+		<button class="btn btn-ghost btn-sm" onclick={() => fetchKpis()}>Coba Lagi</button>
+	</div>
+{/if}
+
 <DataTable>
 	{#snippet head()}
 		<tr>
@@ -160,39 +212,64 @@
 		</tr>
 	{/snippet}
 
-	{#each kpis as kpi (kpi.id)}
-		<tr>
-			<td>{kpi.id}</td>
-			<td class="font-medium">{kpi.nama}</td>
-			<td>
-				<span class="badge {kpi.status_aktif ? 'badge-success' : 'badge-error'}">
-					{kpi.status_aktif ? 'Aktif' : 'Nonaktif'}
-				</span>
-			</td>
-			<td>
-				<span class="text-sm text-base-content/70">
-					{new Date(kpi.created_at).toLocaleDateString('id-ID')}
-				</span>
-			</td>
-			<td>
-				<div class="flex gap-2">
-					<button class="btn btn-outline btn-sm btn-secondary" onclick={() => openEdit(kpi)}>
-						Edit
-					</button>
-					<button class="btn btn-outline btn-sm btn-error" onclick={() => confirmDelete(kpi.id)}>
-						Hapus
-					</button>
-				</div>
-			</td>
-		</tr>
-	{:else}
+	{#if loading}
+		{#each Array(5) as _}
+			<tr>
+				<td>
+					<div class="h-4 w-24 animate-pulse rounded bg-base-300"></div>
+				</td>
+				<td>
+					<div class="h-4 w-48 animate-pulse rounded bg-base-300"></div>
+				</td>
+				<td>
+					<div class="h-5 w-16 animate-pulse rounded bg-base-300"></div>
+				</td>
+				<td>
+					<div class="h-4 w-24 animate-pulse rounded bg-base-300"></div>
+				</td>
+				<td>
+					<div class="flex gap-2">
+						<div class="h-7 w-16 animate-pulse rounded bg-base-300"></div>
+						<div class="h-7 w-16 animate-pulse rounded bg-base-300"></div>
+					</div>
+				</td>
+			</tr>
+		{/each}
+	{:else if kpis.length === 0}
 		<tr>
 			<td colspan="5" class="py-4 text-center text-base-content/50"> Belum ada data KPI. </td>
 		</tr>
-	{/each}
+	{:else}
+		{#each kpis as kpi (kpi.id)}
+			<tr>
+				<td>{kpi.id}</td>
+				<td class="font-medium">{kpi.nama}</td>
+				<td>
+					<span class="badge {kpi.status_aktif ? 'badge-success' : 'badge-error'}">
+						{kpi.status_aktif ? 'Aktif' : 'Nonaktif'}
+					</span>
+				</td>
+				<td>
+					<span class="text-sm text-base-content/70">
+						{new Date(kpi.created_at).toLocaleDateString('id-ID')}
+					</span>
+				</td>
+				<td>
+					<div class="flex gap-2">
+						<button class="btn btn-outline btn-sm btn-secondary" onclick={() => openEdit(kpi)}>
+							Edit
+						</button>
+						<button class="btn btn-outline btn-sm btn-error" onclick={() => confirmDelete(kpi.id)}>
+							Hapus
+						</button>
+					</div>
+				</td>
+			</tr>
+		{/each}
+	{/if}
 </DataTable>
 
-<Pagination {meta} />
+<Pagination {meta} onPageSizeChange={handlePageSizeChange} />
 
 <Modal bind:isOpen={isModalOpen} title={isEditMode ? 'Edit KPI' : 'Tambah KPI Baru'}>
 	<form class="flex flex-col gap-4">

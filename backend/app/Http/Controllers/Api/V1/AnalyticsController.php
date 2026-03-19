@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @group Analytics
@@ -25,41 +26,59 @@ class AnalyticsController extends Controller
         $now = now();
         $startOfMonth = $now->copy()->startOfMonth();
         $lastMonth = $now->copy()->subMonth();
-        
+
         // Base stats
         $data = [
             'total_active_users' => User::whereNull('deleted_at')->count(),
             'total_logbooks_this_month' => Logbook::whereMonth('created_at', $now->month)
-                                                ->whereYear('created_at', $now->year)->count(),
+                ->whereYear('created_at', $now->year)->count(),
             'total_logbooks_last_month' => Logbook::whereMonth('created_at', $lastMonth->month)
-                                                ->whereYear('created_at', $lastMonth->year)->count(),
+                ->whereYear('created_at', $lastMonth->year)->count(),
             'pending_logbooks_count' => Logbook::where('status', 'SUBMITTED')->count(),
             'active_kpis' => KpiMaster::where('status_aktif', true)->count(),
-            
+
             // Trend data: Logbooks per day for current month
             'logbooks_by_day' => Logbook::selectRaw('DATE(created_at) as date, COUNT(*) as count')
                 ->where('created_at', '>=', $startOfMonth)
                 ->groupBy('date')
                 ->orderBy('date')
-                ->get(),
-            
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'date' => $item->date,
+                        'count' => (int) $item->count,
+                    ];
+                }),
+
             // Status breakdown
             'logbooks_by_status' => Logbook::selectRaw('status, COUNT(*) as count')
                 ->groupBy('status')
-                ->get(),
-            
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'status' => $item->status,
+                        'count' => (int) $item->count,
+                    ];
+                }),
+
             // User role breakdown
             'users_by_role' => User::selectRaw('role, COUNT(*) as count')
                 ->whereNull('deleted_at')
                 ->groupBy('role')
-                ->get(),
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'role' => $item->role,
+                        'count' => (int) $item->count,
+                    ];
+                }),
         ];
-        
+
         // Calculate trends percentage
         $data['logbook_trend'] = $data['total_logbooks_last_month'] > 0
             ? round((($data['total_logbooks_this_month'] - $data['total_logbooks_last_month']) / $data['total_logbooks_last_month']) * 100, 1)
             : ($data['total_logbooks_this_month'] > 0 ? 100 : 0);
-        
+
         return response()->json(['data' => $data]);
     }
 
@@ -156,7 +175,7 @@ class AnalyticsController extends Controller
 
         $missedLogbooksCount = max(0, $workdaysPassed - $logbooksCount);
 
-        $kpiAchievements = LogbookKpiDetail::select('kpi_masters.nama as nama_kpi', \Illuminate\Support\Facades\DB::raw('COUNT(logbook_kpi_details.id) as total'), \Illuminate\Support\Facades\DB::raw('SUM(CASE WHEN is_finished = true THEN 1 ELSE 0 END) as completed'))
+        $kpiAchievements = LogbookKpiDetail::select('kpi_masters.nama as nama_kpi', DB::raw('COUNT(logbook_kpi_details.id) as total'), DB::raw('SUM(CASE WHEN is_finished = true THEN 1 ELSE 0 END) as completed'))
             ->join('kpi_masters', 'kpi_masters.id', '=', 'logbook_kpi_details.kpi_id')
             ->whereIn('logbook_id', $logbookIds)
             ->groupBy('kpi_masters.nama')

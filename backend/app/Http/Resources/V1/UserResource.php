@@ -14,6 +14,17 @@ class UserResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'nip' => (string) ($this->nip ?? ''),
+            'name' => (string) ($this->name ?? ''),
+            'email' => (string) ($this->email ?? ''),
+            'role' => (string) ($this->role ?? ''),
+            'manager_id' => $this->manager_id,
+            'manager' => new UserResource($this->whenLoaded('manager')),
+            'last_password_change' => optional($this->last_password_change)?->toISOString(),
+            'created_at' => optional($this->created_at)?->toISOString(),
+            'updated_at' => optional($this->updated_at)?->toISOString(),
+        ];
     }
 }

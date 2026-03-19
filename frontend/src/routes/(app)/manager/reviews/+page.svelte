@@ -20,6 +20,7 @@
 
 	// URL params
 	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
+	let perPage = $derived(Number($page.url.searchParams.get('per_page')) || 15);
 	let search = $derived($page.url.searchParams.get('search') || '');
 	let dateFrom = $derived($page.url.searchParams.get('date_from') || '');
 	let dateTo = $derived($page.url.searchParams.get('date_to') || '');
@@ -36,13 +37,20 @@
 		goto(url.toString(), { replaceState: true, noScroll: true });
 	}
 
+	function handlePageSizeChange(size: number) {
+		const url = new URL($page.url);
+		url.searchParams.set('per_page', size.toString());
+		url.searchParams.set('page', '1');
+		goto(url.toString(), { replaceState: true, noScroll: true });
+	}
+
 	async function fetchPendingReviews() {
 		isLoading = true;
 		errorMsg = null;
 		try {
 			const params: Record<string, unknown> = {
 				page: currentPage,
-				per_page: 15
+				per_page: perPage
 			};
 
 			if (search) params.search = search;
@@ -100,6 +108,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Review Logbook | Manager</title>
+</svelte:head>
+
 <div class="flex flex-col gap-6">
 	<div class="flex items-center justify-between">
 		<h1 class="text-3xl font-bold">Review Logbook Tim</h1>
@@ -111,6 +123,7 @@
 	{#if errorMsg}
 		<div class="alert alert-error shadow-sm">
 			<span>{errorMsg}</span>
+			<button class="btn btn-ghost btn-sm" onclick={() => fetchPendingReviews()}>Coba Lagi</button>
 		</div>
 	{/if}
 
@@ -143,8 +156,39 @@
 	<div class="card border border-base-300 bg-base-100 shadow-sm">
 		<div class="card-body p-0">
 			{#if isLoading}
-				<div class="flex justify-center p-8">
-					<span class="loading loading-lg loading-spinner text-primary"></span>
+				<div class="overflow-x-auto rounded-box">
+					<table class="table w-full table-zebra">
+						<thead class="bg-base-200 text-base-content">
+							<tr>
+								<th>Tanggal</th>
+								<th>Pegawai</th>
+								<th>Tugas Selesai</th>
+								<th>Status</th>
+								<th>Aksi</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each Array(5) as _}
+								<tr>
+									<td>
+										<div class="h-4 w-24 animate-pulse rounded bg-base-300"></div>
+									</td>
+									<td>
+										<div class="h-4 w-32 animate-pulse rounded bg-base-300"></div>
+									</td>
+									<td>
+										<div class="h-4 w-12 animate-pulse rounded bg-base-300"></div>
+									</td>
+									<td>
+										<div class="h-5 w-20 animate-pulse rounded bg-base-300"></div>
+									</td>
+									<td>
+										<div class="h-7 w-20 animate-pulse rounded bg-base-300"></div>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
 				</div>
 			{:else}
 				<div class="overflow-x-auto rounded-box">
@@ -186,7 +230,7 @@
 											<div class="text-xs opacity-70">{log.user?.role || 'Staff'}</div>
 										</td>
 										<td>
-											{#if log.details && log.details.length > 0}
+											{#if Array.isArray(log.details) && log.details.length > 0}
 												{log.details.filter((d: any) => d.is_finished).length} / {log.details
 													.length}
 											{:else}
@@ -211,7 +255,7 @@
 					</table>
 				</div>
 				<div class="p-4">
-					<Pagination {meta} />
+					<Pagination {meta} onPageSizeChange={handlePageSizeChange} />
 				</div>
 			{/if}
 		</div>
@@ -243,7 +287,7 @@
 
 			<div>
 				<h4 class="mb-2 font-semibold">Daftar Tugas (KPI)</h4>
-				{#if selectedLogbook.details && selectedLogbook.details.length > 0}
+				{#if Array.isArray(selectedLogbook.details) && selectedLogbook.details.length > 0}
 					<ul class="list-none space-y-2">
 						{#each selectedLogbook.details as kpi}
 							<li class="flex items-start gap-3">

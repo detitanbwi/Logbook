@@ -15,7 +15,7 @@ export class AuthStore {
 	token = new PersistedState<string | null>('auth-token', null);
 	isLoading = $state(false);
 	error = $state<string | null>(null);
-	
+
 	// Flag to track if we've verified the session with the backend this browser session
 	isInitialized = $state(false);
 

@@ -9,6 +9,7 @@ export { default as LoadingSpinner } from './LoadingSpinner.svelte';
 export { default as Map } from './Map.svelte';
 export { default as Modal } from './Modal.svelte';
 export { default as Pagination } from './Pagination.svelte';
+export { default as Popover } from './Popover.svelte';
 export { default as SearchInput } from './SearchInput.svelte';
 export { default as SortableHeader } from './SortableHeader.svelte';
 export { default as StatCard } from './StatCard.svelte';

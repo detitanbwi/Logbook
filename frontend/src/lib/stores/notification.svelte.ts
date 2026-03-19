@@ -1,4 +1,7 @@
-import { notificationService, type NotificationFilters } from '$lib/api/services/notificationService';
+import {
+	notificationService,
+	type NotificationFilters
+} from '$lib/api/services/notificationService';
 import type { Notification } from '$lib/api/schemas/notification.schema';
 
 function createNotificationStore() {
@@ -9,7 +12,10 @@ function createNotificationStore() {
 	async function fetchUnread(limit: number = 5) {
 		loading = true;
 		try {
-			const data = await notificationService.getNotifications({ unread_only: 'true', per_page: limit });
+			const data = await notificationService.getNotifications({
+				unread_only: 'true',
+				per_page: limit
+			});
 			notifications = Array.isArray(data) ? data : (data as any).data || [];
 			error = null;
 		} catch (e: any) {

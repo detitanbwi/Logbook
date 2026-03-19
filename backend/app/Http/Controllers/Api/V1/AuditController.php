@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\V1\AuditLogResource;
 use App\Models\AuditLog;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -50,7 +51,7 @@ class AuditController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $query = AuditLog::with('user:id,name,nip,role');
+        $query = AuditLog::with('user:id,name,email,nip,role');
 
         // Search by table_name
         if ($search = $request->input('search')) {
@@ -84,6 +85,6 @@ class AuditController extends Controller
 
         $perPage = min($request->integer('per_page', 15), 100);
 
-        return response()->json($query->paginate($perPage));
+        return AuditLogResource::collection($query->paginate($perPage));
     }
 }
