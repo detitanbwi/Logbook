@@ -80,12 +80,45 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      target_angka:
+        custom: []
+        name: target_angka
+        description: 'Must be at least 0.'
+        required: false
+        example: 39
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      satuan:
+        custom: []
+        name: satuan
+        description: 'Must not be greater than 100 characters.'
+        required: false
+        example: g
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      deskripsi:
+        custom: []
+        name: deskripsi
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
       status_aktif:
         custom: []
         name: status_aktif
         description: ''
         required: false
-        example: false
+        example: true
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -93,7 +126,10 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       nama: b
-      status_aktif: false
+      target_angka: 39
+      satuan: g
+      deskripsi: architecto
+      status_aktif: true
     fileParameters: []
     responses: []
     responseFields: []
@@ -129,14 +165,14 @@ endpoints:
         name: kpi_id
         description: 'The ID of the kpi.'
         required: true
-        example: 019d02be-0561-7192-b3e6-bfb36ddae03c
+        example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      kpi_id: 019d02be-0561-7192-b3e6-bfb36ddae03c
+      kpi_id: architecto
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -186,14 +222,14 @@ endpoints:
         name: kpi_id
         description: 'The ID of the kpi.'
         required: true
-        example: 019d02be-0561-7192-b3e6-bfb36ddae03c
+        example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      kpi_id: 019d02be-0561-7192-b3e6-bfb36ddae03c
+      kpi_id: architecto
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -208,12 +244,45 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      target_angka:
+        custom: []
+        name: target_angka
+        description: 'Must be at least 0.'
+        required: false
+        example: 39
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      satuan:
+        custom: []
+        name: satuan
+        description: 'Must not be greater than 100 characters.'
+        required: false
+        example: g
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      deskripsi:
+        custom: []
+        name: deskripsi
+        description: ''
+        required: false
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
       status_aktif:
         custom: []
         name: status_aktif
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -221,7 +290,10 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       nama: b
-      status_aktif: true
+      target_angka: 39
+      satuan: g
+      deskripsi: architecto
+      status_aktif: false
     fileParameters: []
     responses: []
     responseFields: []
@@ -257,14 +329,14 @@ endpoints:
         name: kpi_id
         description: 'The ID of the kpi.'
         required: true
-        example: 019d02be-0561-7192-b3e6-bfb36ddae03c
+        example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      kpi_id: 019d02be-0561-7192-b3e6-bfb36ddae03c
+      kpi_id: architecto
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []

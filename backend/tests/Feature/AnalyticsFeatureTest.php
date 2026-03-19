@@ -41,6 +41,21 @@ it('prevents non-admin from accessing admin dashboard', function () {
     actingAs($this->staff)->getJson('/api/v1/dashboard/admin')->assertForbidden();
 });
 
+it('allows superadmin to access admin dashboard', function () {
+    $superAdmin = User::factory()->create(['role' => 'SUPERADMIN']);
+
+    actingAs($superAdmin)->getJson('/api/v1/dashboard/admin')
+        ->assertOk()
+        ->assertJsonStructure([
+            'data' => [
+                'total_active_users',
+                'total_logbooks_this_month',
+                'pending_logbooks_count',
+                'active_kpis',
+            ],
+        ]);
+});
+
 it('allows manager to access manager dashboard', function () {
     // Subordinate logbook
     $logbook1 = Logbook::factory()->create(['user_id' => $this->staff->id, 'tanggal' => now()->toDateString(), 'start_kerja' => now(), 'status' => 'SUBMITTED']);

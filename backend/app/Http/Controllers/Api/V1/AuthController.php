@@ -7,6 +7,7 @@ use App\Http\Resources\V1\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @group Authentication
@@ -51,6 +52,39 @@ class AuthController extends Controller
         $user = $request->user();
 
         return response()->json(['user' => new UserResource($user)]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'foto' => 'sometimes|nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'alamat' => 'sometimes|nullable|string|max:2000',
+            'tempat_lahir' => 'sometimes|nullable|string|max:255',
+            'tanggal_lahir' => 'sometimes|nullable|date',
+            'nik' => 'sometimes|nullable|string|max:32',
+            'npwp' => 'sometimes|nullable|string|max:32',
+            'status_kawin' => 'sometimes|nullable|string|max:32',
+            'riwayat_pendidikan' => 'sometimes|nullable|array',
+            'riwayat_karir' => 'sometimes|nullable|array',
+        ]);
+
+        if ($request->hasFile('foto')) {
+            if ($user->foto) {
+                Storage::disk('public')->delete($user->foto);
+            }
+
+            $validated['foto'] = $request->file('foto')->store('profile-photos', 'public');
+        }
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profil berhasil diperbarui',
+            'data' => new UserResource($user->fresh('manager')),
+        ]);
     }
 
     public function changePassword(Request $request)

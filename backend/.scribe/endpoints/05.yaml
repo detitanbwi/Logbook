@@ -25,19 +25,90 @@ endpoints:
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
-      gps_location_start:
+      tanggal:
         custom: []
-        name: gps_location_start
-        description: ''
+        name: tanggal
+        description: 'Must be a valid date.'
         required: true
-        example: architecto
+        example: '2026-03-19T23:01:37'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      start_kerja:
+        custom: []
+        name: start_kerja
+        description: 'Must be a valid date in the format <code>H:i</code>.'
+        required: true
+        example: '23:01'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      end_kerja:
+        custom: []
+        name: end_kerja
+        description: 'Must be a valid date in the format <code>H:i</code>.'
+        required: false
+        example: '23:01'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      lokasi:
+        custom: []
+        name: lokasi
+        description: 'Must not be greater than 1000 characters.'
+        required: true
+        example: b
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanBodyParameters:
-      gps_location_start: architecto
+      tanggal: '2026-03-19T23:01:37'
+      start_kerja: '23:01'
+      end_kerja: '23:01'
+      lokasi: b
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/logbooks
+    metadata:
+      custom: []
+      groupName: 'Staff Logbook'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
     fileParameters: []
     responses: []
     responseFields: []
@@ -117,14 +188,14 @@ endpoints:
         name: logbook_id
         description: 'The ID of the logbook.'
         required: true
-        example: 019d02be-063a-71fd-b32b-be23a64cd484
+        example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      logbook_id: 019d02be-063a-71fd-b32b-be23a64cd484
+      logbook_id: architecto
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -152,7 +223,153 @@ endpoints:
     custom: []
     httpMethods:
       - PATCH
-    uri: 'api/v1/logbooks/{logbook_id}/kpi/{detail_id}/toggle'
+    uri: 'api/v1/logbooks/{logbook_id}'
+    metadata:
+      custom: []
+      groupName: 'Staff Logbook'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Update logbook time fields (DRAFT status only)'
+      description: |-
+        Per plan spec section 9.2: PATCH /logbooks/{id}
+        Allows updating tanggal, start_kerja, end_kerja for DRAFT logbooks.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      logbook_id:
+        custom: []
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      logbook_id: architecto
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      tanggal:
+        custom: []
+        name: tanggal
+        description: 'Must be a valid date.'
+        required: false
+        example: '2026-03-19T23:01:37'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      start_kerja:
+        custom: []
+        name: start_kerja
+        description: 'Must be a valid date in the format <code>H:i</code>.'
+        required: false
+        example: '23:01'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      end_kerja:
+        custom: []
+        name: end_kerja
+        description: 'Must be a valid date in the format <code>H:i</code>.'
+        required: false
+        example: '23:01'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      lokasi:
+        custom: []
+        name: lokasi
+        description: 'Must not be greater than 1000 characters.'
+        required: false
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      tanggal: '2026-03-19T23:01:37'
+      start_kerja: '23:01'
+      end_kerja: '23:01'
+      lokasi: b
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/logbooks/{logbook_id}'
+    metadata:
+      custom: []
+      groupName: 'Staff Logbook'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Delete a DRAFT logbook.'
+      description: |-
+        Per plan spec section 9.3: DELETE /logbooks/{id}
+        Only owner can delete, and only DRAFT status allowed.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      logbook_id:
+        custom: []
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      logbook_id: architecto
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/logbooks/{logbook_id}/duration'
     metadata:
       custom: []
       groupName: 'Staff Logbook'
@@ -173,7 +390,63 @@ endpoints:
         name: logbook_id
         description: 'The ID of the logbook.'
         required: true
-        example: 019d02be-063a-71fd-b32b-be23a64cd484
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      logbook_id: architecto
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Unauthenticated."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          access-control-allow-origin: '*'
+        description: null
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PATCH
+    uri: 'api/v1/logbooks/{logbook_id}/kpi/{detail_id}/progress'
+    metadata:
+      custom: []
+      groupName: 'Staff Logbook'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      logbook_id:
+        custom: []
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        required: true
+        example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -184,31 +457,161 @@ endpoints:
         name: detail_id
         description: 'The ID of the detail.'
         required: true
-        example: 019d02be-0641-71ec-93a4-cf6779a2abdc
+        example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      logbook_id: 019d02be-063a-71fd-b32b-be23a64cd484
-      detail_id: 019d02be-0641-71ec-93a4-cf6779a2abdc
+      logbook_id: architecto
+      detail_id: architecto
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
-      is_finished:
+      capaian_angka:
         custom: []
-        name: is_finished
-        description: ''
+        name: capaian_angka
+        description: 'Must be at least 0.'
         required: true
-        example: false
-        type: boolean
+        example: 27
+        type: number
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanBodyParameters:
-      is_finished: false
+      capaian_angka: 27
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/logbooks/{logbook_id}/kpi/{detail_id}/attachment'
+    metadata:
+      custom: []
+      groupName: 'Staff Logbook'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: multipart/form-data
+      Accept: application/json
+    urlParameters:
+      logbook_id:
+        custom: []
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      detail_id:
+        custom: []
+        name: detail_id
+        description: 'The ID of the detail.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      logbook_id: architecto
+      detail_id: architecto
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      lampiran_file:
+        custom: []
+        name: lampiran_file
+        description: 'Must be a file. Must not be greater than 5120 kilobytes.'
+        required: true
+        example: null
+        type: file
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters: []
+    fileParameters:
+      lampiran_file: null
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/logbooks/{logbook_id}/kpi/{detail_id}/attachment'
+    metadata:
+      custom: []
+      groupName: 'Staff Logbook'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      logbook_id:
+        custom: []
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      detail_id:
+        custom: []
+        name: detail_id
+        description: 'The ID of the detail.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      logbook_id: architecto
+      detail_id: architecto
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
     fileParameters: []
     responses: []
     responseFields: []
@@ -244,41 +647,18 @@ endpoints:
         name: logbook_id
         description: 'The ID of the logbook.'
         required: true
-        example: 019d02be-063a-71fd-b32b-be23a64cd484
-        type: string
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-    cleanUrlParameters:
-      logbook_id: 019d02be-063a-71fd-b32b-be23a64cd484
-    queryParameters: []
-    cleanQueryParameters: []
-    bodyParameters:
-      gps_location_end:
-        custom: []
-        name: gps_location_end
-        description: ''
-        required: true
         example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
-      gambar_bukti:
-        custom: []
-        name: gambar_bukti
-        description: ''
-        required: false
-        example: null
-        type: 'string[]'
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: true
-        deprecated: false
-    cleanBodyParameters:
-      gps_location_end: architecto
+    cleanUrlParameters:
+      logbook_id: architecto
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
     fileParameters: []
     responses: []
     responseFields: []

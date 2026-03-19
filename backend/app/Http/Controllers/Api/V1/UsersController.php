@@ -74,7 +74,7 @@ class UsersController extends Controller
             'nama' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'npp' => 'required|string|max:255|unique:users',
-            'role' => ['required', Rule::in(['SuperAdmin', 'Admin', 'Staff', 'ADMIN', 'MANAGER', 'STAFF'])],
+            'role' => ['required', Rule::in(['SuperAdmin', 'Admin', 'Staff', 'ADMIN', 'STAFF'])],
             'password' => 'required|string|min:8',
             'manager_id' => 'nullable|uuid|exists:users,id',
         ]);
@@ -83,12 +83,14 @@ class UsersController extends Controller
             $validated['role'] = 'Admin';
         }
 
-        if (($validated['role'] ?? null) === 'MANAGER') {
-            $validated['role'] = 'Manager';
-        }
-
         if (($validated['role'] ?? null) === 'STAFF') {
             $validated['role'] = 'Staff';
+        }
+
+        if ($actor->isAdmin() && in_array($validated['role'], ['Admin', 'SuperAdmin'], true)) {
+            return response()->json([
+                'message' => 'Admin hanya dapat membuat user dengan role Staff.',
+            ], 403);
         }
 
         $validated['password'] = Hash::make($validated['password']);
@@ -122,7 +124,7 @@ class UsersController extends Controller
         $validated = $request->validate([
             'nama' => 'sometimes|required|string|max:255',
             'npp' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('users', 'npp')->ignore($user->id)],
-            'role' => ['sometimes', 'required', Rule::in(['SuperAdmin', 'Admin', 'Staff', 'ADMIN', 'MANAGER', 'STAFF'])],
+            'role' => ['sometimes', 'required', Rule::in(['SuperAdmin', 'Admin', 'Staff', 'ADMIN', 'STAFF'])],
             'manager_id' => 'nullable|uuid|exists:users,id',
         ]);
 
@@ -130,12 +132,14 @@ class UsersController extends Controller
             $validated['role'] = 'Admin';
         }
 
-        if (($validated['role'] ?? null) === 'MANAGER') {
-            $validated['role'] = 'Manager';
-        }
-
         if (($validated['role'] ?? null) === 'STAFF') {
             $validated['role'] = 'Staff';
+        }
+
+        if ($actor->isAdmin() && array_key_exists('role', $validated) && in_array($validated['role'], ['Admin', 'SuperAdmin'], true)) {
+            return response()->json([
+                'message' => 'Admin hanya dapat menetapkan role Staff.',
+            ], 403);
         }
 
         $user->update($validated);
@@ -174,5 +178,25 @@ class UsersController extends Controller
         $user->save();
 
         return response()->json(['message' => 'Password reset successfully']);
+    }
+
+    public function subordinates(Request $request, User $user)
+    {
+        /** @var User $actor */
+        $actor = $request->user();
+
+        if ($actor->isPrivileged()) {
+            return UserResource::collection($user->subordinates()->paginate(100));
+        }
+
+        if ($actor->id !== $user->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if (! $actor->hasSubordinates()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        return UserResource::collection($actor->subordinates()->paginate(100));
     }
 }

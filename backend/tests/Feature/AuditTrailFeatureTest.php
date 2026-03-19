@@ -63,9 +63,9 @@ test('audit log is created when kpi master is deleted', function () {
     ]);
 });
 
-test('admin can view audit logs', function () {
-    $admin = User::factory()->create(['role' => 'ADMIN']);
-    Sanctum::actingAs($admin);
+test('superadmin can view audit logs', function () {
+    $superAdmin = User::factory()->create(['role' => 'SUPERADMIN']);
+    Sanctum::actingAs($superAdmin);
 
     // Create a log indirectly by acting as admin and doing something
     $this->postJson('/api/v1/users', [
@@ -86,9 +86,17 @@ test('admin can view audit logs', function () {
         ]);
 });
 
-test('non-admin cannot view audit logs', function () {
-    $manager = User::factory()->create(['role' => 'MANAGER']);
-    Sanctum::actingAs($manager);
+test('admin cannot view audit logs', function () {
+    $admin = User::factory()->create(['role' => 'ADMIN']);
+    Sanctum::actingAs($admin);
+
+    $response = $this->getJson('/api/v1/audit-logs');
+    $response->assertStatus(403);
+});
+
+test('staff cannot view audit logs', function () {
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    Sanctum::actingAs($staff);
 
     $response = $this->getJson('/api/v1/audit-logs');
     $response->assertStatus(403);

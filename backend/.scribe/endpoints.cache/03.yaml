@@ -131,14 +131,14 @@ endpoints:
         name: assignment_id
         description: 'The ID of the assignment.'
         required: true
-        example: 019d02be-061d-70af-a0ce-31c8033dd0bf
+        example: architecto
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      assignment_id: 019d02be-061d-70af-a0ce-31c8033dd0bf
+      assignment_id: architecto
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []

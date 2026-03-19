@@ -20,12 +20,22 @@ class ManagerLogbookController extends Controller
         /** @var User $manager */
         $manager = Auth::user();
 
-        if ($manager->isStaff() && ! $manager->hasSubordinates()) {
-            abort(403);
+        // Ensure logbook owner exists
+        $logbookOwner = $logbook->user;
+        if (! $logbookOwner) {
+            abort(404, 'Logbook owner not found');
         }
 
-        if (! $manager->isPrivileged() && $logbook->user?->manager_id !== $manager->id) {
-            abort(403);
+        // Authorization: privileged users can review any logbook
+        // Managers can only review their direct subordinates' logbooks
+        if (! $manager->isPrivileged()) {
+            if (! $manager->hasSubordinates()) {
+                abort(403, 'You do not have permission to review logbooks');
+            }
+
+            if ($logbookOwner->manager_id !== $manager->id) {
+                abort(403, 'You can only review your direct subordinates\' logbooks');
+            }
         }
 
         if ($logbook->status !== 'SUBMITTED') {
@@ -35,13 +45,13 @@ class ManagerLogbookController extends Controller
         $validated = $request->validate([
             'decision' => 'required|string|in:ACCEPTED,REJECTED',
             'rating' => 'required|integer|min:1|max:5',
-            'reviewer_comment' => 'nullable|string|max:5000',
+            'reviewer_comment' => 'required|string|max:5000',
         ]);
 
         $logbook->update([
             'status' => $validated['decision'],
             'rating' => $validated['rating'],
-            'reviewer_comment' => $validated['reviewer_comment'] ?? null,
+            'reviewer_comment' => $validated['reviewer_comment'],
             'reviewed_by' => $manager->id,
             'reviewed_at' => now(),
         ]);
@@ -63,13 +73,60 @@ class ManagerLogbookController extends Controller
         ]);
     }
 
-    public function rate(Request $request, Logbook $logbook)
-    {
-        abort(410, 'Endpoint removed. Use PUT /api/v1/logbooks/{logbook}/review.');
-    }
-
     public function revert(Request $request, Logbook $logbook)
     {
-        abort(410, 'Endpoint removed. Use PUT /api/v1/logbooks/{logbook}/review with decision REJECTED.');
+        /** @var User $manager */
+        $manager = Auth::user();
+
+        // Ensure logbook owner exists
+        $logbookOwner = $logbook->user;
+        if (! $logbookOwner) {
+            abort(404, 'Logbook owner not found');
+        }
+
+        // Authorization: privileged users can revert any logbook
+        // Managers can only revert their direct subordinates' logbooks
+        if (! $manager->isPrivileged()) {
+            if (! $manager->hasSubordinates()) {
+                abort(403, 'You do not have permission to revert logbooks');
+            }
+
+            if ($logbookOwner->manager_id !== $manager->id) {
+                abort(403, 'You can only revert your direct subordinates\' logbooks');
+            }
+        }
+
+        if ($logbook->status !== 'SUBMITTED') {
+            return response()->json(['message' => 'Only SUBMITTED logbooks can be reverted.'], 400);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:5000',
+        ]);
+
+        $logbook->update([
+            'status' => 'DRAFT',
+            'rating' => null,
+            'reviewer_comment' => null,
+            'reviewed_by' => null,
+            'reviewed_at' => null,
+        ]);
+
+        Notification::create([
+            'user_id' => $logbook->user_id,
+            'title' => 'Logbook Reverted',
+            'message' => $validated['reason'],
+            'type' => 'LOGBOOK_REVERTED',
+            'reference_id' => $logbook->id,
+            'is_read' => false,
+        ]);
+
+        return response()->json([
+            'message' => 'Logbook dikembalikan ke DRAFT',
+            'data' => [
+                'id' => $logbook->id,
+                'status' => 'DRAFT',
+            ],
+        ]);
     }
 }

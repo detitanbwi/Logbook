@@ -27,9 +27,9 @@ endpoints:
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
-      nip:
+      npp:
         custom: []
-        name: nip
+        name: npp
         description: ''
         required: true
         example: architecto
@@ -50,7 +50,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanBodyParameters:
-      nip: architecto
+      npp: architecto
       password: '|]|{+-'
     fileParameters: []
     responses: []
@@ -133,6 +133,147 @@ endpoints:
           content-type: application/json
           access-control-allow-origin: '*'
         description: null
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: api/v1/auth/profile
+    metadata:
+      custom: []
+      groupName: Authentication
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: multipart/form-data
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      foto:
+        custom: []
+        name: foto
+        description: 'Must be an image. Must not be greater than 5120 kilobytes.'
+        required: false
+        example: null
+        type: file
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      alamat:
+        custom: []
+        name: alamat
+        description: 'Must not be greater than 2000 characters.'
+        required: false
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      tempat_lahir:
+        custom: []
+        name: tempat_lahir
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      tanggal_lahir:
+        custom: []
+        name: tanggal_lahir
+        description: 'Must be a valid date.'
+        required: false
+        example: '2026-03-19T23:01:36'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      nik:
+        custom: []
+        name: nik
+        description: 'Must not be greater than 32 characters.'
+        required: false
+        example: g
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      npwp:
+        custom: []
+        name: npwp
+        description: 'Must not be greater than 32 characters.'
+        required: false
+        example: z
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      status_kawin:
+        custom: []
+        name: status_kawin
+        description: 'Must not be greater than 32 characters.'
+        required: false
+        example: m
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      riwayat_pendidikan:
+        custom: []
+        name: riwayat_pendidikan
+        description: ''
+        required: false
+        example: null
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      riwayat_karir:
+        custom: []
+        name: riwayat_karir
+        description: ''
+        required: false
+        example: null
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      alamat: b
+      tempat_lahir: 'n'
+      tanggal_lahir: '2026-03-19T23:01:36'
+      nik: g
+      npwp: z
+      status_kawin: m
+    fileParameters:
+      foto: null
+    responses: []
     responseFields: []
     auth:
       - headers

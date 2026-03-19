@@ -51,7 +51,7 @@ class AuditController extends Controller
         /** @var User $actor */
         $actor = $request->user();
 
-        if (! $actor->isPrivileged()) {
+        if (! $actor->isSuperAdmin()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

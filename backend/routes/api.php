@@ -20,12 +20,14 @@ Route::prefix('v1')->group(function () {
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::get('/me', [AuthController::class, 'me']);
+            Route::put('/profile', [AuthController::class, 'updateProfile']);
             Route::put('/change-password', [AuthController::class, 'changePassword']);
         });
     });
 
     Route::middleware('auth:sanctum')->group(function () {
         // Users Management
+        Route::get('users/{user}/subordinates', [UsersController::class, 'subordinates']);
         Route::apiResource('users', UsersController::class);
         Route::put('users/{user}/reset-password', [UsersController::class, 'resetPassword']);
 
@@ -40,11 +42,15 @@ Route::prefix('v1')->group(function () {
         Route::get('kpi/me', [KpiAssignmentController::class, 'me']);
 
         Route::put('logbooks/{logbook}/review', [ManagerLogbookController::class, 'review']);
+        Route::post('logbooks/{logbook}/revert', [ManagerLogbookController::class, 'revert']);
 
         Route::post('logbooks/start', [LogbookController::class, 'start']);
         Route::post('logbooks', [LogbookController::class, 'store']);
         Route::get('logbooks', [LogbookController::class, 'index']);
         Route::get('logbooks/{logbook}', [LogbookController::class, 'show']);
+        Route::patch('logbooks/{logbook}', [LogbookController::class, 'update']);
+        Route::delete('logbooks/{logbook}', [LogbookController::class, 'destroy']);
+        Route::get('logbooks/{logbook}/duration', [LogbookController::class, 'duration']);
         Route::patch('logbooks/{logbook}/kpi/{detail}/progress', [LogbookController::class, 'updateProgress']);
         Route::post('logbooks/{logbook}/kpi/{detail}/attachment', [LogbookController::class, 'uploadAttachment']);
         Route::delete('logbooks/{logbook}/kpi/{detail}/attachment', [LogbookController::class, 'deleteAttachment']);
