@@ -14,6 +14,15 @@ class MasterKpiResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'nama' => (string) $this->nama,
+            'target_angka' => (float) ($this->target_angka ?? 0),
+            'satuan' => $this->satuan,
+            'deskripsi' => $this->deskripsi,
+            'status_aktif' => (bool) $this->status_aktif,
+            'created_at' => optional($this->created_at)?->toISOString(),
+            'updated_at' => optional($this->updated_at)?->toISOString(),
+        ];
     }
 }

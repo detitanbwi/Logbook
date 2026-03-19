@@ -10,11 +10,16 @@ class LogbookKpiDetailFactory extends Factory
 {
     public function definition(): array
     {
+        $targetAngka = fake()->randomFloat(2, 1, 100);
+
         return [
             'logbook_id' => Logbook::factory(),
             'kpi_id' => KpiMaster::factory(),
             'kpi_nama' => fake('id_ID')->sentence(),
-            'is_finished' => fake()->boolean(),
+            'target_angka' => $targetAngka,
+            'satuan' => fake()->randomElement(['dokumen', 'jam', 'unit', 'laporan', 'tiket']),
+            'capaian_angka' => fake()->randomFloat(2, 0, $targetAngka),
+            'lampiran_file' => fake()->optional()->lexify('lampiran-??????.pdf'),
             'finished_at' => fake()->optional()->dateTime(),
         ];
     }

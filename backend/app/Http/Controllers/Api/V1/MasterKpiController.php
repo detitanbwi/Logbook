@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\MasterKpiResource;
 use App\Models\KpiMaster;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 /**
@@ -14,7 +15,10 @@ class MasterKpiController extends Controller
 {
     public function index(Request $request)
     {
-        if (! in_array($request->user()->role, ['ADMIN', 'MANAGER'])) {
+        /** @var User $actor */
+        $actor = $request->user();
+
+        if ($actor->isStaff() && ! $actor->hasSubordinates()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -46,48 +50,68 @@ class MasterKpiController extends Controller
 
     public function store(Request $request)
     {
-        if ($request->user()->role !== 'ADMIN') {
+        /** @var User $actor */
+        $actor = $request->user();
+
+        if (! $actor->isPrivileged()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
+            'target_angka' => 'nullable|numeric|min:0',
+            'satuan' => 'nullable|string|max:100',
+            'deskripsi' => 'nullable|string',
             'status_aktif' => 'boolean',
         ]);
 
         $kpi = KpiMaster::create($validated);
 
-        return response()->json($kpi, 201);
+        return (new MasterKpiResource($kpi))
+            ->response()
+            ->setStatusCode(201);
     }
 
     public function show(Request $request, KpiMaster $kpi)
     {
-        if (! in_array($request->user()->role, ['ADMIN', 'MANAGER'])) {
+        /** @var User $actor */
+        $actor = $request->user();
+
+        if ($actor->isStaff() && ! $actor->hasSubordinates()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        return response()->json($kpi);
+        return new MasterKpiResource($kpi);
     }
 
     public function update(Request $request, KpiMaster $kpi)
     {
-        if ($request->user()->role !== 'ADMIN') {
+        /** @var User $actor */
+        $actor = $request->user();
+
+        if (! $actor->isPrivileged()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
         $validated = $request->validate([
             'nama' => 'sometimes|required|string|max:255',
+            'target_angka' => 'nullable|numeric|min:0',
+            'satuan' => 'nullable|string|max:100',
+            'deskripsi' => 'nullable|string',
             'status_aktif' => 'boolean',
         ]);
 
         $kpi->update($validated);
 
-        return response()->json($kpi);
+        return new MasterKpiResource($kpi);
     }
 
     public function destroy(Request $request, KpiMaster $kpi)
     {
-        if ($request->user()->role !== 'ADMIN') {
+        /** @var User $actor */
+        $actor = $request->user();
+
+        if (! $actor->isPrivileged()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

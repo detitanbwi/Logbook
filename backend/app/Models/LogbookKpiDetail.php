@@ -14,12 +14,22 @@ class LogbookKpiDetail extends Model
     /** @use HasFactory<LogbookKpiDetailFactory> */
     use HasFactory, HasUuids, SoftDeletes;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'logbook_id',
+        'kpi_id',
+        'kpi_nama',
+        'target_angka',
+        'satuan',
+        'capaian_angka',
+        'lampiran_file',
+        'finished_at',
+    ];
 
     protected function casts(): array
     {
         return [
-            'is_finished' => 'boolean',
+            'target_angka' => 'decimal:2',
+            'capaian_angka' => 'decimal:2',
             'finished_at' => 'datetime',
         ];
     }

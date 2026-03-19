@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\AuditLogResource;
 use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 
@@ -47,11 +48,14 @@ class AuditController extends Controller
      */
     public function index(Request $request)
     {
-        if ($request->user()->role !== 'ADMIN') {
+        /** @var User $actor */
+        $actor = $request->user();
+
+        if (! $actor->isPrivileged()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $query = AuditLog::with('user:id,name,email,nip,role');
+        $query = AuditLog::with('user:id,nama,email,npp,role');
 
         // Search by table_name
         if ($search = $request->input('search')) {

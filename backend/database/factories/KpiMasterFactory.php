@@ -33,6 +33,9 @@ class KpiMasterFactory extends Factory
 
         return [
             'nama' => fake('id_ID')->randomElement($kpiNames).' '.$this->faker->word(),
+            'target_angka' => fake()->randomFloat(2, 1, 250),
+            'satuan' => fake()->randomElement(['dokumen', 'jam', 'unit', 'laporan', 'tiket']),
+            'deskripsi' => fake('id_ID')->sentence(),
             'status_aktif' => true,
         ];
     }

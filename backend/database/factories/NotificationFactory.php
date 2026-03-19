@@ -13,10 +13,14 @@ class NotificationFactory extends Factory
             'user_id' => User::factory(),
             'title' => fake()->sentence(),
             'message' => fake()->paragraph(),
-            'type' => fake()->randomElement(['INFO', 'WARNING', 'SUCCESS', 'ERROR']),
+            'type' => fake()->randomElement([
+                'KPI_ASSIGNMENT',
+                'LOGBOOK_SUBMITTED',
+                'LOGBOOK_ACCEPTED',
+                'LOGBOOK_REJECTED',
+            ]),
             'reference_id' => fake()->uuid(),
             'is_read' => fake()->boolean(),
-            'read_at' => fake()->optional()->dateTime(),
         ];
     }
 }

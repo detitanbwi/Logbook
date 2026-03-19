@@ -43,26 +43,41 @@ it('prevents non-admin from accessing admin dashboard', function () {
 
 it('allows manager to access manager dashboard', function () {
     // Subordinate logbook
-    $logbook1 = Logbook::factory()->create(['user_id' => $this->staff->id, 'start_kerja' => now(), 'status' => 'SUBMITTED']);
-    $logbook2 = Logbook::factory()->create(['user_id' => $this->staff->id, 'start_kerja' => now(), 'status' => 'DRAFT']);
+    $logbook1 = Logbook::factory()->create(['user_id' => $this->staff->id, 'tanggal' => now()->toDateString(), 'start_kerja' => now(), 'status' => 'SUBMITTED']);
+    $logbook2 = Logbook::factory()->create(['user_id' => $this->staff->id, 'tanggal' => now()->toDateString(), 'start_kerja' => now(), 'status' => 'DRAFT']);
 
     // Other staff (not subordinate)
-    Logbook::factory()->create(['user_id' => $this->otherStaff->id, 'start_kerja' => now(), 'status' => 'SUBMITTED']);
+    Logbook::factory()->create(['user_id' => $this->otherStaff->id, 'tanggal' => now()->toDateString(), 'start_kerja' => now(), 'status' => 'SUBMITTED']);
 
     $kpi1 = KpiMaster::factory()->create();
     $kpi2 = KpiMaster::factory()->create();
 
-    LogbookKpiDetail::factory()->create(['logbook_id' => $logbook1->id, 'kpi_id' => $kpi1->id, 'is_finished' => true]);
-    LogbookKpiDetail::factory()->create(['logbook_id' => $logbook1->id, 'kpi_id' => $kpi2->id, 'is_finished' => false]);
-    LogbookKpiDetail::factory()->create(['logbook_id' => $logbook2->id, 'kpi_id' => $kpi1->id, 'is_finished' => true]);
+    LogbookKpiDetail::factory()->create([
+        'logbook_id' => $logbook1->id,
+        'kpi_id' => $kpi1->id,
+        'target_angka' => 10,
+        'capaian_angka' => 10,
+    ]);
+    LogbookKpiDetail::factory()->create([
+        'logbook_id' => $logbook1->id,
+        'kpi_id' => $kpi2->id,
+        'target_angka' => 10,
+        'capaian_angka' => 0,
+    ]);
+    LogbookKpiDetail::factory()->create([
+        'logbook_id' => $logbook2->id,
+        'kpi_id' => $kpi1->id,
+        'target_angka' => 10,
+        'capaian_angka' => 10,
+    ]);
 
     $response = actingAs($this->manager)->getJson('/api/v1/dashboard/manager');
 
     $response->assertOk()
         ->assertJsonPath('data.pending_logbooks_count', 1)
         ->assertJsonPath('data.subordinates.0.id', $this->staff->id)
-        ->assertJsonPath('data.subordinates.0.total_kpi', 3)
-        ->assertJsonPath('data.subordinates.0.completed_kpi', 2)
+        ->assertJsonPath('data.subordinates.0.target_angka_total', 30)
+        ->assertJsonPath('data.subordinates.0.capaian_angka_total', 20)
         ->assertJsonPath('data.subordinates.0.completion_rate', 66.67);
 });
 
@@ -72,13 +87,25 @@ it('prevents non-manager from accessing manager dashboard', function () {
 });
 
 it('allows staff to access staff dashboard', function () {
-    $logbook1 = Logbook::factory()->create(['user_id' => $this->staff->id, 'start_kerja' => now(), 'status' => 'REVIEWED', 'rating' => 4]);
-    $logbook2 = Logbook::factory()->create(['user_id' => $this->staff->id, 'start_kerja' => now(), 'status' => 'REVIEWED', 'rating' => 5]);
+    $logbook1 = Logbook::factory()->create([
+        'user_id' => $this->staff->id,
+        'start_kerja' => now()->format('H:i:s'),
+        'status' => 'ACCEPTED',
+        'rating' => 4,
+        'tanggal' => now()->toDateString(),
+    ]);
+    $logbook2 = Logbook::factory()->create([
+        'user_id' => $this->staff->id,
+        'start_kerja' => now()->format('H:i:s'),
+        'status' => 'ACCEPTED',
+        'rating' => 5,
+        'tanggal' => now()->toDateString(),
+    ]);
 
     $kpi1 = KpiMaster::factory()->create();
-    LogbookKpiDetail::factory()->create(['logbook_id' => $logbook1->id, 'kpi_id' => $kpi1->id, 'is_finished' => true]);
-    LogbookKpiDetail::factory()->create(['logbook_id' => $logbook1->id, 'kpi_id' => $kpi1->id, 'is_finished' => false]);
-    LogbookKpiDetail::factory()->create(['logbook_id' => $logbook2->id, 'kpi_id' => $kpi1->id, 'is_finished' => false]);
+    LogbookKpiDetail::factory()->create(['logbook_id' => $logbook1->id, 'kpi_id' => $kpi1->id, 'target_angka' => 10, 'capaian_angka' => 10]);
+    LogbookKpiDetail::factory()->create(['logbook_id' => $logbook1->id, 'kpi_id' => $kpi1->id, 'target_angka' => 10, 'capaian_angka' => 0]);
+    LogbookKpiDetail::factory()->create(['logbook_id' => $logbook2->id, 'kpi_id' => $kpi1->id, 'target_angka' => 10, 'capaian_angka' => 0]);
 
     // Workdays passed on 2023-10-15:
     // Oct 1 is Sunday. Oct 2-6 (5), Oct 9-13 (5) = 10 workdays.
@@ -99,9 +126,9 @@ it('prevents non-staff from accessing staff dashboard', function () {
 });
 
 it('allows admin and manager to view user KPI achievements', function () {
-    $logbook = Logbook::factory()->create(['user_id' => $this->staff->id, 'start_kerja' => now()]);
+    $logbook = Logbook::factory()->create(['user_id' => $this->staff->id, 'tanggal' => now()->toDateString(), 'start_kerja' => now()]);
     $kpi = KpiMaster::factory()->create();
-    LogbookKpiDetail::factory()->create(['logbook_id' => $logbook->id, 'kpi_id' => $kpi->id, 'is_finished' => true]);
+    LogbookKpiDetail::factory()->create(['logbook_id' => $logbook->id, 'kpi_id' => $kpi->id, 'target_angka' => 5, 'capaian_angka' => 5]);
 
     actingAs($this->admin)->getJson("/api/v1/users/{$this->staff->id}/kpi-achievements")
         ->assertOk()

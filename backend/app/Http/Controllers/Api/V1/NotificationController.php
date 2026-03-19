@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,11 +15,24 @@ class NotificationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Notification::where('user_id', Auth::id());
+        /** @var User $actor */
+        $actor = $request->user();
 
-        // Filter by is_read
+        $query = Notification::query()->where('user_id', $actor->id);
+
+        // Filter by is_read / unread_only
+        $isReadFilter = null;
+
         if ($request->has('is_read')) {
-            $query->where('is_read', $request->boolean('is_read'));
+            $isReadFilter = $request->boolean('is_read');
+        }
+
+        if ($request->boolean('unread_only')) {
+            $isReadFilter = false;
+        }
+
+        if ($isReadFilter !== null) {
+            $query->where('is_read', $isReadFilter);
         }
 
         // Filter by type
@@ -37,7 +51,17 @@ class NotificationController extends Controller
 
         $perPage = min($request->integer('per_page', 15), 100);
 
-        return response()->json($query->paginate($perPage));
+        $paginated = $query->paginate($perPage);
+        $paginated->setCollection($paginated->getCollection()->map(function (Notification $notification): array {
+            $payload = $notification->toArray();
+            $payload['preview_message'] = $notification->preview_message;
+            $payload['target_path'] = $notification->target_path;
+            $payload['target_params'] = $notification->target_params;
+
+            return $payload;
+        }));
+
+        return response()->json($paginated);
     }
 
     public function read(Notification $notification)
@@ -46,12 +70,13 @@ class NotificationController extends Controller
             abort(403);
         }
 
-        $notification->update([
-            'is_read' => true,
-            'read_at' => now(),
-        ]);
+        if (! $notification->is_read) {
+            $notification->update([
+                'is_read' => true,
+            ]);
+        }
 
-        return response()->json($notification);
+        return response()->json($notification->refresh());
     }
 
     public function readAll()
@@ -60,7 +85,6 @@ class NotificationController extends Controller
             ->where('is_read', false)
             ->update([
                 'is_read' => true,
-                'read_at' => now(),
             ]);
 
         return response()->json(['message' => 'All notifications marked as read']);

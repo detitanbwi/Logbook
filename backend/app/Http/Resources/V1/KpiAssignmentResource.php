@@ -14,6 +14,16 @@ class KpiAssignmentResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'user_id' => $this->user_id,
+            'kpi_id' => $this->kpi_id,
+            'assigned_by' => $this->assigned_by,
+            'user' => new UserResource($this->whenLoaded('user')),
+            'kpi' => new MasterKpiResource($this->whenLoaded('kpi')),
+            'assigner' => new UserResource($this->whenLoaded('assigner')),
+            'created_at' => optional($this->created_at)?->toISOString(),
+            'updated_at' => optional($this->updated_at)?->toISOString(),
+        ];
     }
 }

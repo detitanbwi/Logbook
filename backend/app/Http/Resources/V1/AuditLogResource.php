@@ -50,9 +50,9 @@ class AuditLogResource extends JsonResource
 
                 return [
                     'id' => (string) $this->user->id,
-                    'name' => (string) ($this->user->name ?? ''),
+                    'nama' => (string) ($this->user->nama ?? ''),
                     'email' => (string) ($this->user->email ?? ''),
-                    'nip' => (string) ($this->user->nip ?? ''),
+                    'npp' => (string) ($this->user->npp ?? ''),
                     'role' => (string) ($this->user->role ?? ''),
                 ];
             }),

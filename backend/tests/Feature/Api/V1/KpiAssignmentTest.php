@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Models\KpiMaster;
+use App\Models\Notification;
 use App\Models\User;
 use App\Models\UserKpiAssignment;
 
@@ -18,6 +19,8 @@ it('manager can assign kpi to subordinate', function () {
 
     $response->assertStatus(201);
 
+    $assignmentId = $response->json('id');
+
     $this->assertDatabaseHas('user_kpi_assignments', [
         'user_id' => $staff->id,
         'kpi_id' => $kpi->id,
@@ -27,7 +30,14 @@ it('manager can assign kpi to subordinate', function () {
     $this->assertDatabaseHas('notifications', [
         'user_id' => $staff->id,
         'title' => 'KPI Baru Ditugaskan',
+        'type' => 'KPI_ASSIGNMENT',
+        'reference_id' => null,
     ]);
+
+    $notification = Notification::where('user_id', $staff->id)->latest()->first();
+    expect($notification)->not->toBeNull();
+    expect($notification?->target_path)->toBe('/staff/logbook');
+    expect($notification?->target_params)->toMatchArray(['assignment_id' => null]);
 });
 
 it('manager cannot assign kpi to non-subordinate', function () {

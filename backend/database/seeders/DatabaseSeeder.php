@@ -9,61 +9,57 @@ use App\Models\User;
 use App\Models\UserKpiAssignment;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Static Accounts for UI Development & Testing
-        $admin = User::factory()->create([
-            'name' => 'Admin System',
-            'email' => 'admin@logbook.com',
-            'nip' => '198001012000011001',
-            'role' => 'ADMIN',
+        $superAdmin = User::factory()->create([
+            'nama' => 'Super Admin Sistem',
+            'email' => 'superadmin@logbook.com',
+            'npp' => '198001012000011001',
+            'role' => 'SuperAdmin',
+            'manager_id' => null,
         ]);
 
-        $staticManager = User::factory()->create([
-            'name' => 'Manager Budi',
-            'email' => 'manager@logbook.com',
-            'nip' => '198502022005011002',
-            'role' => 'MANAGER',
+        $admin = User::factory()->create([
+            'nama' => 'Admin Operasional',
+            'email' => 'admin@logbook.com',
+            'npp' => '198502022005011002',
+            'role' => 'Admin',
             'manager_id' => null,
         ]);
 
         $staticStaff = User::factory()->create([
-            'name' => 'Staff Siti',
+            'nama' => 'Staff Siti',
             'email' => 'staff@logbook.com',
-            'nip' => '199003032010012003',
-            'role' => 'STAFF',
-            'manager_id' => $staticManager->id,
+            'npp' => '199003032010012003',
+            'role' => 'Staff',
+            'manager_id' => $admin->id,
         ]);
 
-        // 2. Random Accounts for Volume
-        $managers = User::factory()->count(2)->create([
-            'role' => 'MANAGER',
-            'manager_id' => null,
-        ]);
-        $managers->push($staticManager);
-
+        /** @var Collection<int, User> $staffs */
         $staffs = collect([$staticStaff]);
+
         for ($i = 0; $i < 9; $i++) {
             $staffs->push(User::factory()->create([
-                'role' => 'STAFF',
-                'manager_id' => $managers[$i % 3]->id,
+                'role' => 'Staff',
+                'manager_id' => $admin->id,
             ]));
         }
 
-        // 3. Master Data
+        $this->command?->info('Seeded users: '.collect([$superAdmin, $admin])->count().' elevated + '.$staffs->count().' staff');
+
         $kpis = KpiMaster::factory()->count(20)->create();
 
-        // 4. Assign KPIs and generate Logbook History
         foreach ($staffs as $staff) {
             $assignedKpis = $kpis->random(rand(3, 5));
             foreach ($assignedKpis as $kpi) {
                 UserKpiAssignment::factory()->create([
                     'user_id' => $staff->id,
                     'kpi_id' => $kpi->id,
-                    'assigned_by' => $staff->manager_id,
+                    'assigned_by' => $admin->id,
                 ]);
             }
 
@@ -78,15 +74,27 @@ class DatabaseSeeder extends Seeder
                 $statusChoice = rand(1, 10);
 
                 if ($statusChoice <= 6) {
-                    $logbook = Logbook::factory()->reviewed()->create([
+                    $startTime = sprintf('%02d:%02d:00', rand(8, 9), rand(0, 59));
+                    $logbook = Logbook::factory()->accepted()->create([
                         'user_id' => $staff->id,
-                        'start_kerja' => $date->copy()->setHour(rand(8, 9))->setMinute(rand(0, 59)),
-                        'reviewed_by' => $staff->manager_id,
+                        'tanggal' => $date->toDateString(),
+                        'start_kerja' => $startTime,
+                        'reviewed_by' => $admin->id,
                     ]);
                 } elseif ($statusChoice <= 8) {
+                    $startTime = sprintf('%02d:%02d:00', rand(8, 9), rand(0, 59));
                     $logbook = Logbook::factory()->submitted()->create([
                         'user_id' => $staff->id,
-                        'start_kerja' => $date->copy()->setHour(rand(8, 9))->setMinute(rand(0, 59)),
+                        'tanggal' => $date->toDateString(),
+                        'start_kerja' => $startTime,
+                    ]);
+                } elseif ($statusChoice <= 9) {
+                    $startTime = sprintf('%02d:%02d:00', rand(8, 9), rand(0, 59));
+                    $logbook = Logbook::factory()->rejected()->create([
+                        'user_id' => $staff->id,
+                        'tanggal' => $date->toDateString(),
+                        'start_kerja' => $startTime,
+                        'reviewed_by' => $admin->id,
                     ]);
                 } else {
                     continue;
@@ -97,16 +105,18 @@ class DatabaseSeeder extends Seeder
                         'logbook_id' => $logbook->id,
                         'kpi_id' => $kpi->id,
                         'kpi_nama' => $kpi->nama,
-                        'is_finished' => rand(0, 1) === 1,
-                        'finished_at' => ($logbook->status === 'REVIEWED' || $logbook->status === 'SUBMITTED') ? $logbook->end_kerja->copy()->subMinutes(rand(10, 120)) : null,
+                        'target_angka' => $kpi->target_angka,
+                        'satuan' => $kpi->satuan,
+                        'capaian_angka' => rand(0, 1) === 1 ? (float) $kpi->target_angka : 0,
+                        'finished_at' => in_array($logbook->status, ['ACCEPTED', 'SUBMITTED'], true) ? now()->subMinutes(rand(10, 120)) : null,
                     ]);
                 }
             }
 
-            // Generate today's draft
             $draftLogbook = Logbook::factory()->create([
                 'user_id' => $staff->id,
-                'start_kerja' => Carbon::today()->setHour(8)->setMinute(30),
+                'tanggal' => Carbon::today()->toDateString(),
+                'start_kerja' => '08:30:00',
                 'status' => 'DRAFT',
             ]);
 
@@ -115,10 +125,14 @@ class DatabaseSeeder extends Seeder
                     'logbook_id' => $draftLogbook->id,
                     'kpi_id' => $kpi->id,
                     'kpi_nama' => $kpi->nama,
-                    'is_finished' => false,
+                    'target_angka' => $kpi->target_angka,
+                    'satuan' => $kpi->satuan,
+                    'capaian_angka' => 0,
                     'finished_at' => null,
                 ]);
             }
         }
+
+        $this->call(MigrateExistingDataSeeder::class);
     }
 }

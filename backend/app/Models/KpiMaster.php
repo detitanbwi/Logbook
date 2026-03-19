@@ -13,12 +13,19 @@ class KpiMaster extends Model
 {
     use Auditable, HasFactory, HasUuids, SoftDeletes;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'nama',
+        'target_angka',
+        'satuan',
+        'deskripsi',
+        'status_aktif',
+    ];
 
     protected function casts(): array
     {
         return [
             'status_aktif' => 'boolean',
+            'target_angka' => 'decimal:2',
         ];
     }
 

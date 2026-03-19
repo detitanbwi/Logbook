@@ -17,15 +17,18 @@ class KpiAssignmentController extends Controller
 {
     public function index(Request $request)
     {
+        /** @var User $user */
         $user = Auth::user();
         $query = UserKpiAssignment::with(['user', 'kpi', 'assigner']);
 
-        if ($user->role === 'MANAGER') {
+        if ($user->isStaff() && ! $user->hasSubordinates()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if (! $user->isPrivileged()) {
             $query->whereHas('user', function ($q) use ($user) {
                 $q->where('manager_id', $user->id);
             });
-        } elseif ($user->role === 'STAFF') {
-            abort(403, 'Unauthorized action.');
         }
 
         $perPage = $request->query('per_page', 15);
@@ -35,26 +38,27 @@ class KpiAssignmentController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'kpi_id' => 'required|exists:kpi_masters,id',
         ]);
 
-        $manager = Auth::user();
-        if ($manager->role !== 'MANAGER' && $manager->role !== 'ADMIN') {
+        /** @var User $actor */
+        $actor = Auth::user();
+        if ($actor->isStaff() && ! $actor->hasSubordinates()) {
             abort(403, 'Unauthorized');
         }
 
-        $staff = User::findOrFail($request->user_id);
+        $staff = User::findOrFail($validated['user_id']);
 
-        if ($manager->role === 'MANAGER' && $staff->manager_id !== $manager->id) {
+        if (! $actor->isPrivileged() && $staff->manager_id !== $actor->id) {
             return response()->json(['message' => 'User is not your subordinate.'], 403);
         }
 
         $assignment = UserKpiAssignment::create([
             'user_id' => $staff->id,
-            'kpi_id' => $request->kpi_id,
-            'assigned_by' => $manager->id,
+            'kpi_id' => $validated['kpi_id'],
+            'assigned_by' => $actor->id,
         ]);
 
         Notification::create([
@@ -62,23 +66,26 @@ class KpiAssignmentController extends Controller
             'title' => 'KPI Baru Ditugaskan',
             'message' => 'You have been assigned a new KPI.',
             'type' => 'KPI_ASSIGNMENT',
-            'reference_id' => $assignment->id,
+            'reference_id' => null,
             'is_read' => false,
         ]);
 
-        return response()->json($assignment, 201);
+        return (new KpiAssignmentResource($assignment->load(['user', 'kpi', 'assigner'])))
+            ->response()
+            ->setStatusCode(201);
     }
 
     public function destroy(UserKpiAssignment $assignment)
     {
-        $manager = Auth::user();
+        /** @var User $actor */
+        $actor = Auth::user();
 
-        if ($manager->role === 'MANAGER') {
-            $staff = $assignment->user;
-            if ($staff->manager_id !== $manager->id) {
-                abort(403, 'Unauthorized');
-            }
-        } elseif ($manager->role === 'STAFF') {
+        if ($actor->isStaff() && ! $actor->hasSubordinates()) {
+            abort(403, 'Unauthorized');
+        }
+
+        $staff = $assignment->user;
+        if (! $actor->isPrivileged() && $staff->manager_id !== $actor->id) {
             abort(403, 'Unauthorized');
         }
 

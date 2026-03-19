@@ -15,15 +15,26 @@ class Logbook extends Model
     /** @use HasFactory<LogbookFactory> */
     use HasFactory, HasUuids, SoftDeletes;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'user_id',
+        'tanggal',
+        'start_kerja',
+        'end_kerja',
+        'lokasi',
+        'status',
+        'rating',
+        'reviewed_by',
+        'reviewed_at',
+        'reviewer_comment',
+    ];
 
     protected function casts(): array
     {
         return [
-            'start_kerja' => 'datetime',
-            'end_kerja' => 'datetime',
+            'tanggal' => 'date',
+            'start_kerja' => 'string',
+            'end_kerja' => 'string',
             'reviewed_at' => 'datetime',
-            'gambar_bukti' => 'array',
             'rating' => 'integer',
         ];
     }

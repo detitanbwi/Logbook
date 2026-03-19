@@ -9,55 +9,69 @@ class LogbookFactory extends Factory
 {
     public function definition(): array
     {
-        // Random locations in Jakarta
-        $latStart = fake()->latitude(-6.3, -6.1);
-        $lngStart = fake()->longitude(106.7, 106.9);
-
-        $start_kerja = fake()->dateTimeBetween('-1 month', 'now');
+        $tanggal = fake()->dateTimeBetween('-1 month', 'now');
+        $startHour = fake()->numberBetween(7, 10);
+        $startMinute = fake()->numberBetween(0, 59);
+        $startKerja = sprintf('%02d:%02d:00', $startHour, $startMinute);
+        $lokasi = json_encode([
+            'lat' => fake()->latitude(-6.3, -6.1),
+            'lng' => fake()->longitude(106.7, 106.9),
+        ]);
 
         return [
             'user_id' => User::factory(),
-            'start_kerja' => $start_kerja,
-            'lokasi_start' => json_encode(['lat' => $latStart, 'lng' => $lngStart]),
+            'tanggal' => $tanggal->format('Y-m-d'),
+            'start_kerja' => $startKerja,
+            'lokasi' => $lokasi,
             'status' => 'DRAFT',
             'end_kerja' => null,
-            'lokasi_end' => null,
-            'gambar_bukti' => null,
             'rating' => null,
             'reviewed_by' => null,
             'reviewed_at' => null,
+            'reviewer_comment' => null,
         ];
     }
 
     public function submitted(): static
     {
         return $this->state(function (array $attributes) {
-            $end_kerja = clone $attributes['start_kerja'];
-            $end_kerja->modify('+8 hours');
-
-            $latEnd = fake()->latitude(-6.3, -6.1);
-            $lngEnd = fake()->longitude(106.7, 106.9);
+            $start = \DateTimeImmutable::createFromFormat('H:i:s', (string) $attributes['start_kerja']) ?: new \DateTimeImmutable('08:00:00');
+            $end = $start->modify('+8 hours')->format('H:i:s');
 
             return [
                 'status' => 'SUBMITTED',
-                'end_kerja' => $end_kerja,
-                'lokasi_end' => json_encode(['lat' => $latEnd, 'lng' => $lngEnd]),
-                'gambar_bukti' => json_encode([fake()->imageUrl()]),
+                'end_kerja' => $end,
             ];
         });
     }
 
-    public function reviewed(): static
+    public function accepted(): static
     {
         return $this->submitted()->state(function (array $attributes) {
-            $reviewed_at = clone $attributes['end_kerja'];
-            $reviewed_at->modify('+1 day');
+            $tanggal = (string) ($attributes['tanggal'] ?? fake()->date());
+            $endKerja = (string) ($attributes['end_kerja'] ?? '17:00:00');
 
             return [
-                'status' => 'REVIEWED',
+                'status' => 'ACCEPTED',
                 'rating' => fake()->numberBetween(1, 5),
                 'reviewed_by' => User::factory(),
-                'reviewed_at' => $reviewed_at,
+                'reviewed_at' => "{$tanggal} {$endKerja}",
+                'reviewer_comment' => fake('id_ID')->sentence(),
+            ];
+        });
+    }
+
+    public function rejected(): static
+    {
+        return $this->submitted()->state(function (array $attributes) {
+            $tanggal = (string) ($attributes['tanggal'] ?? fake()->date());
+            $endKerja = (string) ($attributes['end_kerja'] ?? '17:00:00');
+
+            return [
+                'status' => 'REJECTED',
+                'reviewed_by' => User::factory(),
+                'reviewed_at' => "{$tanggal} {$endKerja}",
+                'reviewer_comment' => fake('id_ID')->sentence(),
             ];
         });
     }
