@@ -12,8 +12,10 @@ export interface NormalizedAuditLog {
 	user_agent: string | null;
 	user?: {
 		id?: string;
+		nama?: string;
 		name?: string;
 		email?: string;
+		npp?: string;
 		nip?: string;
 		role?: string;
 	};
@@ -69,8 +71,10 @@ export function normalizeAuditLog(input: unknown): NormalizedAuditLog {
 		user: rawUser
 			? {
 					id: toString(rawUser.id),
+					nama: toString(rawUser.nama) || toString(rawUser.name),
 					name: toString(rawUser.name),
 					email: toString(rawUser.email),
+					npp: toString(rawUser.npp) || toString(rawUser.nip),
 					nip: toString(rawUser.nip),
 					role: toString(rawUser.role)
 				}

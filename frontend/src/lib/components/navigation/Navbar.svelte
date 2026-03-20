@@ -3,12 +3,16 @@
 	import { goto } from '$app/navigation';
 	import { LogOut, User, Bell, Menu } from 'lucide-svelte';
 	import { notificationStore } from '$lib/stores/notification.svelte';
+	import {
+		getNotificationPreviewText,
+		handleNotificationClick
+	} from '$lib/utils/notification';
 	import { onMount } from 'svelte';
 
 	let { isSidebarOpen = $bindable(false) }: { isSidebarOpen?: boolean } = $props();
 
-	let userInitial = $derived((auth.user.current?.name?.charAt(0) || 'U').toUpperCase());
-	let userName = $derived(auth.user.current?.name || 'User');
+	let userInitial = $derived((auth.user.current?.nama?.charAt(0) || 'U').toUpperCase());
+	let userName = $derived(auth.user.current?.nama || 'User');
 
 	let notifications = $derived(notificationStore.unread);
 	let unreadCount = $derived(notificationStore.unreadCount);
@@ -24,6 +28,13 @@
 	async function handleLogout() {
 		await auth.logout();
 		goto('/login');
+	}
+
+	async function handleOpenNotification(notification: (typeof notifications)[number]) {
+		await handleNotificationClick(notification, {
+			markAsRead: (id) => notificationStore.markAsRead(id),
+			navigate: (to) => goto(to)
+		});
 	}
 </script>
 
@@ -76,17 +87,18 @@
 				{#if notifications.length === 0}
 					<li class="p-4 text-center text-sm text-base-content/70">Tidak ada notifikasi baru</li>
 				{:else}
-					{#each notifications as notif}
+					{#each notifications as notif (notif.id)}
 						<li>
-							<a href="/notifications" class="flex flex-col items-start gap-1 py-3">
+							<button
+								type="button"
+								class="flex w-full flex-col items-start gap-1 py-3 text-left"
+								onclick={() => handleOpenNotification(notif)}
+							>
 								<span class="text-sm font-medium">{notif.type}</span>
-								{#if typeof notif.data === 'string'}
-									<span class="line-clamp-2 text-xs text-base-content/70">{notif.data}</span>
-								{:else if notif.data?.message}
-									<span class="line-clamp-2 text-xs text-base-content/70">{notif.data.message}</span
-									>
-								{/if}
-							</a>
+								<span class="line-clamp-2 text-xs text-base-content/70">
+									{getNotificationPreviewText(notif)}
+								</span>
+							</button>
 						</li>
 					{/each}
 				{/if}

@@ -103,7 +103,7 @@
 			<th>ID</th>
 			<SortableHeader
 				label="Nama Staf"
-				column="name"
+				column="nama"
 				currentSort={sortBy}
 				currentDir={sortDir}
 				onSort={handleSort}
@@ -144,7 +144,7 @@
 		{#each team as member}
 			<tr>
 				<td>{member.id}</td>
-				<td class="font-medium">{member.name}</td>
+				<td class="font-medium">{member.nama ?? member.name ?? '-'}</td>
 				<td>{member.email}</td>
 				<td>
 					<a href="/manager/assign?user={member.id}" class="btn btn-sm btn-primary"> Assign KPI </a>

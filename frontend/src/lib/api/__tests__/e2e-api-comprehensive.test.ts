@@ -38,7 +38,7 @@ describe('Comprehensive E2E API Tests', () => {
 	describe('1. Admin Tests', () => {
 		beforeAll(async () => {
 			await authService.login({
-				nip: '198001012000011001',
+				npp: '198001012000011001',
 				password: 'password'
 			});
 		});
@@ -75,7 +75,7 @@ describe('Comprehensive E2E API Tests', () => {
 				usersService.create({
 					nama: '', // Empty nama should fail validation
 					email: 'not-an-email',
-					nip: '',
+					npp: '',
 					password: '123',
 					// @ts-expect-error Testing with invalid role value
 					role: 'INVALID_ROLE'
@@ -94,7 +94,7 @@ describe('Comprehensive E2E API Tests', () => {
 	describe('2. Manager Tests', () => {
 		beforeAll(async () => {
 			await authService.login({
-				nip: '198502022005011002', // Typically a manager
+				npp: '198502022005011002', // Typically a manager
 				password: 'password'
 			});
 		});
@@ -141,7 +141,7 @@ describe('Comprehensive E2E API Tests', () => {
 
 		beforeAll(async () => {
 			await authService.login({
-				nip: '199003032010012003', // Typically a staff
+				npp: '199003032010012003', // Typically a staff
 				password: 'password'
 			});
 		});
@@ -191,7 +191,9 @@ describe('Comprehensive E2E API Tests', () => {
 
 		it('should export reports', async () => {
 			try {
-				const res = await analyticsService.exportReports();
+				const res = await analyticsService.exportReports({
+					report_type: 'staff_performance'
+				});
 				expect(res).toBeDefined();
 			} catch (e) {
 				// Depending on backend implementation this could throw if no data or not PDF format

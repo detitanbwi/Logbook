@@ -18,10 +18,10 @@ import { MasterKpiCreateSchema, KpiAssignmentSchema } from '../schemas/kpi.schem
 
 describe('API DTO Schemas', () => {
 	it('should validate LoginRequest', () => {
-		const valid = { nip: '12345', password: 'password123' };
+		const valid = { npp: '12345', password: 'password123' };
 		expect(v.safeParse(LoginRequestSchema, valid).success).toBe(true);
 
-		const invalid = { nip: 12345, password: 'password123' };
+		const invalid = { npp: 12345, password: 'password123' };
 		expect(v.safeParse(LoginRequestSchema, invalid).success).toBe(false);
 	});
 
@@ -106,24 +106,30 @@ describe('API DTO Schemas', () => {
 		});
 	});
 
-	describe('User Schema', () => {
+		describe('User Schema', () => {
 		it('should validate UserCreateSchema', () => {
 			const valid = {
-				name: 'Test User',
+				nama: 'Test User',
 				email: 'test@example.com',
-				nip: '12345',
+				npp: '12345',
 				password: 'password123',
 				role: 'Staff'
 			};
 			expect(v.safeParse(UserCreateSchema, valid).success).toBe(true);
-			const invalid = { name: 'Test', email: 'test@example.com' };
+			expect(
+				v.safeParse(UserCreateSchema, {
+					...valid,
+					role: 'Manager'
+				}).success
+			).toBe(false);
+			const invalid = { nama: 'Test', email: 'test@example.com' };
 			expect(v.safeParse(UserCreateSchema, invalid).success).toBe(false);
 		});
 
 		it('should validate UserUpdateSchema', () => {
-			expect(v.safeParse(UserUpdateSchema, { name: 'Test' }).success).toBe(true);
+			expect(v.safeParse(UserUpdateSchema, { nama: 'Test' }).success).toBe(true);
 			expect(v.safeParse(UserUpdateSchema, {}).success).toBe(true);
-			expect(v.safeParse(UserUpdateSchema, { name: 123 as any }).success).toBe(false);
+			expect(v.safeParse(UserUpdateSchema, { nama: 123 as any }).success).toBe(false);
 		});
 	});
 

@@ -16,9 +16,14 @@ export class ManagerLogbookService {
 		return api.post<any>(`/logbooks/${logbookId}/revert`);
 	}
 
-	async rateLogbook(logbookId: string | number, data: RateLogbookRequest): Promise<any> {
+	async reviewLogbook(logbookId: string | number, data: RateLogbookRequest): Promise<any> {
 		const validated = v.parse(RateLogbookRequestSchema, data);
-		return api.put<any>(`/logbooks/${logbookId}/rate`, validated);
+		return api.put<any>(`/logbooks/${logbookId}/review`, validated);
+	}
+
+	/** @deprecated use reviewLogbook() */
+	async rateLogbook(logbookId: string | number, data: RateLogbookRequest): Promise<any> {
+		return this.reviewLogbook(logbookId, data);
 	}
 }
 

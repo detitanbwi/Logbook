@@ -2,7 +2,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
 
-	let nip = $state('');
+	let npp = $state('');
 	let password = $state('');
 
 	$effect(() => {
@@ -14,7 +14,7 @@
 	async function handleSubmit(event: Event) {
 		event.preventDefault();
 		try {
-			await auth.login({ nip, password });
+			await auth.login({ npp, password });
 			goto('/');
 		} catch (e) {
 			// Error state handled inside auth store
@@ -37,14 +37,14 @@
 			{/if}
 
 			<div class="form-control w-full">
-				<label class="label" for="nip">
-					<span class="label-text font-medium">NIP</span>
+				<label class="label" for="npp">
+					<span class="label-text font-medium">NPP</span>
 				</label>
 				<input
-					id="nip"
+					id="npp"
 					type="text"
-					bind:value={nip}
-					placeholder="Masukkan NIP Anda"
+					bind:value={npp}
+					placeholder="Masukkan NPP Anda"
 					class="input-bordered input w-full"
 					required
 					disabled={auth.isLoading}
@@ -70,7 +70,7 @@
 				<button
 					type="submit"
 					class="btn w-full btn-primary"
-					disabled={auth.isLoading || !nip || !password}
+					disabled={auth.isLoading || !npp || !password}
 				>
 					{#if auth.isLoading}
 						<span class="loading loading-sm loading-spinner"></span>

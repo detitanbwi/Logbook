@@ -31,11 +31,11 @@ describe('E2E API Tests', () => {
 		localStorageMock.clear();
 	});
 
-	describe('Admin Flow', () => {
+		describe('Admin Flow', () => {
 		it('should login as admin, fetch users and logout', async () => {
 			// Login
 			const loginRes = await authService.login({
-				nip: '198001012000011001',
+				npp: '198001012000011001',
 				password: 'password'
 			});
 			const token = loginRes.token || (loginRes as any).access_token;
@@ -61,7 +61,7 @@ describe('E2E API Tests', () => {
 		it('Staff Flow: Login, start logbook, toggle KPI, and submit', async () => {
 			// Login Staff
 			await authService.login({
-				nip: '199003032010012003',
+				npp: '199003032010012003',
 				password: 'password'
 			});
 
@@ -113,7 +113,7 @@ describe('E2E API Tests', () => {
 		it('Manager Flow: Login, fetch submitted logbook, rate it', async () => {
 			// Login Manager
 			await authService.login({
-				nip: '198502022005011002',
+				npp: '198502022005011002',
 				password: 'password'
 			});
 

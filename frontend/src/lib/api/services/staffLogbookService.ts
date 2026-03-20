@@ -10,6 +10,7 @@ import {
 import * as v from 'valibot';
 import type { PaginatedResponse, PaginationParams, BaseResponse } from '../core/types';
 import type { Logbook } from '../../types';
+import { normalizeEntityUser } from '../schemas/user-normalization.schema';
 
 export interface LogbookFilters extends PaginationParams {
 	status?: string;
@@ -21,15 +22,27 @@ export interface LogbookFilters extends PaginationParams {
 }
 
 export class StaffLogbookService {
+	private normalizeLogbook(logbook: Logbook): Logbook {
+		return normalizeEntityUser(logbook);
+	}
+
 	async getLogbooks(params?: LogbookFilters): Promise<PaginatedResponse<Logbook>> {
-		return api.get<PaginatedResponse<Logbook>>('/logbooks', {
+		const response = await api.get<PaginatedResponse<Logbook>>('/logbooks', {
 			params: params as Record<string, unknown>
 		});
+		if (!Array.isArray(response?.data)) {
+			return response;
+		}
+
+		return {
+			...response,
+			data: response.data.map((logbook) => this.normalizeLogbook(logbook))
+		};
 	}
 
 	async getLogbookById(logbookId: string | number): Promise<Logbook> {
 		const response = await api.get<BaseResponse<Logbook>>(`/logbooks/${logbookId}`);
-		return response.data; // Mengikuti struktur dari api.get return if wrapped in BaseResponse or directly returning it.
+		return this.normalizeLogbook(response.data); // Mengikuti struktur dari api.get return if wrapped in BaseResponse or directly returning it.
 		// Catatan: Jika API Laravel langsung return objek Logbook (misalnya dari resource tanpa 'data' wrapper untuk get 1 item),
 		// mungkin ini perlu disesuaikan, tapi sementara kita asumsikan menggunakan BaseResponse.
 	}
@@ -37,7 +50,7 @@ export class StaffLogbookService {
 	async startLogbook(data: StartLogbookRequest): Promise<Logbook> {
 		const validated = v.parse(StartLogbookRequestSchema, data);
 		const response = await api.post<BaseResponse<Logbook>>('/logbooks/start', validated);
-		return response.data;
+		return this.normalizeLogbook(response.data);
 	}
 
 	async toggleKpi(
@@ -56,7 +69,7 @@ export class StaffLogbookService {
 		// If FormData is passed, send it directly (for file uploads)
 		if (data instanceof FormData) {
 			const response = await api.post<BaseResponse<Logbook>>(`/logbooks/${logbookId}/submit`, data);
-			return response.data;
+			return this.normalizeLogbook(response.data);
 		}
 
 		// Otherwise, validate and send as JSON
@@ -65,7 +78,7 @@ export class StaffLogbookService {
 			`/logbooks/${logbookId}/submit`,
 			validated
 		);
-		return response.data;
+		return this.normalizeLogbook(response.data);
 	}
 }
 

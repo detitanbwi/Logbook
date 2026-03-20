@@ -150,7 +150,7 @@
 							{:else if data.subordinates && data.subordinates.length > 0}
 								{#each data.subordinates as staff}
 									<tr>
-										<td class="font-medium">{staff.name}</td>
+									<td class="font-medium">{staff.nama ?? '-'}</td>
 										<td>{staff.total_kpi}</td>
 										<td>{staff.completed_kpi}</td>
 										<td class="w-1/3">
@@ -167,7 +167,7 @@
 										</td>
 										<td>
 											<a
-												href={`/manager/reviews?search=${encodeURIComponent(staff.name)}`}
+										href={`/manager/reviews?search=${encodeURIComponent(staff.nama ?? '')}`}
 												class="btn btn-outline btn-sm btn-primary"
 											>
 												<svg

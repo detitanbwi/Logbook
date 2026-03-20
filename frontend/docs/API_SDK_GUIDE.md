@@ -167,4 +167,38 @@ try {
 
 ### Unauthorized (401) Handling
 
-Currently, the SDK handles `401 Unauthorized` responses globally by clearing the token from local storage, allowing the SvelteKit frontend to elegantly redirect back to the `/login` page.
+Currently, the SDK handles `401 Unauthorized` responses globally by clearing the token from local storage, allowing the SvelteKit frontend to redirect back to the `/login` page.
+
+In addition, `AuthStore` now applies a safer session strategy:
+
+- `fetchMe()` on `401` only clears local session state (no remote `/auth/logout` call).
+- remote `/auth/logout` is only called for explicit user-initiated logout.
+- in-flight `fetchMe()` and `logout()` calls are deduplicated to avoid request storms.
+
+## Notification UX Contract (Hybrid Routing)
+
+Notification responses may include optional navigation metadata from backend:
+
+- `preview_message?: string | null`
+- `target_path?: string | null`
+- `target_params?: Record<string, unknown> | null`
+
+Preview rendering precedence in frontend:
+
+1. `preview_message`
+2. `message`
+3. `data.message`
+4. fallback: `Notifikasi baru`
+
+Click behavior in Navbar dropdown and `/notifications` page:
+
+1. mark as read when unread
+2. navigate to destination using hybrid strategy:
+   - backend `target_path` (+ `target_params`) first
+   - fallback from `type` + `reference_id`
+
+Current fallback destinations:
+
+- `KPI_ASSIGNMENT` → `/staff/logbook?assignment_id=<id>`
+- `LOGBOOK_SUBMITTED` → `/manager/reviews?logbook_id=<id>`
+- `LOGBOOK_REVERTED` / `LOGBOOK_REVIEWED` → `/staff/history?logbook_id=<id>`

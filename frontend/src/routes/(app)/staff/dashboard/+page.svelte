@@ -194,7 +194,7 @@
 			<div class="card-body p-0">
 				<div class="flex items-center justify-between border-b border-base-200 p-6 pb-2">
 					<h2 class="card-title text-lg">Logbook Terakhir</h2>
-					<a href="/staff/logbooks" class="btn btn-ghost btn-sm">Lihat Semua</a>
+					<a href="/staff/history" class="btn btn-ghost btn-sm">Lihat Semua</a>
 				</div>
 				<div class="overflow-x-auto">
 					<table class="table w-full">
@@ -255,9 +255,9 @@
 											</span>
 										</td>
 										<td>
-											<a href="/staff/logbooks/{logbook.id}" class="btn btn-outline btn-xs"
-												>Detail</a
-											>
+										<a href="/staff/history?logbook_id={logbook.id}" class="btn btn-outline btn-xs"
+											>Detail</a
+										>
 										</td>
 									</tr>
 								{/each}

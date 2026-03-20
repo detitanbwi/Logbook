@@ -1,15 +1,23 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { notificationStore } from '$lib/stores/notification.svelte';
+	import { toastStore } from '$lib/stores/toast.svelte';
 	import type { Notification } from '$lib/api/schemas/notification.schema';
-	import { Bell, CheckCircle2, Circle } from 'lucide-svelte';
+	import { CheckCircle2 } from 'lucide-svelte';
 	import Pagination from '$lib/components/ui/Pagination.svelte';
 	import FilterDropdown from '$lib/components/ui/FilterDropdown.svelte';
+	import NotificationListItem from '$lib/components/notifications/NotificationListItem.svelte';
+	import NotificationsStatePanel from '$lib/components/notifications/NotificationsStatePanel.svelte';
 	import { page } from '$app/stores';
+	import { handleNotificationClick, isNotificationUnread } from '$lib/utils/notification';
 
 	let notifications = $state<Notification[]>([]);
 	let meta = $state<any>(null);
 	let loading = $state(true);
+	let errorMessage = $state<string | null>(null);
+	let actionMessage = $state<string | null>(null);
+	let pendingReadId = $state<string | null>(null);
+	let markingAllAsRead = $state(false);
 
 	const readStatusOptions = [
 		{ label: 'Semua', value: '' },
@@ -53,47 +61,118 @@
 		goto(url.toString(), { replaceState: true, keepFocus: true });
 	}
 
-	async function fetchNotifications(pageNum: number, isReadFilter: string, typeFilter: string) {
-		loading = true;
-		try {
-			const params: Record<string, any> = { page: pageNum, per_page: perPage };
-			if (isReadFilter) params.is_read = isReadFilter === 'true';
-			if (typeFilter) params.type = typeFilter;
+	async function loadNotifications() {
+		const params: Record<string, any> = { page: currentPage, per_page: perPage };
+		if (isRead) params.is_read = isRead === 'true';
+		if (type) params.type = type;
 
-			const data = await notificationStore.fetchAll(params);
-			notifications = Array.isArray(data) ? data : (data as any).data || [];
-			meta = (data as any).meta || null;
-		} catch (error) {
-			console.error('Failed to fetch notifications:', error);
-		} finally {
-			loading = false;
-		}
+		loading = true;
+		errorMessage = null;
+		await notificationStore
+			.fetchAll(params)
+			.then((data) => {
+				notifications = Array.isArray(data) ? data : (data as any).data || [];
+				meta = (data as any).meta || null;
+			})
+			.catch((error) => {
+				errorMessage =
+					(error as { message?: string })?.message ||
+					'Gagal memuat notifikasi. Silakan coba lagi.';
+				console.error('Failed to fetch notifications:', error);
+			})
+			.finally(() => {
+				loading = false;
+			});
 	}
 
 	$effect(() => {
-		fetchNotifications(currentPage, isRead, type);
+		void loadNotifications();
 	});
 
 	async function markAsRead(id: string) {
+		if (pendingReadId || markingAllAsRead) {
+			return;
+		}
+
+		pendingReadId = id;
+		actionMessage = null;
+
 		try {
 			await notificationStore.markAsRead(id);
 			// Optimistic update
 			notifications = notifications.map((n) =>
-				n.id === id ? { ...n, read_at: new Date().toISOString() } : n
+				n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
 			);
+			actionMessage = 'Notifikasi berhasil ditandai sebagai dibaca.';
+			toastStore.success(actionMessage);
 		} catch (error) {
+			actionMessage =
+				(error as { message?: string })?.message || 'Gagal menandai notifikasi sebagai dibaca.';
+			toastStore.error(actionMessage);
 			console.error('Failed to mark as read:', error);
+		} finally {
+			pendingReadId = null;
 		}
 	}
 
 	async function markAllAsRead() {
+		if (markingAllAsRead || pendingReadId) {
+			return;
+		}
+
+		markingAllAsRead = true;
+		actionMessage = null;
+
 		try {
 			await notificationStore.markAllAsRead();
 			// Optimistic update
 			const now = new Date().toISOString();
-			notifications = notifications.map((n) => (n.read_at ? n : { ...n, read_at: now }));
+			notifications = notifications.map((n) =>
+				isNotificationUnread(n) ? { ...n, is_read: true, read_at: now } : n
+			);
+			actionMessage = 'Semua notifikasi berhasil ditandai sebagai dibaca.';
+			toastStore.success(actionMessage);
 		} catch (error) {
+			actionMessage =
+				(error as { message?: string })?.message ||
+				'Gagal menandai semua notifikasi sebagai dibaca.';
+			toastStore.error(actionMessage);
 			console.error('Failed to mark all as read:', error);
+		} finally {
+			markingAllAsRead = false;
+		}
+	}
+
+	async function handleNotificationItemClick(notification: Notification) {
+		if (pendingReadId || markingAllAsRead) {
+			return;
+		}
+
+		const wasUnread = isNotificationUnread(notification);
+		const optimisticReadAt = new Date().toISOString();
+
+		if (isNotificationUnread(notification)) {
+			notifications = notifications.map((n) =>
+				n.id === notification.id ? { ...n, is_read: true, read_at: optimisticReadAt } : n
+			);
+		}
+
+		try {
+			await handleNotificationClick(notification, {
+				markAsRead: (id) => notificationStore.markAsRead(id),
+				navigate: (to) => goto(to)
+			});
+		} catch (error) {
+			if (wasUnread) {
+				notifications = notifications.map((n) =>
+					n.id === notification.id ? { ...n, is_read: false, read_at: null } : n
+				);
+			}
+
+			actionMessage =
+				(error as { message?: string })?.message || 'Gagal membuka notifikasi. Silakan coba lagi.';
+			toastStore.error(actionMessage);
+			console.error('Failed to open notification:', error);
 		}
 	}
 
@@ -116,13 +195,23 @@
 			<p class="mt-1 text-sm text-base-content/70">Pemberitahuan sistem dan aktivitas tim Anda</p>
 		</div>
 
-		{#if !loading && notifications.some((n) => !n.read_at)}
-			<button class="btn btn-outline btn-sm btn-primary" onclick={markAllAsRead}>
+		{#if !loading && notifications.some((n) => isNotificationUnread(n))}
+			<button
+				class="btn btn-outline btn-sm btn-primary"
+				onclick={markAllAsRead}
+				disabled={markingAllAsRead || !!pendingReadId}
+			>
 				<CheckCircle2 class="mr-2 h-4 w-4" />
-				Tandai Semua Dibaca
+				{markingAllAsRead ? 'Memproses...' : 'Tandai Semua Dibaca'}
 			</button>
 		{/if}
 	</div>
+
+	{#if actionMessage}
+		<div class="alert mb-4" class:alert-success={!actionMessage.toLowerCase().includes('gagal')} class:alert-error={actionMessage.toLowerCase().includes('gagal')} role="status" aria-live="polite">
+			<span>{actionMessage}</span>
+		</div>
+	{/if}
 
 	<div class="mb-4 flex flex-wrap gap-4">
 		<FilterDropdown
@@ -141,80 +230,25 @@
 
 	<div class="card border border-base-200 bg-base-100 shadow-sm">
 		<div class="card-body p-0">
-			{#if loading}
-				<div class="divide-y divide-base-200">
-					{#each Array(5) as _}
-						<div class="flex items-start gap-4 p-4">
-							<div class="mt-1 flex-shrink-0">
-								<div class="h-5 w-5 animate-pulse rounded-full bg-base-300"></div>
-							</div>
-							<div class="min-w-0 flex-1">
-								<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-									<div class="h-4 w-32 animate-pulse rounded bg-base-300"></div>
-									<div class="h-3 w-24 animate-pulse rounded bg-base-300"></div>
-								</div>
-								<div class="mt-2 h-4 w-full max-w-md animate-pulse rounded bg-base-300"></div>
-							</div>
-							<div class="ml-4 flex-shrink-0">
-								<div class="h-6 w-24 animate-pulse rounded bg-base-300"></div>
-							</div>
-						</div>
-					{/each}
-				</div>
-			{:else if notifications.length === 0}
-				<div class="flex flex-col items-center justify-center p-12 text-base-content/50">
-					<Bell class="mb-4 h-12 w-12 opacity-50" />
-					<p class="text-lg font-medium">Belum ada notifikasi</p>
-					<p class="text-sm">Anda akan melihat pemberitahuan aktivitas di sini.</p>
-				</div>
+			{#if loading || !!errorMessage || notifications.length === 0}
+				<NotificationsStatePanel
+					{loading}
+					{errorMessage}
+					empty={notifications.length === 0}
+					hasFilters={!!isRead || !!type}
+					onRetry={loadNotifications}
+				/>
 			{:else}
 				<div class="divide-y divide-base-200">
-					{#each notifications as notif}
-						<div
-							class="flex items-start gap-4 p-4 transition-colors hover:bg-base-200/50 {notif.read_at
-								? 'opacity-70'
-								: ''}"
-						>
-							<div class="mt-1 flex-shrink-0">
-								{#if notif.read_at}
-									<CheckCircle2 class="h-5 w-5 text-base-content/40" />
-								{:else}
-									<Circle class="h-5 w-5 fill-primary/20 text-primary" />
-								{/if}
-							</div>
-
-							<div class="min-w-0 flex-1">
-								<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-									<p class="truncate text-sm font-semibold text-base-content">
-										{notif.type}
-									</p>
-									<span class="text-xs whitespace-nowrap text-base-content/50">
-										{formatDate(notif.created_at)}
-									</span>
-								</div>
-
-								<p class="mt-1 text-sm text-base-content/80">
-									{#if typeof notif.data === 'string'}
-										{notif.data}
-									{:else if notif.data?.message}
-										{notif.data.message}
-									{:else}
-										{JSON.stringify(notif.data)}
-									{/if}
-								</p>
-							</div>
-
-							{#if !notif.read_at}
-								<div class="ml-4 flex-shrink-0">
-									<button
-										class="btn text-primary btn-ghost btn-xs"
-										onclick={() => markAsRead(notif.id)}
-									>
-										Tandai dibaca
-									</button>
-								</div>
-							{/if}
-						</div>
+					{#each notifications as notif (notif.id)}
+						<NotificationListItem
+							notification={notif}
+							{pendingReadId}
+							{markingAllAsRead}
+							{formatDate}
+							onOpen={handleNotificationItemClick}
+							onMarkAsRead={markAsRead}
+						/>
 					{/each}
 				</div>
 				<div class="border-t border-base-200 p-4">

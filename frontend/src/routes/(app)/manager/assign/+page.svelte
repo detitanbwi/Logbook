@@ -129,7 +129,8 @@
 	}
 
 	function getUserName(id: string | number) {
-		return team.find((u: any) => u.id.toString() === id.toString())?.name || `User #${id}`;
+		const user = team.find((u: any) => u.id.toString() === id.toString());
+		return user?.nama ?? user?.name ?? `User #${id}`;
 	}
 	function getKpiName(id: string | number) {
 		return kpis.find((k: any) => k.id.toString() === id.toString())?.nama || `KPI #${id}`;
@@ -178,7 +179,7 @@
 					<select id="userSelect" class="select-bordered select w-full" bind:value={selectedUserId}>
 						<option value="" disabled>-- Pilih Staf --</option>
 						{#each team as user}
-							<option value={user.id.toString()}>{user.name}</option>
+							<option value={user.id.toString()}>{user.nama ?? user.name ?? `User #${user.id}`}</option>
 						{/each}
 					</select>
 				</div>

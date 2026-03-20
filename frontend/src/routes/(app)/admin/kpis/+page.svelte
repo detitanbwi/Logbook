@@ -6,18 +6,19 @@
 	import { toastStore } from '$lib/stores/toast.svelte';
 	import { SearchInput, FilterDropdown, SortableHeader } from '$lib/components/ui';
 	import { kpiService } from '$lib/api/services/kpiService';
-	import { goto, invalidate } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { MasterKpiCreateDto, MasterKpiUpdateDto } from '$lib/api/schemas/kpi.schema';
 
-	let { data } = $props();
-	let initialLoad = $derived(data?.initialLoad ?? false);
+	let { data: _data } = $props();
 
 	// State
 	let kpis = $state<any[]>([]);
 	let meta = $state<any>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+	let fetchRequestId = $state(0);
+	let refreshNonce = $state(0);
 
 	// URL-based state
 	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
@@ -33,7 +34,15 @@
 		{ label: 'Tidak Aktif', value: 'false' }
 	];
 
-	async function fetchKpis() {
+	function refreshList() {
+		refreshNonce += 1;
+	}
+
+	$effect(() => {
+		// Depend on manual refresh trigger in addition to URL-driven params.
+		refreshNonce;
+
+		const requestId = ++fetchRequestId;
 		loading = true;
 		error = null;
 
@@ -47,20 +56,29 @@
 		if (sortBy) params.sort_by = sortBy;
 		if (sortDir) params.sort_dir = sortDir;
 
-		try {
-			const response = await kpiService.getAllMaster(params);
-			kpis = Array.isArray(response) ? response : (response as any).data || [];
-			meta = (response as any).meta || null;
-		} catch (e: any) {
-			console.error('Failed to fetch KPIs', e);
-			error = e.message || 'Gagal memuat data KPI';
-		} finally {
-			loading = false;
-		}
-	}
+		(async () => {
+			try {
+				const response = await kpiService.getAllMaster(params);
 
-	$effect(() => {
-		fetchKpis();
+				if (requestId !== fetchRequestId) {
+					return;
+				}
+
+				kpis = Array.isArray(response) ? response : (response as any).data || [];
+				meta = (response as any).meta || null;
+			} catch (e: any) {
+				if (requestId !== fetchRequestId) {
+					return;
+				}
+
+				console.error('Failed to fetch KPIs', e);
+				error = e.message || 'Gagal memuat data KPI';
+			} finally {
+				if (requestId === fetchRequestId) {
+					loading = false;
+				}
+			}
+		})();
 	});
 
 	function updateUrl(params: Record<string, string>) {
@@ -81,6 +99,18 @@
 		url.searchParams.set('per_page', size.toString());
 		url.searchParams.set('page', '1');
 		goto(url.toString(), { replaceState: true, noScroll: true });
+	}
+
+	function handleSearch(value: string) {
+		updateUrl({ search: value });
+	}
+
+	function handleStatusFilter(value: string) {
+		updateUrl({ status_aktif: value });
+	}
+
+	function handleSort(column: string, dir: 'asc' | 'desc') {
+		updateUrl({ sort_by: column, sort_dir: dir });
 	}
 
 	let isModalOpen = $state(false);
@@ -115,21 +145,34 @@
 	}
 
 	async function handleSubmit() {
+		if (isSubmitting) {
+			return;
+		}
+
+		const nama = formData.nama.trim();
+		if (!nama) {
+			toastStore.error('Nama KPI wajib diisi.');
+			return;
+		}
+
 		isSubmitting = true;
 		try {
 			if (isEditMode && currentKpiId) {
 				const updateData: MasterKpiUpdateDto = {
-					nama: formData.nama,
+					nama,
 					status_aktif: formData.status_aktif
 				};
 				await kpiService.updateMaster(currentKpiId, updateData);
 				toastStore.success('KPI berhasil diperbarui.');
 			} else {
-				await kpiService.createMaster(formData);
+				await kpiService.createMaster({
+					nama,
+					status_aktif: formData.status_aktif
+				});
 				toastStore.success('KPI berhasil ditambahkan.');
 			}
 			isModalOpen = false;
-			fetchKpis();
+			refreshList();
 		} catch (error) {
 			console.error('Error submitting KPI:', error);
 			toastStore.error('Gagal menyimpan KPI.');
@@ -145,14 +188,26 @@
 
 	async function executeDelete() {
 		if (!kpiToDelete) return;
+		const deleteId = kpiToDelete;
+		const shouldMoveToPreviousPage = kpis.length === 1 && currentPage > 1;
+
 		try {
-			await kpiService.deleteMaster(kpiToDelete);
+			await kpiService.deleteMaster(deleteId);
 			toastStore.success('KPI berhasil dihapus.');
-			fetchKpis();
+
+			if (shouldMoveToPreviousPage) {
+				const url = new URL($page.url);
+				url.searchParams.set('page', String(currentPage - 1));
+				await goto(url.toString(), { replaceState: true, noScroll: true });
+				return;
+			}
+
+			refreshList();
 		} catch (error) {
 			console.error('Error deleting KPI:', error);
 			toastStore.error('Gagal menghapus KPI.');
 		} finally {
+			showDeleteConfirm = false;
 			kpiToDelete = null;
 		}
 	}
@@ -171,21 +226,21 @@
 	<SearchInput
 		value={search}
 		placeholder="Cari nama KPI..."
-		onSearch={(v) => updateUrl({ search: v })}
+		onSearch={handleSearch}
 		class="min-w-[200px] flex-1"
 	/>
 	<FilterDropdown
 		label="Status"
 		options={statusOptions}
 		value={statusAktif}
-		onChange={(v) => updateUrl({ status_aktif: v })}
+		onChange={handleStatusFilter}
 	/>
 </div>
 
 {#if error}
 	<div class="alert alert-error mb-4">
 		<span>{error}</span>
-		<button class="btn btn-ghost btn-sm" onclick={() => fetchKpis()}>Coba Lagi</button>
+		<button class="btn btn-ghost btn-sm" onclick={refreshList}>Coba Lagi</button>
 	</div>
 {/if}
 
@@ -198,7 +253,7 @@
 				label="Nama KPI"
 				currentSort={sortBy}
 				currentDir={sortDir}
-				onSort={(c, d) => updateUrl({ sort_by: c, sort_dir: d })}
+				onSort={handleSort}
 			/>
 			<th>Status</th>
 			<SortableHeader
@@ -206,14 +261,14 @@
 				label="Dibuat"
 				currentSort={sortBy}
 				currentDir={sortDir}
-				onSort={(c, d) => updateUrl({ sort_by: c, sort_dir: d })}
+				onSort={handleSort}
 			/>
 			<th>Aksi</th>
 		</tr>
 	{/snippet}
 
 	{#if loading}
-		{#each Array(5) as _}
+		{#each Array(5) as _, index (index)}
 			<tr>
 				<td>
 					<div class="h-4 w-24 animate-pulse rounded bg-base-300"></div>

@@ -133,3 +133,27 @@ _If making assumptions about the API behavior, remember:_
 - Endpoints return standard API Resources (`JsonResource`).
 - Mutations affecting multiple tables (e.g., `LogbookController@submit`) must be wrapped in Database Transactions.
 - The system heavily relies on `audit_logs` and `notifications`—frontend must gracefully handle and display these async side-effects.
+
+## 10. Notification & Auth Data-Flow Rules (Important)
+
+### Notification display + navigation
+
+- Always use notification preview precedence:
+  1) `preview_message`
+  2) `message`
+  3) `data.message`
+  4) fallback text (`Notifikasi baru`)
+- Do not render raw `JSON.stringify` for notification content in UI.
+- On notification click (both navbar dropdown and full notifications page):
+  1) mark read if unread
+  2) navigate to related route.
+- Navigation strategy is hybrid:
+  - use backend `target_path` + `target_params` first
+  - fallback by `type` + `reference_id`.
+
+### Auth revalidation behavior
+
+- `fetchMe()` unauthorized (`401`) must clear local session only.
+- Do not call remote `/auth/logout` from unauthorized revalidation path.
+- Call `/auth/logout` only for explicit user logout action.
+- Deduplicate concurrent `fetchMe()` / `logout()` operations to avoid repeated `/auth/me` and `/auth/logout` requests.

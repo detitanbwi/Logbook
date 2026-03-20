@@ -3,7 +3,9 @@ import type { Notification } from '../schemas/notification.schema';
 import type { PaginatedResponse, PaginationParams } from '../core/types';
 
 export interface NotificationFilters extends PaginationParams {
-	unread_only?: string | boolean;
+	unread_only?: boolean;
+	is_read?: boolean;
+	type?: string;
 }
 
 export const notificationService = {

@@ -1,13 +1,19 @@
-export type UserRole = 'Admin' | 'Manager' | 'Staff';
+export type UserRole = 'SuperAdmin' | 'Admin' | 'Manager' | 'Staff';
 export type LogbookStatus = 'DRAFT' | 'SUBMITTED' | 'REVIEWED' | 'REVERTED';
 
 export interface User {
 	id: string;
-	nip: string;
-	name: string;
+	npp: string;
+	nama: string;
+	/** @deprecated temporary compatibility alias */
+	nip?: string;
+	/** @deprecated temporary compatibility alias */
+	name?: string;
 	email: string;
 	role: UserRole;
 	manager_id: string | null;
+	has_subordinates?: boolean;
+	foto?: string | null;
 	manager?: User;
 	last_password_change?: string;
 	created_at: string;
@@ -73,13 +79,16 @@ export type NotificationType =
 
 export interface Notification {
 	id: string;
-	user_id: string;
-	title: string;
-	message: string;
+	user_id?: string | null;
+	title?: string | null;
+	message: string | null;
+	preview_message?: string | null;
 	type: NotificationType | string;
-	reference_id?: string;
-	is_read: boolean;
-	data?: Record<string, unknown>;
+	reference_id?: string | null;
+	is_read?: boolean;
+	data?: Record<string, unknown> | null;
+	target_path?: string | null;
+	target_params?: Record<string, unknown> | null;
 	created_at: string;
 	read_at?: string | null;
 }
@@ -95,7 +104,7 @@ export interface AuditLog {
 	performed_at: string;
 	ip_address: string | null;
 	user_agent: string | null;
-	user?: Pick<User, 'id' | 'name' | 'nip' | 'role'>;
+	user?: Pick<User, 'id' | 'nama' | 'npp' | 'role'> & { name?: string; nip?: string };
 	created_at: string;
 	updated_at: string;
 }
@@ -142,7 +151,8 @@ export interface AdminDashboard {
 export interface ManagerDashboard {
 	subordinates: Array<{
 		id: string;
-		name: string;
+		nama: string;
+		name?: string;
 		total_kpi: number;
 		completed_kpi: number;
 		completion_rate: number;

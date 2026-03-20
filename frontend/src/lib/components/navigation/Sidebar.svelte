@@ -1,33 +1,14 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth.svelte';
 	import { page } from '$app/state';
+	import { getNavigationLinks, normalizeRole } from '$lib/auth/permissions';
 
 	let { isSidebarOpen = $bindable(false) }: { isSidebarOpen?: boolean } = $props();
 
-	// Menu links based on role (keys are lowercase for case-insensitive matching)
-	const roleRoutes: Record<string, { label: string; href: string }[]> = {
-		admin: [
-			{ label: 'Dashboard', href: '/admin/dashboard' },
-			{ label: 'Master Data', href: '/admin/kpis' },
-			{ label: 'User Management', href: '/admin/users' },
-			{ label: 'Audit Logs', href: '/admin/audit-logs' }
-		],
-		manager: [
-			{ label: 'Dashboard', href: '/manager/dashboard' },
-			{ label: 'Tim Saya', href: '/manager/team' },
-			{ label: 'Review Logbook', href: '/manager/reviews' }
-		],
-		staff: [
-			{ label: 'Dashboard', href: '/staff/dashboard' },
-			{ label: 'Mulai Kerja', href: '/staff/logbook' },
-			{ label: 'Riwayat', href: '/staff/history' }
-		]
-	};
-
 	// Normalize role to lowercase for consistent matching
-	let role = $derived(auth.role?.toLowerCase() || 'staff');
+	let role = $derived(normalizeRole(auth.role));
 	let displayRole = $derived(role.charAt(0).toUpperCase() + role.slice(1));
-	let links = $derived(roleRoutes[role] || roleRoutes['staff']);
+	let links = $derived(getNavigationLinks(auth.role));
 
 	function closeSidebar() {
 		isSidebarOpen = false;

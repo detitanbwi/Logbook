@@ -3,6 +3,7 @@ import {
 	type NotificationFilters
 } from '$lib/api/services/notificationService';
 import type { Notification } from '$lib/api/schemas/notification.schema';
+import { isNotificationUnread } from '$lib/utils/notification';
 
 function createNotificationStore() {
 	let notifications = $state<Notification[]>([]);
@@ -13,10 +14,11 @@ function createNotificationStore() {
 		loading = true;
 		try {
 			const data = await notificationService.getNotifications({
-				unread_only: 'true',
+				unread_only: true,
 				per_page: limit
 			});
-			notifications = Array.isArray(data) ? data : (data as any).data || [];
+			const allItems = Array.isArray(data) ? data : (data as any).data || [];
+			notifications = allItems.filter((notification: Notification) => isNotificationUnread(notification));
 			error = null;
 		} catch (e: any) {
 			error = e.message || 'Failed to fetch notifications';
@@ -44,8 +46,11 @@ function createNotificationStore() {
 		try {
 			await notificationService.read(id);
 			notifications = notifications.filter((n) => n.id !== id);
+			error = null;
 		} catch (e) {
+			error = (e as { message?: string })?.message || 'Failed to mark notification as read';
 			console.error('Failed to mark as read', e);
+			throw e;
 		}
 	}
 
@@ -53,8 +58,11 @@ function createNotificationStore() {
 		try {
 			await notificationService.readAll();
 			notifications = [];
+			error = null;
 		} catch (e) {
+			error = (e as { message?: string })?.message || 'Failed to mark all notifications as read';
 			console.error('Failed to mark all as read', e);
+			throw e;
 		}
 	}
 

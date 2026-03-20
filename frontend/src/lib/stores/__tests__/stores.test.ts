@@ -36,7 +36,12 @@ describe('Store State Flow', () => {
 
 	describe('AuthStore', () => {
 		it('should login successfully, set token in store and client', async () => {
-			const mockUser = { id: '1', name: 'Admin', role: 'Staff' } as unknown as User;
+			const mockUser = {
+				id: '1',
+				nama: 'Admin',
+				npp: '12345',
+				role: 'Staff'
+			} as unknown as User;
 			const mockToken = 'new.jwt.token';
 
 			(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
@@ -47,7 +52,7 @@ describe('Store State Flow', () => {
 
 			expect(auth.isLoading).toBe(false);
 
-			const loginPromise = auth.login({ nip: '12345', password: 'password123' });
+			const loginPromise = auth.login({ npp: '12345', password: 'password123' });
 			expect(auth.isLoading).toBe(true);
 
 			await loginPromise;
@@ -72,7 +77,7 @@ describe('Store State Flow', () => {
 
 			expect(auth.isLoading).toBe(false);
 
-			const loginPromise = auth.login({ nip: 'wrong', password: 'wrong' });
+			const loginPromise = auth.login({ npp: 'wrong', password: 'wrong' });
 			expect(auth.isLoading).toBe(true);
 
 			await expect(loginPromise).rejects.toThrow('Invalid credentials');
@@ -84,8 +89,70 @@ describe('Store State Flow', () => {
 			expect(auth.error).toBe('Invalid credentials');
 		});
 
-		it('logout() -> clears user and token', async () => {
-			auth.user.current = { id: '1', name: 'Test' } as unknown as User;
+		it('fetchMe() unauthorized -> clears local session without remote logout call', async () => {
+			auth.user.current = {
+				id: '1',
+				nama: 'Test',
+				npp: '111',
+				role: 'Staff'
+			} as unknown as User;
+			auth.token.current = 'expired.token';
+			api.setToken('expired.token');
+
+			(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+				ok: false,
+				status: 401,
+				json: async () => ({ message: 'Unauthorized' })
+			});
+
+			await expect(auth.fetchMe()).rejects.toThrow('Unauthorized');
+
+			expect(auth.isAuthenticated).toBe(false);
+			expect(auth.user.current).toBeNull();
+			expect(auth.token.current).toBeNull();
+			expect(auth.isInitialized).toBe(false);
+
+			expect(global.fetch).toHaveBeenCalledTimes(1);
+			expect(global.fetch).toHaveBeenCalledWith(
+				expect.stringContaining('/auth/me'),
+				expect.any(Object)
+			);
+		});
+
+		it('fetchMe() dedupes concurrent calls to a single /auth/me request', async () => {
+			const mockUser = {
+				id: '1',
+				nama: 'Staff',
+				npp: '222',
+				role: 'Staff'
+			} as unknown as User;
+			auth.token.current = 'valid.token';
+			api.setToken('valid.token');
+
+			(global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(
+				() =>
+					new Promise((resolve) => {
+						setTimeout(() => {
+							resolve({
+								ok: true,
+								status: 200,
+								json: async () => ({ user: mockUser })
+							});
+						}, 5);
+					})
+			);
+
+			const [first, second] = await Promise.all([auth.fetchMe(), auth.fetchMe()]);
+
+			expect(first).toEqual(mockUser);
+			expect(second).toEqual(mockUser);
+			expect(auth.user.current).toEqual(mockUser);
+			expect(auth.isInitialized).toBe(true);
+			expect(global.fetch).toHaveBeenCalledTimes(1);
+		});
+
+		it('logout() -> clears user/token and performs remote call once', async () => {
+			auth.user.current = { id: '1', nama: 'Test', npp: '333' } as unknown as User;
 			auth.token.current = 'existing.token';
 			api.setToken('existing.token');
 
@@ -95,11 +162,17 @@ describe('Store State Flow', () => {
 				json: async () => ({})
 			});
 
-			await auth.logout();
+			await Promise.all([auth.logout(), auth.logout()]);
 
 			expect(auth.isAuthenticated).toBe(false);
 			expect(auth.user.current).toBeNull();
 			expect(auth.token.current).toBeNull();
+
+			expect(global.fetch).toHaveBeenCalledTimes(1);
+			expect(global.fetch).toHaveBeenCalledWith(
+				expect.stringContaining('/auth/logout'),
+				expect.any(Object)
+			);
 		});
 	});
 

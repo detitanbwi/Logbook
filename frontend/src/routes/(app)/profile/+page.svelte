@@ -2,28 +2,78 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { authService } from '$lib/api/services/authService';
 
+	let profileNama = $state(auth.user.current?.nama ?? '');
+	let profileEmail = $state(auth.user.current?.email ?? '');
+	let profilePhoto = $state<File | null>(null);
+	let isUpdatingProfile = $state(false);
+	let profileMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+
 	let currentPassword = $state('');
 	let newPassword = $state('');
 	let confirmPassword = $state('');
-	let isSubmitting = $state(false);
-	let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+	let isChangingPassword = $state(false);
+	let passwordMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 
 	let user = $derived(auth.user.current);
+
+	async function handleUpdateProfile(e: Event) {
+		e.preventDefault();
+
+		const nama = profileNama.trim();
+		const email = profileEmail.trim();
+
+		if (!nama) {
+			profileMessage = { type: 'error', text: 'Nama wajib diisi.' };
+			return;
+		}
+
+		if (!email) {
+			profileMessage = { type: 'error', text: 'Email wajib diisi.' };
+			return;
+		}
+
+		isUpdatingProfile = true;
+		profileMessage = null;
+
+		try {
+			if (profilePhoto) {
+				const formData = new FormData();
+				formData.append('nama', nama);
+				formData.append('email', email);
+				formData.append('foto', profilePhoto);
+				await authService.updateProfile(formData);
+			} else {
+				await authService.updateProfile({ nama, email } as any);
+			}
+
+			const refreshedUser = await auth.fetchMe();
+			profileNama = refreshedUser?.nama ?? nama;
+			profileEmail = refreshedUser?.email ?? email;
+			profileMessage = { type: 'success', text: 'Profil berhasil diperbarui.' };
+			profilePhoto = null;
+		} catch (error: any) {
+			const errorMessage =
+				error.response?.data?.message || error.message || 'Gagal memperbarui profil';
+			profileMessage = { type: 'error', text: errorMessage };
+		} finally {
+			isUpdatingProfile = false;
+		}
+	}
 
 	async function handleChangePassword(e: Event) {
 		e.preventDefault();
 		if (newPassword !== confirmPassword) {
-			message = { type: 'error', text: 'Password baru dan konfirmasi tidak cocok.' };
+			passwordMessage = { type: 'error', text: 'Password baru dan konfirmasi tidak cocok.' };
 			return;
 		}
 
 		if (newPassword.length < 8) {
-			message = { type: 'error', text: 'Password baru minimal 8 karakter.' };
+			passwordMessage = { type: 'error', text: 'Password baru minimal 8 karakter.' };
 			return;
 		}
 
-		isSubmitting = true;
-		message = null;
+		isChangingPassword = true;
+		passwordMessage = null;
 
 		try {
 			await authService.changePassword({
@@ -32,16 +82,16 @@
 				new_password_confirmation: confirmPassword
 			});
 
-			message = { type: 'success', text: 'Password berhasil diubah.' };
+			passwordMessage = { type: 'success', text: 'Password berhasil diubah.' };
 			currentPassword = '';
 			newPassword = '';
 			confirmPassword = '';
 		} catch (error: any) {
 			const errorMessage =
 				error.response?.data?.message || error.message || 'Gagal mengubah password';
-			message = { type: 'error', text: errorMessage };
+			passwordMessage = { type: 'error', text: errorMessage };
 		} finally {
-			isSubmitting = false;
+			isChangingPassword = false;
 		}
 	}
 </script>
@@ -57,12 +107,14 @@
 						<div
 							class="w-24 rounded-full bg-primary text-primary-content ring ring-primary ring-offset-2 ring-offset-base-100"
 						>
-							<span class="text-3xl font-bold">{(user.name?.charAt(0) || 'U').toUpperCase()}</span>
+							<span class="text-3xl font-bold"
+								>{(user.nama?.charAt(0) || 'U').toUpperCase()}</span
+							>
 						</div>
 					</div>
 					<div>
-						<h2 class="text-2xl font-bold text-base-content">{user.name}</h2>
-						<p class="mb-2 font-medium text-base-content/70">{user.nip}</p>
+						<h2 class="text-2xl font-bold text-base-content">{user.nama}</h2>
+						<p class="mb-2 font-medium text-base-content/70">{user.npp}</p>
 						<span class="badge font-medium badge-primary">{user.role}</span>
 					</div>
 				</div>
@@ -72,15 +124,95 @@
 
 	<div class="card border border-base-300 bg-base-100 shadow-sm">
 		<div class="card-body">
-			<h3 class="mb-4 card-title text-xl">Ubah Password</h3>
+			<h3 class="mb-4 card-title text-xl">Informasi Profil</h3>
 
-			{#if message}
+			{#if profileMessage}
 				<div
 					class="mb-4 alert rounded-lg p-3 text-sm"
-					class:alert-success={message.type === 'success'}
-					class:alert-error={message.type === 'error'}
+					class:alert-success={profileMessage.type === 'success'}
+					class:alert-error={profileMessage.type === 'error'}
 				>
-					<span>{message.text}</span>
+					<span>{profileMessage.text}</span>
+				</div>
+			{/if}
+
+			<form onsubmit={handleUpdateProfile} class="space-y-4">
+				<div class="form-control w-full max-w-md">
+					<label class="label" for="profile-nama">
+						<span class="label-text font-medium">Nama</span>
+					</label>
+					<input
+						id="profile-nama"
+						type="text"
+						bind:value={profileNama}
+						placeholder="Masukkan nama"
+						class="input-bordered input w-full"
+						required
+						disabled={isUpdatingProfile}
+					/>
+				</div>
+
+				<div class="form-control w-full max-w-md">
+					<label class="label" for="profile-email">
+						<span class="label-text font-medium">Email</span>
+					</label>
+					<input
+						id="profile-email"
+						type="email"
+						bind:value={profileEmail}
+						placeholder="Masukkan email"
+						class="input-bordered input w-full"
+						required
+						disabled={isUpdatingProfile}
+					/>
+				</div>
+
+				<div class="form-control w-full max-w-md">
+					<label class="label" for="profile-photo">
+						<span class="label-text font-medium">Foto Profil (opsional)</span>
+					</label>
+					<input
+						id="profile-photo"
+						type="file"
+						accept="image/*"
+						onchange={(event) => {
+							const input = event.currentTarget as HTMLInputElement;
+							profilePhoto = input.files?.[0] ?? null;
+						}}
+						class="file-input file-input-bordered w-full"
+						disabled={isUpdatingProfile}
+					/>
+				</div>
+
+				<div class="mt-6">
+					<button
+						type="submit"
+						class="btn btn-primary"
+						disabled={isUpdatingProfile || !profileNama.trim() || !profileEmail.trim()}
+					>
+						{#if isUpdatingProfile}
+							<span class="loading loading-sm loading-spinner"></span>
+							Menyimpan...
+						{:else}
+							Simpan Profil
+						{/if}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<div class="card border border-base-300 bg-base-100 shadow-sm">
+		<div class="card-body">
+			<h3 class="mb-4 card-title text-xl">Ubah Password</h3>
+
+			{#if passwordMessage}
+				<div
+					class="mb-4 alert rounded-lg p-3 text-sm"
+					class:alert-success={passwordMessage.type === 'success'}
+					class:alert-error={passwordMessage.type === 'error'}
+				>
+					<span>{passwordMessage.text}</span>
 				</div>
 			{/if}
 
@@ -96,7 +228,7 @@
 						placeholder="Masukkan password saat ini"
 						class="input-bordered input w-full"
 						required
-						disabled={isSubmitting}
+						disabled={isChangingPassword}
 					/>
 				</div>
 
@@ -111,7 +243,7 @@
 						placeholder="Masukkan password baru"
 						class="input-bordered input w-full"
 						required
-						disabled={isSubmitting}
+						disabled={isChangingPassword}
 					/>
 				</div>
 
@@ -126,7 +258,7 @@
 						placeholder="Ulangi password baru"
 						class="input-bordered input w-full"
 						required
-						disabled={isSubmitting}
+						disabled={isChangingPassword}
 					/>
 				</div>
 
@@ -134,9 +266,9 @@
 					<button
 						type="submit"
 						class="btn btn-primary"
-						disabled={isSubmitting || !currentPassword || !newPassword || !confirmPassword}
+						disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
 					>
-						{#if isSubmitting}
+						{#if isChangingPassword}
 							<span class="loading loading-sm loading-spinner"></span>
 							Menyimpan...
 						{:else}
