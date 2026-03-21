@@ -233,7 +233,7 @@ describe('Store State Flow', () => {
 					json: async () => ({ data: mockLogbooks, meta: null })
 				}); // fetchLogbooks
 
-			const startPromise = logbookStore.startLogbook({ gps_location_start: '-6.2088,106.8456' });
+			const startPromise = logbookStore.startLogbook({ tanggal: '2026-03-21', start_kerja: '08:00', lokasi: '-6.2088,106.8456' });
 			expect(logbookStore.isLoading).toBe(true);
 
 			const result = await startPromise;
@@ -244,53 +244,55 @@ describe('Store State Flow', () => {
 			expect(result).toEqual(mockStartedResponse);
 		});
 
-		it('toggleKpi() updates the specific KPI in the nested array optimally without resetting everything', async () => {
-			// Setup initial logbook with proper types
-			logbookStore.currentLogbook = {
-				id: '101',
-				status: 'DRAFT',
-				details: [
-					{
-						id: 'd1',
-						kpi_id: 'k1',
-						is_finished: false,
-						logbook_id: '101',
-						kpi_nama: 'KPI 1',
-						created_at: '',
-						updated_at: ''
-					},
-					{
-						id: 'd2',
-						kpi_id: 'k2',
-						is_finished: false,
-						logbook_id: '101',
-						kpi_nama: 'KPI 2',
-						created_at: '',
-						updated_at: ''
-					}
-				]
-			} as unknown as Logbook;
+	it('updateKpiProgress() updates the specific KPI in the nested array optimally without resetting everything', async () => {
+		logbookStore.currentLogbook = {
+			id: '101',
+			status: 'DRAFT',
+			details: [
+				{
+					id: 'd1',
+					kpi_id: 'k1',
+					capaian_angka: 0,
+					target_angka: 100,
+					satuan: 'unit',
+					logbook_id: '101',
+					kpi_nama: 'KPI 1',
+					created_at: '',
+					updated_at: ''
+				},
+				{
+					id: 'd2',
+					kpi_id: 'k2',
+					capaian_angka: 0,
+					target_angka: 100,
+					satuan: 'unit',
+					logbook_id: '101',
+					kpi_nama: 'KPI 2',
+					created_at: '',
+					updated_at: ''
+				}
+			]
+		} as unknown as Logbook;
 
-			const toggleResponse = { id: 'd1', kpi_id: 'k1', is_finished: true };
+		const updateResponse = { id: 'd1', kpi_id: 'k1', capaian_angka: 100 };
 
-			(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-				ok: true,
-				status: 200,
-				json: async () => toggleResponse
-			});
-
-			const togglePromise = logbookStore.toggleKpi('101', 'd1', { is_finished: true });
-			expect(logbookStore.isLoading).toBe(true);
-
-			await togglePromise;
-
-			expect(logbookStore.isLoading).toBe(false);
-			expect(logbookStore.error).toBeNull();
-
-			// Check optimistic update on specific KPI without reloading entire logbook
-			expect(logbookStore.currentLogbook!.details![0].is_finished).toBe(true); // d1 is true
-			expect(logbookStore.currentLogbook!.details![1].is_finished).toBe(false); // d2 remains false
+		(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: async () => updateResponse
 		});
+
+		const updatePromise = logbookStore.updateKpiProgress('101', 'd1', { capaian_angka: 100 });
+		expect(logbookStore.isLoading).toBe(true);
+
+		await updatePromise;
+
+		expect(logbookStore.isLoading).toBe(false);
+		expect(logbookStore.error).toBeNull();
+
+		expect(logbookStore.currentLogbook!.details![0].capaian_angka).toBe(100);
+		expect(logbookStore.currentLogbook!.details![1].capaian_angka).toBe(0);
+	});
 
 		it('submitLogbook() updates the status of currentLogbook', async () => {
 			logbookStore.currentLogbook = {
@@ -312,10 +314,7 @@ describe('Store State Flow', () => {
 					json: async () => ({ data: [], meta: null })
 				}); // fetchLogbooks
 
-			const submitPromise = logbookStore.submitLogbook('101', {
-				gps_location_end: '-6.2088,106.8456',
-				gambar_bukti: null
-			});
+		const submitPromise = logbookStore.submitLogbook('101');
 			expect(logbookStore.isLoading).toBe(true);
 
 			await submitPromise;

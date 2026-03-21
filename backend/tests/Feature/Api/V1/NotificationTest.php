@@ -119,3 +119,39 @@ it('prevents marking other users notification as read', function () {
     $notification->refresh();
     expect($notification->is_read)->toBeFalse();
 });
+
+it('marks all notifications as read via read-all endpoint', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $unread1 = Notification::factory()->create([
+        'user_id' => $user->id,
+        'is_read' => false,
+    ]);
+
+    $unread2 = Notification::factory()->create([
+        'user_id' => $user->id,
+        'is_read' => false,
+    ]);
+
+    $alreadyRead = Notification::factory()->create([
+        'user_id' => $user->id,
+        'is_read' => true,
+    ]);
+
+    $otherUserNotification = Notification::factory()->create([
+        'user_id' => $otherUser->id,
+        'is_read' => false,
+    ]);
+
+    $response = $this->actingAs($user)->putJson('/api/v1/notifications/read-all');
+
+    $response->assertOk()
+        ->assertJsonPath('message', 'All notifications marked as read');
+
+    expect($unread1->fresh()->is_read)->toBeTrue();
+    expect($unread2->fresh()->is_read)->toBeTrue();
+    expect($alreadyRead->fresh()->is_read)->toBeTrue();
+
+    expect($otherUserNotification->fresh()->is_read)->toBeFalse();
+});

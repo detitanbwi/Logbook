@@ -111,6 +111,33 @@ test('admin can delete user', function () {
     $this->assertSoftDeleted($user);
 });
 
+test('deleted user tokens are revoked after soft-delete', function () {
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $user = User::factory()->create(['role' => 'Staff']);
+
+    // Create a token for the user (simulating they logged in)
+    $userToken = $user->createToken('test-token')->plainTextToken;
+
+    // Verify user can access API with their token
+    $this->withToken($userToken)
+        ->getJson('/api/v1/auth/me')
+        ->assertOk();
+
+    // Admin deletes the user
+    Sanctum::actingAs($admin);
+    $this->deleteJson("/api/v1/users/{$user->id}")
+        ->assertOk();
+
+    // Verify user's tokens are deleted from database
+    expect($user->tokens()->count())->toBe(0);
+
+    // Reset auth state and verify the deleted user's token no longer works
+    app('auth')->forgetGuards();
+    $this->withToken($userToken)
+        ->getJson('/api/v1/auth/me')
+        ->assertUnauthorized();
+});
+
 test('manager can list their own subordinates', function () {
     $manager = User::factory()->create(['role' => 'Staff']);
     $subordinateA = User::factory()->create(['role' => 'Staff', 'manager_id' => $manager->id]);

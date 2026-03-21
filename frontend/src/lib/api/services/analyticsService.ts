@@ -1,27 +1,7 @@
 import { api } from '../core/client';
-import type {
-	AnalyticsDashboardResponse,
-	TeamLocationsResponse
-} from '../schemas/analytics.schema';
+import type { AnalyticsDashboardResponse, TeamLocationsResponse } from '../schemas/analytics.schema';
+import type { StaffPerformanceSummaryResponse } from '../../types';
 import { normalizeUserIdentity } from '../schemas/user-normalization.schema';
-
-export interface StaffPerformanceSummaryItem {
-	user_id: string | number;
-	nama: string;
-	npp: string;
-	total_logbooks: number;
-	accepted_logbooks: number;
-	rejected_logbooks: number;
-	target_angka_total: number;
-	capaian_angka_total: number;
-	progress_percent: number;
-}
-
-export interface StaffPerformanceSummaryResponse {
-	date_from: string;
-	date_to: string;
-	items: StaffPerformanceSummaryItem[];
-}
 
 export interface ExportReportParams {
 	report_type: string;
@@ -35,7 +15,10 @@ export interface ExportReportResponse {
 }
 
 export const analyticsService = {
-	getAdminDashboard: () => api.get<AnalyticsDashboardResponse>('/dashboard/admin'),
+	async getAdminDashboard(): Promise<AnalyticsDashboardResponse> {
+		const response = await api.get<{ data: AnalyticsDashboardResponse }>('/dashboard/admin');
+		return (response as any)?.data ?? response;
+	},
 	async getManagerDashboard(): Promise<AnalyticsDashboardResponse> {
 		const response = await api.get<AnalyticsDashboardResponse>('/dashboard/manager');
 		const payload = (response as any)?.data ?? response;
@@ -59,7 +42,10 @@ export const analyticsService = {
 		} as AnalyticsDashboardResponse;
 	},
 	getTeamLocations: () => api.get<TeamLocationsResponse>('/dashboard/manager/locations'),
-	getStaffDashboard: () => api.get<AnalyticsDashboardResponse>('/dashboard/staff'),
+	async getStaffDashboard(): Promise<AnalyticsDashboardResponse> {
+		const response = await api.get<{ data: AnalyticsDashboardResponse }>('/dashboard/staff');
+		return (response as any)?.data ?? response;
+	},
 	async getStaffPerformanceSummary(params?: {
 		date_from?: string;
 		date_to?: string;

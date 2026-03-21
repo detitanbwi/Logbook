@@ -42,14 +42,14 @@ export class AuthService {
 
 	async updateProfile(data: UpdateProfileRequest | FormData): Promise<User> {
 		if (data instanceof FormData) {
-			const response = await api.put<any>('/auth/profile', data);
-			return normalizeUserWithManager(response);
+			const response = await api.put<{ message: string; data: User }>('/auth/profile', data);
+			return normalizeUserWithManager(response.data);
 		}
 
 		const validated = v.parse(UpdateProfileSchema, data);
 
-		const response = await api.put<any>('/auth/profile', validated);
-		return normalizeUserWithManager(response);
+		const response = await api.put<{ message: string; data: User }>('/auth/profile', validated);
+		return normalizeUserWithManager(response.data);
 	}
 }
 

@@ -3,6 +3,9 @@
 	import { staffLogbookService } from '$lib/api/services/staffLogbookService';
 	import StatCard from '$lib/components/ui/StatCard.svelte';
 	import ChartWrapper from '$lib/components/ui/ChartWrapper.svelte';
+	import PerformanceTab from '$lib/components/mobile/PerformanceTab.svelte';
+	import TeamPerformanceTab from '$lib/components/mobile/TeamPerformanceTab.svelte';
+	import { auth } from '$lib/stores/auth.svelte';
 	import type { AnalyticsDashboardResponse } from '$lib/api/schemas/analytics.schema';
 	import type { Logbook } from '$lib/types';
 
@@ -14,6 +17,9 @@
 			year: 'numeric'
 		});
 	};
+
+	let activeTab = $state<'overview' | 'performance' | 'team'>('overview');
+	const hasSubordinates = $derived(auth.user.current?.has_subordinates ?? false);
 
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -28,8 +34,7 @@
 					staffLogbookService.getLogbooks({ per_page: 5, sort_by: 'created_at', sort_dir: 'desc' })
 				]);
 
-				// Extract the actual data whether it's wrapped in a data object or not
-				data = (dashboardRes as any).data || dashboardRes;
+			data = (dashboardRes as any).data || dashboardRes;
 				recentLogbooks = logbooksRes.data || [];
 			} catch (e: any) {
 				error = e.message || 'Failed to load dashboard data';
@@ -69,7 +74,30 @@
 		<h1 class="text-2xl font-bold">Dashboard Staff</h1>
 	</div>
 
-	<!-- Stats Row with Skeleton -->
+	<div class="tabs tabs-bordered mb-6">
+		<button
+			class="tab {activeTab === 'overview' ? 'tab-active' : ''}"
+			onclick={() => (activeTab = 'overview')}
+		>
+			Overview
+		</button>
+		<button
+			class="tab {activeTab === 'performance' ? 'tab-active' : ''}"
+			onclick={() => (activeTab = 'performance')}
+		>
+			My Performance
+		</button>
+		{#if hasSubordinates}
+			<button
+				class="tab {activeTab === 'team' ? 'tab-active' : ''}"
+				onclick={() => (activeTab = 'team')}
+			>
+				Team Performance
+			</button>
+		{/if}
+	</div>
+
+	{#if activeTab === 'overview'}
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 		{#if loading}
 			{#each Array(4) as _}
@@ -153,7 +181,6 @@
 		{/if}
 	</div>
 
-	<!-- Charts Row -->
 	<div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
 		<div class="card border border-base-200 bg-base-100 shadow-sm">
 			<div class="card-body">
@@ -248,8 +275,8 @@
 												class="badge badge-sm
 												{logbook.status === 'DRAFT' ? 'badge-ghost' : ''}
 												{logbook.status === 'SUBMITTED' ? 'badge-info' : ''}
-												{logbook.status === 'REVIEWED' ? 'badge-success' : ''}
-												{logbook.status === 'REVERTED' ? 'badge-error' : ''}"
+												{logbook.status === 'ACCEPTED' ? 'badge-success' : ''}
+												{logbook.status === 'REJECTED' ? 'badge-error' : ''}"
 											>
 												{logbook.status}
 											</span>
@@ -274,4 +301,9 @@
 			</div>
 		</div>
 	</div>
+	{:else if activeTab === 'performance'}
+		<PerformanceTab />
+	{:else if activeTab === 'team' && hasSubordinates}
+		<TeamPerformanceTab />
+	{/if}
 {/if}

@@ -11,8 +11,8 @@
 		{ label: 'Semua', value: '' },
 		{ label: 'Draft', value: 'DRAFT' },
 		{ label: 'Diajukan', value: 'SUBMITTED' },
-		{ label: 'Dikembalikan', value: 'REVERTED' },
-		{ label: 'Direview', value: 'REVIEWED' }
+		{ label: 'Diterima', value: 'ACCEPTED' },
+		{ label: 'Ditolak', value: 'REJECTED' }
 	];
 
 	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
@@ -195,7 +195,7 @@
 										</td>
 										<td>
 											{#if Array.isArray(log.details) && log.details.length > 0}
-												{log.details.filter((d) => d.is_finished).length} / {log.details.length}
+												{log.details.filter((d) => d.capaian_angka !== undefined && d.target_angka !== undefined && d.capaian_angka >= d.target_angka).length} / {log.details.length}
 											{:else}
 												-
 											{/if}

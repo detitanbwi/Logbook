@@ -32,7 +32,7 @@ class LogbookResource extends JsonResource
             'reviewer' => $this->whenLoaded('reviewer', function () {
                 return $this->reviewer ? new UserResource($this->reviewer) : null;
             }),
-            'kpi_details' => $this->whenLoaded('kpiDetails', function () {
+            'details' => $this->whenLoaded('kpiDetails', function () {
                 return $this->kpiDetails->map(function ($detail) {
                     return [
                         'id' => $detail->id,

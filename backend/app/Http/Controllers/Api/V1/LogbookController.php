@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StartLogbookRequest;
+use App\Http\Requests\Api\V1\UpdateLogbookRequest;
+use App\Http\Requests\Api\V1\UpdateProgressRequest;
+use App\Http\Requests\Api\V1\UploadAttachmentRequest;
 use App\Http\Resources\V1\LogbookResource;
 use App\Models\Logbook;
 use App\Models\LogbookKpiDetail;
@@ -26,7 +30,7 @@ class LogbookController extends Controller
 
         $query = Logbook::query()->with(['user', 'reviewer', 'kpiDetails.kpi']);
 
-        if ($user->isStaff()) {
+        if ($user->isStaff() && ! $user->hasSubordinates()) {
             $query->where('user_id', $user->id);
         } elseif (! $user->isPrivileged()) {
             $query->where(function ($builder) use ($user): void {
@@ -85,7 +89,7 @@ class LogbookController extends Controller
         return new LogbookResource($logbook);
     }
 
-    public function start(Request $request)
+    public function start(StartLogbookRequest $request)
     {
         /** @var User $user */
         $user = Auth::user();
@@ -94,12 +98,7 @@ class LogbookController extends Controller
             return response()->json(['message' => 'Hanya Staff yang dapat membuat logbook'], 403);
         }
 
-        $validated = $request->validate([
-            'tanggal' => 'required|date',
-            'start_kerja' => 'required|date_format:H:i',
-            'end_kerja' => 'nullable|date_format:H:i',
-            'lokasi' => 'required|string|max:1000',
-        ]);
+        $validated = $request->validated();
 
         if ($validated['start_kerja'] < '07:00') {
             return response()->json(['message' => 'Jam mulai minimal 07:00'], 422);
@@ -107,6 +106,17 @@ class LogbookController extends Controller
 
         if (($validated['end_kerja'] ?? null) !== null && $validated['end_kerja'] <= $validated['start_kerja']) {
             return response()->json(['message' => 'Jam selesai harus lebih besar dari jam mulai'], 422);
+        }
+
+        $activeAssignments = UserKpiAssignment::query()
+            ->with('kpi')
+            ->where('user_id', $user->id)
+            ->get();
+
+        if ($activeAssignments->isEmpty()) {
+            return response()->json([
+                'message' => 'Anda belum memiliki KPI yang ditugaskan. Hubungi manager Anda.',
+            ], 422);
         }
 
         $logbook = Logbook::create([
@@ -117,11 +127,6 @@ class LogbookController extends Controller
             'lokasi' => $validated['lokasi'],
             'status' => 'DRAFT',
         ]);
-
-        $activeAssignments = UserKpiAssignment::query()
-            ->with('kpi')
-            ->where('user_id', $user->id)
-            ->get();
 
         $seenKpiIds = [];
         foreach ($activeAssignments as $assignment) {
@@ -150,7 +155,7 @@ class LogbookController extends Controller
             ->setStatusCode(201);
     }
 
-    public function store(Request $request)
+    public function store(StartLogbookRequest $request)
     {
         return $this->start($request);
     }
@@ -161,7 +166,7 @@ class LogbookController extends Controller
      * Per plan spec section 9.2: PATCH /logbooks/{id}
      * Allows updating tanggal, start_kerja, end_kerja for DRAFT logbooks.
      */
-    public function update(Request $request, Logbook $logbook)
+    public function update(UpdateLogbookRequest $request, Logbook $logbook)
     {
         /** @var User $user */
         $user = Auth::user();
@@ -174,12 +179,7 @@ class LogbookController extends Controller
             return response()->json(['message' => 'Hanya logbook DRAFT yang dapat diupdate'], 400);
         }
 
-        $validated = $request->validate([
-            'tanggal' => 'sometimes|date',
-            'start_kerja' => 'sometimes|date_format:H:i',
-            'end_kerja' => 'sometimes|nullable|date_format:H:i',
-            'lokasi' => 'sometimes|string|max:1000',
-        ]);
+        $validated = $request->validated();
 
         // Determine actual values for validation
         $startKerja = $validated['start_kerja'] ?? $logbook->start_kerja;
@@ -209,13 +209,10 @@ class LogbookController extends Controller
 
         $logbook->load(['user', 'reviewer', 'kpiDetails.kpi']);
 
-        return response()->json([
-            'message' => 'Logbook berhasil diperbarui',
-            'data' => new LogbookResource($logbook),
-        ]);
+        return new LogbookResource($logbook);
     }
 
-    public function updateProgress(Request $request, Logbook $logbook, LogbookKpiDetail $detail)
+    public function updateProgress(UpdateProgressRequest $request, Logbook $logbook, LogbookKpiDetail $detail)
     {
         /** @var User $user */
         $user = Auth::user();
@@ -232,9 +229,7 @@ class LogbookController extends Controller
             return response()->json(['message' => 'Hanya logbook DRAFT yang dapat diupdate'], 400);
         }
 
-        $validated = $request->validate([
-            'capaian_angka' => 'required|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
         $capaianAngka = (float) $validated['capaian_angka'];
 
@@ -252,7 +247,7 @@ class LogbookController extends Controller
         ]);
     }
 
-    public function uploadAttachment(Request $request, Logbook $logbook, LogbookKpiDetail $detail)
+    public function uploadAttachment(UploadAttachmentRequest $request, Logbook $logbook, LogbookKpiDetail $detail)
     {
         /** @var User $user */
         $user = Auth::user();
@@ -269,9 +264,7 @@ class LogbookController extends Controller
             return response()->json(['message' => 'Lampiran hanya bisa diubah pada DRAFT'], 400);
         }
 
-        $validated = $request->validate([
-            'lampiran_file' => 'required|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx',
-        ]);
+        $validated = $request->validated();
 
         if ($detail->lampiran_file) {
             Storage::disk('public')->delete($detail->lampiran_file);
@@ -366,7 +359,7 @@ class LogbookController extends Controller
             ]);
         }
 
-        return response()->json((new LogbookResource($logbook->fresh(['user', 'reviewer', 'kpiDetails.kpi'])))->toArray(request()));
+        return new LogbookResource($logbook->fresh(['user', 'reviewer', 'kpiDetails.kpi']));
     }
 
     public function duration(Logbook $logbook)

@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\ChangePasswordRequest;
+use App\Http\Requests\Api\V1\LoginRequest;
+use App\Http\Requests\Api\V1\UpdateProfileRequest;
 use App\Http\Resources\V1\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -14,12 +17,9 @@ use Illuminate\Support\Facades\Storage;
  */
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $validated = $request->validate([
-            'npp' => 'required|string',
-            'password' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
         $loginNpp = (string) $validated['npp'];
 
@@ -54,22 +54,12 @@ class AuthController extends Controller
         return response()->json(['user' => new UserResource($user)]);
     }
 
-    public function updateProfile(Request $request)
+    public function updateProfile(UpdateProfileRequest $request)
     {
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'foto' => 'sometimes|nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'alamat' => 'sometimes|nullable|string|max:2000',
-            'tempat_lahir' => 'sometimes|nullable|string|max:255',
-            'tanggal_lahir' => 'sometimes|nullable|date',
-            'nik' => 'sometimes|nullable|string|max:32',
-            'npwp' => 'sometimes|nullable|string|max:32',
-            'status_kawin' => 'sometimes|nullable|string|max:32',
-            'riwayat_pendidikan' => 'sometimes|nullable|array',
-            'riwayat_karir' => 'sometimes|nullable|array',
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('foto')) {
             if ($user->foto) {
@@ -87,13 +77,8 @@ class AuthController extends Controller
         ]);
     }
 
-    public function changePassword(Request $request)
+    public function changePassword(ChangePasswordRequest $request)
     {
-        $request->validate([
-            'old_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed',
-        ]);
-
         $user = $request->user();
 
         if (! Hash::check($request->old_password, $user->password)) {

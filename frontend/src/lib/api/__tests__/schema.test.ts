@@ -7,9 +7,9 @@ import {
 } from '../schemas/auth.schema';
 import {
 	StartLogbookRequestSchema,
-	ToggleKpiRequestSchema,
+	UpdateKpiProgressSchema,
 	SubmitLogbookRequestSchema,
-	RateLogbookRequestSchema
+	ReviewLogbookRequestSchema
 } from '../schemas/logbook.schema';
 import { AnalyticsDashboardSchema } from '../schemas/analytics.schema';
 import { NotificationSchema } from '../schemas/notification.schema';
@@ -47,35 +47,29 @@ describe('API DTO Schemas', () => {
 	});
 
 	it('should validate StartLogbookRequest', () => {
-		const valid = { gps_location_start: '-6.2088,106.8456' };
+		const valid = { tanggal: '2026-03-21', start_kerja: '08:00', lokasi: 'Kantor' };
 		expect(v.safeParse(StartLogbookRequestSchema, valid).success).toBe(true);
 	});
 
-	it('should validate ToggleKpiRequest', () => {
-		const valid = { is_finished: true };
-		expect(v.safeParse(ToggleKpiRequestSchema, valid).success).toBe(true);
+	it('should validate UpdateKpiProgress', () => {
+		const valid = { capaian_angka: 50 };
+		expect(v.safeParse(UpdateKpiProgressSchema, valid).success).toBe(true);
 
-		const invalid = { is_finished: 'true' };
-		expect(v.safeParse(ToggleKpiRequestSchema, invalid).success).toBe(false);
+		const invalid = { capaian_angka: -1 };
+		expect(v.safeParse(UpdateKpiProgressSchema, invalid).success).toBe(false);
 	});
 
 	it('should validate SubmitLogbookRequest', () => {
-		const valid1 = { gps_location_end: '-6.2088,106.8456' };
-		const valid2 = { gps_location_end: '-6.2088,106.8456', gambar_bukti: ['base64string'] };
-		const valid3 = { gps_location_end: '-6.2088,106.8456', gambar_bukti: null };
-
-		expect(v.safeParse(SubmitLogbookRequestSchema, valid1).success).toBe(true);
-		expect(v.safeParse(SubmitLogbookRequestSchema, valid2).success).toBe(true);
-		expect(v.safeParse(SubmitLogbookRequestSchema, valid3).success).toBe(true);
+		const valid = {};
+		expect(v.safeParse(SubmitLogbookRequestSchema, valid).success).toBe(true);
 	});
 
-	it('should validate RateLogbookRequest (1-5)', () => {
-		expect(v.safeParse(RateLogbookRequestSchema, { rating: 1 }).success).toBe(true);
-		expect(v.safeParse(RateLogbookRequestSchema, { rating: 5 }).success).toBe(true);
-		expect(v.safeParse(RateLogbookRequestSchema, { rating: 3 }).success).toBe(true);
+	it('should validate ReviewLogbookRequest', () => {
+		const valid = { decision: 'ACCEPTED', rating: 3, reviewer_comment: 'OK' };
+		expect(v.safeParse(ReviewLogbookRequestSchema, valid).success).toBe(true);
 
-		expect(v.safeParse(RateLogbookRequestSchema, { rating: 0 }).success).toBe(false);
-		expect(v.safeParse(RateLogbookRequestSchema, { rating: 6 }).success).toBe(false);
+		const invalid = { rating: 0 };
+		expect(v.safeParse(ReviewLogbookRequestSchema, invalid).success).toBe(false);
 	});
 
 	describe('Analytics Schema', () => {
@@ -135,11 +129,8 @@ describe('API DTO Schemas', () => {
 
 	describe('KPI Schema', () => {
 		it('should validate MasterKpiCreateSchema', () => {
-			expect(v.safeParse(MasterKpiCreateSchema, { nama: 'KPI 1' }).success).toBe(true);
-			expect(
-				v.safeParse(MasterKpiCreateSchema, { nama: 'KPI 1', status_aktif: true }).success
-			).toBe(true);
-			expect(v.safeParse(MasterKpiCreateSchema, {}).success).toBe(false);
+			expect(v.safeParse(MasterKpiCreateSchema, { nama: 'KPI 1', target_angka: 100, satuan: 'unit', status_aktif: true }).success).toBe(true);
+			expect(v.safeParse(MasterKpiCreateSchema, { nama: 'KPI 1' }).success).toBe(false);
 		});
 
 		it('should validate KpiAssignmentSchema', () => {

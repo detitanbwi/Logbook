@@ -1,76 +1,32 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
 	import { logbookStore } from '$lib/stores/logbook.svelte';
+	import { staffLogbookService } from '$lib/api/services/staffLogbookService';
 	import { goto } from '$app/navigation';
 	import StatusBadge from '$lib/components/ui/StatusBadge.svelte';
+	import type { LogbookKpiDetail } from '$lib/types';
 
 	let kpiList = $derived(logbookStore.currentLogbook?.details || []);
 	let isDraft = $derived(logbookStore.currentLogbook?.status === 'DRAFT');
 	let isSubmitting = $state(false);
 	let errorMsg = $state<string | null>(null);
-	let gpsLoading = $state(false);
 
-	// Photo upload state
-	let selectedPhotos = $state<File[]>([]);
-	let photoPreviews = $state<string[]>([]);
+	let tanggal = $state(new Date().toISOString().split('T')[0]);
+	let startKerja = $state('08:00');
+	let endKerja = $state('');
+	let lokasi = $state('');
 
-	/**
-	 * Get current GPS location using browser geolocation API
-	 * @returns Promise resolving to coordinates string "latitude,longitude"
-	 * @throws Error if geolocation is not supported or permission denied
-	 */
-	async function getGpsLocation(): Promise<string> {
-		if (!browser) {
-			throw new Error('Geolocation hanya tersedia di browser');
-		}
-
-		if (!navigator.geolocation) {
-			throw new Error('Browser Anda tidak mendukung geolocation');
-		}
-
-		gpsLoading = true;
-
-		return new Promise((resolve, reject) => {
-			navigator.geolocation.getCurrentPosition(
-				(position) => {
-					gpsLoading = false;
-					const coords = `${position.coords.latitude},${position.coords.longitude}`;
-					resolve(coords);
-				},
-				(error) => {
-					gpsLoading = false;
-					let message: string;
-					switch (error.code) {
-						case error.PERMISSION_DENIED:
-							message = 'Izin lokasi ditolak. Mohon aktifkan izin lokasi di browser Anda.';
-							break;
-						case error.POSITION_UNAVAILABLE:
-							message = 'Informasi lokasi tidak tersedia. Pastikan GPS aktif.';
-							break;
-						case error.TIMEOUT:
-							message = 'Waktu permintaan lokasi habis. Silakan coba lagi.';
-							break;
-						default:
-							message = 'Gagal mendapatkan lokasi. Silakan coba lagi.';
-					}
-					reject(new Error(message));
-				},
-				{
-					enableHighAccuracy: true,
-					timeout: 10000,
-					maximumAge: 0
-				}
-			);
-		});
-	}
+	let kpiProgressValues = $state<Record<string, number>>({});
+	let kpiUpdating = $state<Record<string, boolean>>({});
+	let attachmentUploading = $state<Record<string, boolean>>({});
 
 	onMount(async () => {
 		try {
 			await logbookStore.fetchLogbooks();
-			const activeLogbook = logbookStore.logbooks.find((l: any) => l.status === 'DRAFT');
+			const activeLogbook = logbookStore.logbooks.find((l) => l.status === 'DRAFT');
 			if (activeLogbook) {
 				await logbookStore.fetchLogbookById(activeLogbook.id);
+				syncKpiProgressValues();
 			} else {
 				logbookStore.currentLogbook = null;
 			}
@@ -79,54 +35,97 @@
 		}
 	});
 
-	// Cleanup preview URLs when component is destroyed
-	onDestroy(() => {
-		photoPreviews.forEach((url) => URL.revokeObjectURL(url));
-	});
-
-	function handlePhotoSelect(event: Event) {
-		const input = event.target as HTMLInputElement;
-		if (input.files && input.files.length > 0) {
-			// Revoke previous preview URLs to prevent memory leaks
-			photoPreviews.forEach((url) => URL.revokeObjectURL(url));
-
-			// Store selected files and create preview URLs
-			selectedPhotos = Array.from(input.files);
-			photoPreviews = selectedPhotos.map((file) => URL.createObjectURL(file));
+	function syncKpiProgressValues() {
+		if (!logbookStore.currentLogbook?.details) return;
+		const values: Record<string, number> = {};
+		for (const detail of logbookStore.currentLogbook.details) {
+			values[detail.id] = detail.capaian_angka ?? 0;
 		}
+		kpiProgressValues = values;
 	}
 
-	function removePhoto(index: number) {
-		// Revoke the preview URL being removed
-		URL.revokeObjectURL(photoPreviews[index]);
-
-		// Remove from arrays
-		selectedPhotos = selectedPhotos.filter((_, i) => i !== index);
-		photoPreviews = photoPreviews.filter((_, i) => i !== index);
+	function getProgressPercent(detail: LogbookKpiDetail): number {
+		const target = detail.target_angka || 1;
+		return Math.min(100, Math.round((detail.capaian_angka / target) * 100));
 	}
 
-	async function startKerja() {
+	async function handleStartLogbook() {
 		errorMsg = null;
 		try {
-			const gpsLocation = await getGpsLocation();
-			await logbookStore.startLogbook({ gps_location_start: gpsLocation });
-			const activeLogbook = logbookStore.logbooks.find((l: any) => l.status === 'DRAFT');
+			await logbookStore.startLogbook({
+				tanggal,
+				start_kerja: startKerja,
+				end_kerja: endKerja || null,
+				lokasi
+			});
+			const activeLogbook = logbookStore.logbooks.find((l) => l.status === 'DRAFT');
 			if (activeLogbook) {
 				await logbookStore.fetchLogbookById(activeLogbook.id);
+				syncKpiProgressValues();
 			}
-		} catch (err: any) {
-			errorMsg = err.message || 'Failed to start logbook';
+		} catch (err: unknown) {
+			const e = err as { message?: string };
+			errorMsg = e.message || 'Gagal memulai logbook';
 		}
 	}
 
-	async function toggleTask(detailId: string, currentStatus: boolean) {
+	async function updateProgress(detailId: string) {
 		if (!logbookStore.currentLogbook) return;
+		const value = kpiProgressValues[detailId] ?? 0;
+		kpiUpdating = { ...kpiUpdating, [detailId]: true };
 		try {
-			await logbookStore.toggleKpi(logbookStore.currentLogbook.id, detailId, {
-				is_finished: !currentStatus
-			});
-		} catch (err: any) {
-			console.error(err);
+			await staffLogbookService.updateKpiProgress(
+				logbookStore.currentLogbook.id,
+				detailId,
+				{ capaian_angka: value }
+			);
+			await logbookStore.fetchLogbookById(logbookStore.currentLogbook.id);
+			syncKpiProgressValues();
+		} catch (err: unknown) {
+			const e = err as { message?: string };
+			errorMsg = e.message || 'Gagal memperbarui progress KPI';
+		} finally {
+			kpiUpdating = { ...kpiUpdating, [detailId]: false };
+		}
+	}
+
+	async function handleAttachmentUpload(detailId: string, event: Event) {
+		if (!logbookStore.currentLogbook) return;
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		attachmentUploading = { ...attachmentUploading, [detailId]: true };
+		try {
+			await staffLogbookService.uploadKpiAttachment(
+				logbookStore.currentLogbook.id,
+				detailId,
+				file
+			);
+			await logbookStore.fetchLogbookById(logbookStore.currentLogbook.id);
+		} catch (err: unknown) {
+			const e = err as { message?: string };
+			errorMsg = e.message || 'Gagal mengunggah lampiran';
+		} finally {
+			attachmentUploading = { ...attachmentUploading, [detailId]: false };
+			input.value = '';
+		}
+	}
+
+	async function handleAttachmentDelete(detailId: string) {
+		if (!logbookStore.currentLogbook) return;
+		attachmentUploading = { ...attachmentUploading, [detailId]: true };
+		try {
+			await staffLogbookService.deleteKpiAttachment(
+				logbookStore.currentLogbook.id,
+				detailId
+			);
+			await logbookStore.fetchLogbookById(logbookStore.currentLogbook.id);
+		} catch (err: unknown) {
+			const e = err as { message?: string };
+			errorMsg = e.message || 'Gagal menghapus lampiran';
+		} finally {
+			attachmentUploading = { ...attachmentUploading, [detailId]: false };
 		}
 	}
 
@@ -135,28 +134,12 @@
 		errorMsg = null;
 		isSubmitting = true;
 		try {
-			const gpsLocation = await getGpsLocation();
-
-			// Create FormData for file upload
-			const formData = new FormData();
-			formData.append('gps_location_end', gpsLocation);
-
-			// Append selected photos
-			selectedPhotos.forEach((photo, index) => {
-				formData.append(`gambar_bukti[${index}]`, photo);
-			});
-
-			await logbookStore.submitLogbook(logbookStore.currentLogbook.id, formData);
-
-			// Clear photos after successful submission
-			photoPreviews.forEach((url) => URL.revokeObjectURL(url));
-			selectedPhotos = [];
-			photoPreviews = [];
-
+			await logbookStore.submitLogbook(logbookStore.currentLogbook.id);
 			logbookStore.currentLogbook = null;
 			goto('/staff/history');
-		} catch (err: any) {
-			errorMsg = err.message || 'Failed to submit logbook';
+		} catch (err: unknown) {
+			const e = err as { message?: string };
+			errorMsg = e.message || 'Gagal submit logbook';
 		} finally {
 			isSubmitting = false;
 		}
@@ -183,22 +166,76 @@
 		</div>
 	{:else if !logbookStore.currentLogbook}
 		<div class="card border border-base-300 bg-base-100 shadow-sm">
-			<div class="card-body items-center text-center">
-				<h2 class="card-title">Mulai Kerja</h2>
-				<p>
-					Anda belum memulai logbook hari ini. Klik tombol di bawah untuk memulai pencatatan dan
-					merekam lokasi GPS Anda.
+			<div class="card-body">
+				<h2 class="card-title">Mulai Logbook</h2>
+				<p class="text-base-content/70">
+					Isi detail kerja untuk memulai pencatatan logbook hari ini.
 				</p>
-				<div class="mt-4 card-actions">
+
+				<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<div class="form-control">
+						<label class="label" for="tanggal">
+							<span class="label-text">Tanggal</span>
+						</label>
+						<input
+							id="tanggal"
+							type="date"
+							class="input-bordered input w-full"
+							bind:value={tanggal}
+							required
+						/>
+					</div>
+
+					<div class="form-control">
+						<label class="label" for="lokasi">
+							<span class="label-text">Lokasi</span>
+						</label>
+						<input
+							id="lokasi"
+							type="text"
+							class="input-bordered input w-full"
+							bind:value={lokasi}
+							placeholder="Nama kantor / lokasi kerja"
+							required
+						/>
+					</div>
+
+					<div class="form-control">
+						<label class="label" for="start-kerja">
+							<span class="label-text">Jam Mulai</span>
+						</label>
+						<input
+							id="start-kerja"
+							type="time"
+							class="input-bordered input w-full"
+							bind:value={startKerja}
+							required
+						/>
+					</div>
+
+					<div class="form-control">
+						<label class="label" for="end-kerja">
+							<span class="label-text">Jam Selesai (Opsional)</span>
+						</label>
+						<input
+							id="end-kerja"
+							type="time"
+							class="input-bordered input w-full"
+							bind:value={endKerja}
+						/>
+					</div>
+				</div>
+
+				<div class="mt-4 card-actions justify-end">
 					<button
 						class="btn px-8 btn-primary"
-						onclick={startKerja}
-						disabled={logbookStore.isLoading || gpsLoading}
+						onclick={handleStartLogbook}
+						disabled={logbookStore.isLoading || !tanggal || !startKerja || !lokasi}
 					>
-						{#if logbookStore.isLoading || gpsLoading}
+						{#if logbookStore.isLoading}
 							<span class="loading loading-sm loading-spinner"></span>
 						{/if}
-						{gpsLoading ? 'Mendapatkan Lokasi...' : 'Start Kerja'}
+						Mulai Logbook
 					</button>
 				</div>
 			</div>
@@ -206,84 +243,115 @@
 	{:else}
 		<div class="card border border-base-300 bg-base-100 shadow-sm">
 			<div class="card-body">
-				<h2 class="mb-4 card-title">Daftar KPI (Tugas Hari Ini)</h2>
+				<div class="mb-2 flex flex-wrap items-center gap-4 text-sm text-base-content/70">
+					<span>Tanggal: <strong>{logbookStore.currentLogbook.tanggal}</strong></span>
+					<span>Mulai: <strong>{logbookStore.currentLogbook.start_kerja}</strong></span>
+					{#if logbookStore.currentLogbook.end_kerja}
+						<span>Selesai: <strong>{logbookStore.currentLogbook.end_kerja}</strong></span>
+					{/if}
+					{#if logbookStore.currentLogbook.lokasi}
+						<span>Lokasi: <strong>{logbookStore.currentLogbook.lokasi}</strong></span>
+					{/if}
+				</div>
+
+				<h2 class="mb-4 card-title">Daftar KPI</h2>
 
 				{#if kpiList.length === 0}
 					<p class="text-base-content/70">Belum ada tugas KPI yang diberikan untuk hari ini.</p>
 				{:else}
-					<div class="flex flex-col gap-3">
+					<div class="flex flex-col gap-4">
 						{#each kpiList as kpi (kpi.id)}
-							<label
-								class="label cursor-pointer justify-start gap-4 rounded-lg border border-base-200 p-3 transition-colors hover:bg-base-200"
-							>
-								<input
-									type="checkbox"
-									class="checkbox checkbox-primary"
-									checked={kpi.is_finished}
-									disabled={!isDraft || logbookStore.isLoading}
-									onchange={() => toggleTask(kpi.id, kpi.is_finished)}
-								/>
-								<span
-									class="label-text {kpi.is_finished ? 'text-base-content/50 line-through' : ''}"
-								>
-									{kpi.kpi?.nama || 'Tugas Tanpa Nama'}
-								</span>
-							</label>
+							{@const progress = getProgressPercent(kpi)}
+							<div class="rounded-lg border border-base-200 p-4">
+								<div class="mb-2 flex items-start justify-between">
+									<div>
+										<span class="font-medium">
+											{kpi.kpi?.nama || 'Tugas Tanpa Nama'}
+										</span>
+										<div class="mt-1 text-sm text-base-content/60">
+											Target: {kpi.target_angka} {kpi.satuan}
+										</div>
+									</div>
+									<span class="text-sm font-semibold {progress >= 100 ? 'text-success' : 'text-base-content/70'}">
+										{progress}%
+									</span>
+								</div>
+
+								<progress
+									class="progress w-full {progress >= 100 ? 'progress-success' : 'progress-primary'}"
+									value={progress}
+									max="100"
+								></progress>
+
+								{#if isDraft}
+									<div class="mt-3 flex items-end gap-2">
+										<div class="form-control flex-1">
+											<label class="label" for="capaian-{kpi.id}">
+												<span class="label-text text-xs">Capaian ({kpi.satuan})</span>
+											</label>
+											<input
+												id="capaian-{kpi.id}"
+												type="number"
+												class="input-bordered input input-sm w-full"
+												bind:value={kpiProgressValues[kpi.id]}
+												min="0"
+												step="1"
+											/>
+										</div>
+										<button
+											class="btn btn-sm btn-primary"
+											onclick={() => updateProgress(kpi.id)}
+											disabled={kpiUpdating[kpi.id]}
+										>
+											{#if kpiUpdating[kpi.id]}
+												<span class="loading loading-xs loading-spinner"></span>
+											{/if}
+											Update
+										</button>
+									</div>
+
+									<div class="mt-3">
+										{#if kpi.lampiran_file}
+											<div class="flex items-center gap-2 text-sm">
+												<span class="truncate text-base-content/70">{kpi.lampiran_file}</span>
+												<button
+													class="btn btn-outline btn-xs btn-error"
+													onclick={() => handleAttachmentDelete(kpi.id)}
+													disabled={attachmentUploading[kpi.id]}
+												>
+													{#if attachmentUploading[kpi.id]}
+														<span class="loading loading-xs loading-spinner"></span>
+													{/if}
+													Hapus
+												</button>
+											</div>
+										{:else}
+											<input
+												type="file"
+												class="file-input file-input-bordered file-input-xs w-full max-w-xs"
+												onchange={(e) => handleAttachmentUpload(kpi.id, e)}
+												disabled={attachmentUploading[kpi.id]}
+											/>
+										{/if}
+									</div>
+								{/if}
+							</div>
 						{/each}
 					</div>
 				{/if}
 
 				{#if isDraft}
 					<div class="divider"></div>
-					<div class="form-control mb-4">
-						<label class="label" for="photo-upload">
-							<span class="label-text font-medium">Upload Bukti Foto (Opsional)</span>
-						</label>
-						<input
-							id="photo-upload"
-							type="file"
-							class="file-input-bordered file-input w-full max-w-xs"
-							multiple
-							accept="image/*"
-							onchange={handlePhotoSelect}
-						/>
-					</div>
-
-					{#if photoPreviews.length > 0}
-						<div class="mb-4">
-							<span class="label-text font-medium">Preview Foto ({photoPreviews.length})</span>
-							<div class="mt-2 flex flex-wrap gap-3">
-								{#each photoPreviews as preview, index (preview)}
-									<div class="relative">
-										<img
-											src={preview}
-											alt="Preview {index + 1}"
-											class="h-24 w-24 rounded-lg border border-base-300 object-cover"
-										/>
-										<button
-											type="button"
-											class="btn absolute -top-2 -right-2 btn-circle btn-xs btn-error"
-											onclick={() => removePhoto(index)}
-											aria-label="Hapus foto"
-										>
-											✕
-										</button>
-									</div>
-								{/each}
-							</div>
-						</div>
-					{/if}
-
-					<div class="mt-2 card-actions justify-end">
+					<div class="card-actions justify-end">
 						<button
 							class="btn btn-primary"
 							onclick={submitLogbook}
-							disabled={isSubmitting || logbookStore.isLoading || gpsLoading}
+							disabled={isSubmitting || logbookStore.isLoading}
 						>
-							{#if isSubmitting || gpsLoading}
+							{#if isSubmitting}
 								<span class="loading loading-sm loading-spinner"></span>
 							{/if}
-							{gpsLoading ? 'Mendapatkan Lokasi...' : 'Submit Logbook'}
+							Submit Logbook
 						</button>
 					</div>
 				{/if}

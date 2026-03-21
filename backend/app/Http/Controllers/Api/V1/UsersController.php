@@ -3,22 +3,19 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\CreateUserRequest;
+use App\Http\Requests\Api\V1\ResetPasswordRequest;
+use App\Http\Requests\Api\V1\UpdateUserRequest;
 use App\Http\Resources\V1\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 
 /**
  * @group User Management
  */
 class UsersController extends Controller
 {
-    public function __construct()
-    {
-        // Require specific roles depending on action if not done in routes
-    }
-
     public function index(Request $request)
     {
         $user = $request->user();
@@ -61,7 +58,7 @@ class UsersController extends Controller
         return UserResource::collection($query->paginate($perPage));
     }
 
-    public function store(Request $request)
+    public function store(CreateUserRequest $request)
     {
         /** @var User $actor */
         $actor = $request->user();
@@ -70,14 +67,7 @@ class UsersController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $validated = $request->validate([
-            'nama' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'npp' => 'required|string|max:255|unique:users',
-            'role' => ['required', Rule::in(['SuperAdmin', 'Admin', 'Staff', 'ADMIN', 'STAFF'])],
-            'password' => 'required|string|min:8',
-            'manager_id' => 'nullable|uuid|exists:users,id',
-        ]);
+        $validated = $request->validated();
 
         if (($validated['role'] ?? null) === 'ADMIN') {
             $validated['role'] = 'Admin';
@@ -113,7 +103,7 @@ class UsersController extends Controller
         return new UserResource($user->load('manager'));
     }
 
-    public function update(Request $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
         $actor = $request->user();
 
@@ -121,12 +111,7 @@ class UsersController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $validated = $request->validate([
-            'nama' => 'sometimes|required|string|max:255',
-            'npp' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('users', 'npp')->ignore($user->id)],
-            'role' => ['sometimes', 'required', Rule::in(['SuperAdmin', 'Admin', 'Staff', 'ADMIN', 'STAFF'])],
-            'manager_id' => 'nullable|uuid|exists:users,id',
-        ]);
+        $validated = $request->validated();
 
         if (($validated['role'] ?? null) === 'ADMIN') {
             $validated['role'] = 'Admin';
@@ -156,12 +141,13 @@ class UsersController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
+        $user->tokens()->delete();
         $user->delete();
 
         return response()->json(['message' => 'Pengguna berhasil dihapus']);
     }
 
-    public function resetPassword(Request $request, User $user)
+    public function resetPassword(ResetPasswordRequest $request, User $user)
     {
         /** @var User $actor */
         $actor = $request->user();
@@ -170,9 +156,7 @@ class UsersController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $validated = $request->validate([
-            'new_password' => 'required|string|min:8',
-        ]);
+        $validated = $request->validated();
 
         $user->password = Hash::make($validated['new_password']);
         $user->save();
