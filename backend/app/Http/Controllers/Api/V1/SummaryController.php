@@ -160,6 +160,10 @@ class SummaryController extends Controller
             $query->whereIn('user_id', User::query()->where('manager_id', $actor->id)->pluck('id'));
         }
 
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
         $dateTo = $request->input('date_to', now()->toDateString());
 

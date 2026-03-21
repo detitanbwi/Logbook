@@ -18,6 +18,8 @@ class StartLogbookRequest extends FormRequest
             'start_kerja' => ['required', 'date_format:H:i'],
             'end_kerja' => ['nullable', 'date_format:H:i'],
             'lokasi' => ['required', 'string', 'max:1000'],
+            'lokasi_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'lokasi_lng' => ['nullable', 'numeric', 'between:-180,180'],
         ];
     }
 
@@ -31,6 +33,10 @@ class StartLogbookRequest extends FormRequest
             'end_kerja.date_format' => 'Jam selesai harus berformat HH:MM.',
             'lokasi.required' => 'Lokasi wajib diisi.',
             'lokasi.max' => 'Lokasi maksimal 1000 karakter.',
+            'lokasi_lat.numeric' => 'Latitude harus berupa angka.',
+            'lokasi_lat.between' => 'Latitude harus antara -90 dan 90.',
+            'lokasi_lng.numeric' => 'Longitude harus berupa angka.',
+            'lokasi_lng.between' => 'Longitude harus antara -180 dan 180.',
         ];
     }
 }

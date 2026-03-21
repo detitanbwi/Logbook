@@ -42,7 +42,6 @@ Route::prefix('v1')->group(function () {
         Route::get('kpi/me', [KpiAssignmentController::class, 'me']);
 
         Route::put('logbooks/{logbook}/review', [ManagerLogbookController::class, 'review']);
-        Route::post('logbooks/{logbook}/revert', [ManagerLogbookController::class, 'revert']);
 
         Route::post('logbooks/start', [LogbookController::class, 'start']);
         Route::post('logbooks', [LogbookController::class, 'store']);

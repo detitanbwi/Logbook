@@ -13,18 +13,18 @@ class LogbookFactory extends Factory
         $startHour = fake()->numberBetween(7, 10);
         $startMinute = fake()->numberBetween(0, 59);
         $startKerja = sprintf('%02d:%02d:00', $startHour, $startMinute);
-        $lokasi = json_encode([
-            'lat' => fake()->latitude(-6.3, -6.1),
-            'lng' => fake()->longitude(106.7, 106.9),
-        ]);
+        $endHour = min($startHour + 8, 23);
+        $endKerja = sprintf('%02d:%02d:00', $endHour, $startMinute);
 
         return [
             'user_id' => User::factory(),
             'tanggal' => $tanggal->format('Y-m-d'),
             'start_kerja' => $startKerja,
-            'lokasi' => $lokasi,
-            'status' => 'DRAFT',
-            'end_kerja' => null,
+            'lokasi' => 'Jakarta Selatan',
+            'lokasi_lat' => fake()->latitude(-6.3, -6.1),
+            'lokasi_lng' => fake()->longitude(106.7, 106.9),
+            'status' => 'SUBMITTED',
+            'end_kerja' => $endKerja,
             'rating' => null,
             'reviewed_by' => null,
             'reviewed_at' => null,

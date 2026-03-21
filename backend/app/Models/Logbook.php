@@ -22,6 +22,8 @@ class Logbook extends Model
         'start_kerja',
         'end_kerja',
         'lokasi',
+        'lokasi_lat',
+        'lokasi_lng',
         'status',
         'rating',
         'reviewed_by',
@@ -49,6 +51,8 @@ class Logbook extends Model
             'tanggal' => 'date',
             'start_kerja' => 'string',
             'end_kerja' => 'string',
+            'lokasi_lat' => 'decimal:8',
+            'lokasi_lng' => 'decimal:8',
             'reviewed_at' => 'datetime',
             'rating' => 'integer',
         ];

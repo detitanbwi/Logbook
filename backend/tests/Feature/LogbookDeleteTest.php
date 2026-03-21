@@ -13,14 +13,15 @@ beforeEach(function () {
     $this->staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $this->manager->id]);
 });
 
-test('staff can delete own DRAFT logbook', function () {
+test('staff can delete own SUBMITTED logbook', function () {
     Sanctum::actingAs($this->staff);
 
     $logbook = Logbook::factory()->create([
         'user_id' => $this->staff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $logbookId = $logbook->id;
@@ -33,7 +34,7 @@ test('staff can delete own DRAFT logbook', function () {
     $this->assertSoftDeleted('logbooks', ['id' => $logbookId]);
 });
 
-test('staff cannot delete SUBMITTED logbook', function () {
+test('staff can delete own REJECTED logbook', function () {
     Sanctum::actingAs($this->staff);
 
     $logbook = Logbook::factory()->create([
@@ -41,15 +42,17 @@ test('staff cannot delete SUBMITTED logbook', function () {
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
         'end_kerja' => '17:00',
-        'status' => 'SUBMITTED',
+        'status' => 'REJECTED',
     ]);
+
+    $logbookId = $logbook->id;
 
     $response = $this->deleteJson("/api/v1/logbooks/{$logbook->id}");
 
-    $response->assertStatus(400)
-        ->assertJsonPath('message', 'Hanya logbook DRAFT yang dapat dihapus');
+    $response->assertStatus(200)
+        ->assertJsonPath('message', 'Logbook berhasil dihapus');
 
-    $this->assertDatabaseHas('logbooks', ['id' => $logbook->id]);
+    $this->assertSoftDeleted('logbooks', ['id' => $logbookId]);
 });
 
 test('staff cannot delete ACCEPTED logbook', function () {
@@ -65,27 +68,7 @@ test('staff cannot delete ACCEPTED logbook', function () {
 
     $response = $this->deleteJson("/api/v1/logbooks/{$logbook->id}");
 
-    $response->assertStatus(400)
-        ->assertJsonPath('message', 'Hanya logbook DRAFT yang dapat dihapus');
-
-    $this->assertDatabaseHas('logbooks', ['id' => $logbook->id]);
-});
-
-test('staff cannot delete REJECTED logbook', function () {
-    Sanctum::actingAs($this->staff);
-
-    $logbook = Logbook::factory()->create([
-        'user_id' => $this->staff->id,
-        'tanggal' => '2026-03-20',
-        'start_kerja' => '08:00',
-        'end_kerja' => '17:00',
-        'status' => 'REJECTED',
-    ]);
-
-    $response = $this->deleteJson("/api/v1/logbooks/{$logbook->id}");
-
-    $response->assertStatus(400)
-        ->assertJsonPath('message', 'Hanya logbook DRAFT yang dapat dihapus');
+    $response->assertStatus(400);
 
     $this->assertDatabaseHas('logbooks', ['id' => $logbook->id]);
 });
@@ -98,7 +81,8 @@ test('staff cannot delete another users logbook', function () {
         'user_id' => $otherStaff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->deleteJson("/api/v1/logbooks/{$logbook->id}");
@@ -115,10 +99,10 @@ test('deleting logbook also deletes associated kpi details', function () {
         'user_id' => $this->staff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
-    // Create KPI details for this logbook
     $detail1 = LogbookKpiDetail::factory()->create([
         'logbook_id' => $logbook->id,
         'kpi_nama' => 'KPI 1',
@@ -146,16 +130,15 @@ test('deleting logbook also deletes associated kpi details', function () {
     $this->assertSoftDeleted('logbook_kpi_details', ['id' => $detail2Id]);
 });
 
-test('manager cannot delete subordinate DRAFT logbook', function () {
-    // Manager should not be able to delete subordinate's logbooks
-    // Only the owner can delete
+test('manager cannot delete subordinate SUBMITTED logbook', function () {
     Sanctum::actingAs($this->manager);
 
     $logbook = Logbook::factory()->create([
         'user_id' => $this->staff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->deleteJson("/api/v1/logbooks/{$logbook->id}");
@@ -170,7 +153,8 @@ test('unauthenticated user cannot delete logbook', function () {
         'user_id' => $this->staff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->deleteJson("/api/v1/logbooks/{$logbook->id}");
@@ -185,8 +169,6 @@ test('unauthenticated user cannot delete logbook', function () {
 // =============================================================================
 
 test('admin cannot delete staff logbook', function () {
-    // Admin has "View All Logbooks" but NOT delete capability
-    // Delete endpoint checks ownership: $logbook->user_id !== $user->id
     $admin = User::factory()->create(['role' => 'ADMIN']);
     Sanctum::actingAs($admin);
 
@@ -194,7 +176,8 @@ test('admin cannot delete staff logbook', function () {
         'user_id' => $this->staff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->deleteJson("/api/v1/logbooks/{$logbook->id}");
@@ -204,8 +187,7 @@ test('admin cannot delete staff logbook', function () {
     $this->assertDatabaseHas('logbooks', ['id' => $logbook->id]);
 });
 
-test('admin can delete own DRAFT logbook', function () {
-    // If Admin somehow has a logbook, they can delete their own
+test('admin can delete own SUBMITTED logbook', function () {
     $admin = User::factory()->create(['role' => 'ADMIN']);
     Sanctum::actingAs($admin);
 
@@ -213,7 +195,8 @@ test('admin can delete own DRAFT logbook', function () {
         'user_id' => $admin->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $logbookId = $logbook->id;
@@ -231,8 +214,6 @@ test('admin can delete own DRAFT logbook', function () {
 // =============================================================================
 
 test('superadmin cannot delete staff logbook', function () {
-    // SuperAdmin has "View All Logbooks" but NOT delete capability
-    // Delete endpoint checks ownership: $logbook->user_id !== $user->id
     $superadmin = User::factory()->create(['role' => 'SUPERADMIN']);
     Sanctum::actingAs($superadmin);
 
@@ -240,7 +221,8 @@ test('superadmin cannot delete staff logbook', function () {
         'user_id' => $this->staff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->deleteJson("/api/v1/logbooks/{$logbook->id}");
@@ -250,8 +232,7 @@ test('superadmin cannot delete staff logbook', function () {
     $this->assertDatabaseHas('logbooks', ['id' => $logbook->id]);
 });
 
-test('superadmin can delete own DRAFT logbook', function () {
-    // If SuperAdmin somehow has a logbook, they can delete their own
+test('superadmin can delete own SUBMITTED logbook', function () {
     $superadmin = User::factory()->create(['role' => 'SUPERADMIN']);
     Sanctum::actingAs($superadmin);
 
@@ -259,7 +240,8 @@ test('superadmin can delete own DRAFT logbook', function () {
         'user_id' => $superadmin->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $logbookId = $logbook->id;

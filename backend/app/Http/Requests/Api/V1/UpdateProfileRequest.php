@@ -14,7 +14,7 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'foto' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'foto' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'alamat' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'tempat_lahir' => ['sometimes', 'nullable', 'string', 'max:255'],
             'tanggal_lahir' => ['sometimes', 'nullable', 'date'],
@@ -30,7 +30,7 @@ class UpdateProfileRequest extends FormRequest
     {
         return [
             'foto.image' => 'Foto harus berupa file gambar.',
-            'foto.mimes' => 'Foto harus berformat jpg, jpeg, atau png.',
+            'foto.mimes' => 'Foto harus berformat jpg, jpeg, png, atau webp.',
             'foto.max' => 'Ukuran foto maksimal 5 MB.',
             'alamat.max' => 'Alamat maksimal 2000 karakter.',
             'tempat_lahir.max' => 'Tempat lahir maksimal 255 karakter.',

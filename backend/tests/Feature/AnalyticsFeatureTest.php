@@ -23,7 +23,7 @@ it('allows admin to access admin dashboard', function () {
     User::factory()->count(2)->create(); // total users
 
     Logbook::factory()->create(['start_kerja' => now(), 'status' => 'SUBMITTED', 'user_id' => $this->staff->id]);
-    Logbook::factory()->create(['start_kerja' => now(), 'status' => 'DRAFT', 'user_id' => $this->staff->id]);
+    Logbook::factory()->create(['start_kerja' => now(), 'status' => 'ACCEPTED', 'user_id' => $this->staff->id]);
     Logbook::factory()->create(['start_kerja' => now()->subMonth(), 'created_at' => now()->subMonth(), 'status' => 'SUBMITTED', 'user_id' => $this->staff->id]); // old
 
     actingAs($this->admin)->getJson('/api/v1/dashboard/admin')
@@ -59,7 +59,7 @@ it('allows superadmin to access admin dashboard', function () {
 it('allows manager to access manager dashboard', function () {
     // Subordinate logbook
     $logbook1 = Logbook::factory()->create(['user_id' => $this->staff->id, 'tanggal' => now()->toDateString(), 'start_kerja' => now(), 'status' => 'SUBMITTED']);
-    $logbook2 = Logbook::factory()->create(['user_id' => $this->staff->id, 'tanggal' => now()->toDateString(), 'start_kerja' => now(), 'status' => 'DRAFT']);
+    $logbook2 = Logbook::factory()->create(['user_id' => $this->staff->id, 'tanggal' => now()->toDateString(), 'start_kerja' => now(), 'status' => 'ACCEPTED']);
 
     // Other staff (not subordinate)
     Logbook::factory()->create(['user_id' => $this->otherStaff->id, 'tanggal' => now()->toDateString(), 'start_kerja' => now(), 'status' => 'SUBMITTED']);
@@ -184,7 +184,7 @@ it('allows manager to access team locations', function () {
         'tanggal' => now()->toDateString(),
         'start_kerja' => now()->format('H:i:s'),
         'lokasi' => '-6.200000,106.816666',
-        'status' => 'DRAFT',
+        'status' => 'SUBMITTED',
         'created_at' => now(),
     ]);
 
@@ -193,7 +193,7 @@ it('allows manager to access team locations', function () {
     $response->assertOk()
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.title', $this->staff->nama)
-        ->assertJsonPath('data.0.status', 'DRAFT')
+        ->assertJsonPath('data.0.status', 'SUBMITTED')
         ->assertJsonPath('data.0.lat', -6.2)
         ->assertJsonPath('data.0.lng', 106.816666);
 });

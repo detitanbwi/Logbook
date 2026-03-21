@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\V1\RevertLogbookRequest;
 use App\Http\Requests\Api\V1\ReviewLogbookRequest;
 use App\Http\Resources\V1\LogbookResource;
 use App\Models\Logbook;
@@ -22,14 +21,11 @@ class ManagerLogbookController extends Controller
         /** @var User $manager */
         $manager = Auth::user();
 
-        // Ensure logbook owner exists
         $logbookOwner = $logbook->user;
         if (! $logbookOwner) {
             abort(404, 'Logbook owner not found');
         }
 
-        // Authorization: privileged users can review any logbook
-        // Managers can only review their direct subordinates' logbooks
         if (! $manager->isPrivileged()) {
             if (! $manager->hasSubordinates()) {
                 abort(403, 'You do not have permission to review logbooks');
@@ -47,7 +43,6 @@ class ManagerLogbookController extends Controller
         $validated = $request->validated();
 
         return DB::transaction(function () use ($logbook, $validated, $manager) {
-            // Re-fetch with lock to prevent race condition
             $locked = Logbook::query()->lockForUpdate()->find($logbook->id);
 
             if (! $locked || $locked->status !== 'SUBMITTED') {
@@ -76,69 +71,6 @@ class ManagerLogbookController extends Controller
             return response()->json([
                 'message' => 'Logbook review berhasil disimpan',
                 'data' => new LogbookResource($locked->fresh(['user', 'reviewer', 'kpiDetails.kpi'])),
-            ]);
-        });
-    }
-
-    public function revert(RevertLogbookRequest $request, Logbook $logbook)
-    {
-        /** @var User $manager */
-        $manager = Auth::user();
-
-        // Ensure logbook owner exists
-        $logbookOwner = $logbook->user;
-        if (! $logbookOwner) {
-            abort(404, 'Logbook owner not found');
-        }
-
-        // Authorization: privileged users can revert any logbook
-        // Managers can only revert their direct subordinates' logbooks
-        if (! $manager->isPrivileged()) {
-            if (! $manager->hasSubordinates()) {
-                abort(403, 'You do not have permission to revert logbooks');
-            }
-
-            if ($logbookOwner->manager_id !== $manager->id) {
-                abort(403, 'You can only revert your direct subordinates\' logbooks');
-            }
-        }
-
-        if ($logbook->status !== 'SUBMITTED') {
-            return response()->json(['message' => 'Only SUBMITTED logbooks can be reverted.'], 400);
-        }
-
-        $validated = $request->validated();
-
-        return DB::transaction(function () use ($logbook, $validated) {
-            $locked = Logbook::query()->lockForUpdate()->find($logbook->id);
-
-            if (! $locked || $locked->status !== 'SUBMITTED') {
-                return response()->json(['message' => 'Logbook sudah direview atau tidak tersedia.'], 409);
-            }
-
-            $locked->update([
-                'status' => 'DRAFT',
-                'rating' => null,
-                'reviewer_comment' => null,
-                'reviewed_by' => null,
-                'reviewed_at' => null,
-            ]);
-
-            Notification::create([
-                'user_id' => $locked->user_id,
-                'title' => 'Logbook Reverted',
-                'message' => $validated['reason'],
-                'type' => 'LOGBOOK_REVERTED',
-                'reference_id' => $locked->id,
-                'is_read' => false,
-            ]);
-
-            return response()->json([
-                'message' => 'Logbook dikembalikan ke DRAFT',
-                'data' => [
-                    'id' => $locked->id,
-                    'status' => 'DRAFT',
-                ],
             ]);
         });
     }

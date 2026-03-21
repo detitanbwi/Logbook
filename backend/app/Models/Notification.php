@@ -52,7 +52,6 @@ class Notification extends Model
             'KPI_ASSIGNMENT' => '/staff/logbook',
             'LOGBOOK_SUBMITTED' => '/manager/reviews',
             'LOGBOOK_REJECTED', 'LOGBOOK_ACCEPTED' => '/staff/history',
-            'LOGBOOK_REVERTED' => '/staff/logbook',
             default => null,
         };
     }
@@ -61,7 +60,7 @@ class Notification extends Model
     {
         return match ($this->type) {
             'KPI_ASSIGNMENT' => ['assignment_id' => $this->reference_id],
-            'LOGBOOK_SUBMITTED', 'LOGBOOK_REJECTED', 'LOGBOOK_ACCEPTED', 'LOGBOOK_REVERTED' => ['logbook_id' => $this->reference_id],
+            'LOGBOOK_SUBMITTED', 'LOGBOOK_REJECTED', 'LOGBOOK_ACCEPTED' => ['logbook_id' => $this->reference_id],
             default => null,
         };
     }

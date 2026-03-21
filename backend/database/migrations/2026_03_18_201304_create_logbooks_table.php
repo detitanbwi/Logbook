@@ -18,7 +18,7 @@ return new class extends Migration
             $table->time('start_kerja');
             $table->time('end_kerja')->nullable();
             $table->text('lokasi')->nullable();
-            $table->enum('status', ['DRAFT', 'SUBMITTED', 'ACCEPTED', 'REJECTED'])->default('DRAFT');
+            $table->enum('status', ['SUBMITTED', 'ACCEPTED', 'REJECTED'])->default('SUBMITTED');
             $table->integer('rating')->nullable();
             $table->foreignUuid('reviewed_by')->nullable()->constrained('users');
             $table->timestamp('reviewed_at')->nullable();

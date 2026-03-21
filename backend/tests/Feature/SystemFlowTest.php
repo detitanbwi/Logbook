@@ -79,7 +79,7 @@ test('end-to-end system flow: from creation to logbook review', function () {
     $logbookId = $response->json('data.id');
     $this->assertDatabaseHas('logbooks', [
         'id' => $logbookId,
-        'status' => 'DRAFT',
+        'status' => 'SUBMITTED',
     ]);
 
     // Verify KPI is copied

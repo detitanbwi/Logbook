@@ -42,11 +42,11 @@ describe('LogbookObserver', function () {
             $logbook = Logbook::factory()->create([
                 'user_id' => $staff->id,
                 'tanggal' => '2025-01-15',
-                'status' => 'DRAFT',
+                'status' => 'SUBMITTED',
             ]);
 
             // Simulate the state after save() but before observer resets changes
-            $logbook->status = 'SUBMITTED';
+            $logbook->status = 'ACCEPTED';
             $logbook->syncChanges();
 
             $observer->updated($logbook);
@@ -117,7 +117,7 @@ describe('LogbookObserver', function () {
             $logbook = Logbook::factory()->create([
                 'user_id' => $staff->id,
                 'tanggal' => '2025-01-15',
-                'status' => 'DRAFT',
+                'status' => 'SUBMITTED',
             ]);
 
             $mockService = Mockery::mock(DailySummaryService::class);
@@ -129,7 +129,7 @@ describe('LogbookObserver', function () {
             $observer = new LogbookObserver($mockService);
 
             // Only change status, not tanggal
-            $logbook->status = 'SUBMITTED';
+            $logbook->status = 'ACCEPTED';
             $logbook->syncChanges();
 
             $observer->updated($logbook);

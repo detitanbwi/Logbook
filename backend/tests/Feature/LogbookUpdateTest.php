@@ -12,7 +12,7 @@ beforeEach(function () {
     $this->staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $this->manager->id]);
 });
 
-test('staff can update end_kerja on DRAFT logbook', function () {
+test('staff can update end_kerja on SUBMITTED logbook', function () {
     Sanctum::actingAs($this->staff);
 
     $logbook = Logbook::factory()->create([
@@ -20,7 +20,7 @@ test('staff can update end_kerja on DRAFT logbook', function () {
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
         'end_kerja' => null,
-        'status' => 'DRAFT',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->patchJson("/api/v1/logbooks/{$logbook->id}", [
@@ -34,14 +34,15 @@ test('staff can update end_kerja on DRAFT logbook', function () {
     expect($logbook->end_kerja)->toBe('17:00');
 });
 
-test('staff can update start_kerja on DRAFT logbook', function () {
+test('staff can update start_kerja on SUBMITTED logbook', function () {
     Sanctum::actingAs($this->staff);
 
     $logbook = Logbook::factory()->create([
         'user_id' => $this->staff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->patchJson("/api/v1/logbooks/{$logbook->id}", [
@@ -55,14 +56,15 @@ test('staff can update start_kerja on DRAFT logbook', function () {
     expect($logbook->start_kerja)->toBe('09:00');
 });
 
-test('staff can update tanggal on DRAFT logbook', function () {
+test('staff can update tanggal on SUBMITTED logbook', function () {
     Sanctum::actingAs($this->staff);
 
     $logbook = Logbook::factory()->create([
         'user_id' => $this->staff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->patchJson("/api/v1/logbooks/{$logbook->id}", [
@@ -75,6 +77,28 @@ test('staff can update tanggal on DRAFT logbook', function () {
     expect($logbook->tanggal->format('Y-m-d'))->toBe('2026-03-21');
 });
 
+test('staff can update REJECTED logbook', function () {
+    Sanctum::actingAs($this->staff);
+
+    $logbook = Logbook::factory()->create([
+        'user_id' => $this->staff->id,
+        'tanggal' => '2026-03-20',
+        'start_kerja' => '08:00',
+        'end_kerja' => '17:00',
+        'status' => 'REJECTED',
+    ]);
+
+    $response = $this->patchJson("/api/v1/logbooks/{$logbook->id}", [
+        'end_kerja' => '18:00',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.id', $logbook->id);
+
+    $logbook->refresh();
+    expect($logbook->end_kerja)->toBe('18:00');
+});
+
 test('staff cannot update logbook with start_kerja before 07:00', function () {
     Sanctum::actingAs($this->staff);
 
@@ -82,7 +106,8 @@ test('staff cannot update logbook with start_kerja before 07:00', function () {
         'user_id' => $this->staff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->patchJson("/api/v1/logbooks/{$logbook->id}", [
@@ -100,7 +125,8 @@ test('staff cannot update logbook with end_kerja before start_kerja', function (
         'user_id' => $this->staff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->patchJson("/api/v1/logbooks/{$logbook->id}", [
@@ -109,25 +135,6 @@ test('staff cannot update logbook with end_kerja before start_kerja', function (
 
     $response->assertStatus(422)
         ->assertJsonPath('message', 'Jam selesai harus lebih besar dari jam mulai');
-});
-
-test('staff cannot update SUBMITTED logbook', function () {
-    Sanctum::actingAs($this->staff);
-
-    $logbook = Logbook::factory()->create([
-        'user_id' => $this->staff->id,
-        'tanggal' => '2026-03-20',
-        'start_kerja' => '08:00',
-        'end_kerja' => '17:00',
-        'status' => 'SUBMITTED',
-    ]);
-
-    $response = $this->patchJson("/api/v1/logbooks/{$logbook->id}", [
-        'end_kerja' => '18:00',
-    ]);
-
-    $response->assertStatus(400)
-        ->assertJsonPath('message', 'Hanya logbook DRAFT yang dapat diupdate');
 });
 
 test('staff cannot update ACCEPTED logbook', function () {
@@ -145,8 +152,7 @@ test('staff cannot update ACCEPTED logbook', function () {
         'end_kerja' => '18:00',
     ]);
 
-    $response->assertStatus(400)
-        ->assertJsonPath('message', 'Hanya logbook DRAFT yang dapat diupdate');
+    $response->assertStatus(400);
 });
 
 test('staff cannot update another users logbook', function () {
@@ -157,7 +163,8 @@ test('staff cannot update another users logbook', function () {
         'user_id' => $otherStaff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
-        'status' => 'DRAFT',
+        'end_kerja' => '17:00',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->patchJson("/api/v1/logbooks/{$logbook->id}", [
@@ -174,8 +181,9 @@ test('staff can update multiple fields at once', function () {
         'user_id' => $this->staff->id,
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
+        'end_kerja' => '17:00',
         'lokasi' => 'Office A',
-        'status' => 'DRAFT',
+        'status' => 'SUBMITTED',
     ]);
 
     $response = $this->patchJson("/api/v1/logbooks/{$logbook->id}", [
