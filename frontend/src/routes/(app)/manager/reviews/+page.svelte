@@ -18,8 +18,6 @@
 	let rating = $state<number>(5);
 	let decision = $state('ACCEPTED');
 	let reviewerComment = $state('');
-	let revertReason = $state('');
-	let isReverting = $state(false);
 	let isSubmitting = $state(false);
 
 	// URL params
@@ -82,8 +80,6 @@
 		rating = 5;
 		decision = 'ACCEPTED';
 		reviewerComment = '';
-		revertReason = '';
-		isReverting = false;
 		isModalOpen = true;
 	}
 
@@ -105,19 +101,6 @@
 		}
 	}
 
-	async function revertToDraft() {
-		if (!selectedLogbook || !revertReason.trim()) return;
-		isSubmitting = true;
-		try {
-			await managerLogbookService.revertLogbook(selectedLogbook.id, { reason: revertReason });
-			isModalOpen = false;
-			await fetchPendingReviews();
-		} catch (err: any) {
-			errorMsg = err.message || 'Gagal mengembalikan ke draft';
-		} finally {
-			isSubmitting = false;
-		}
-	}
 </script>
 
 <svelte:head>
@@ -326,22 +309,6 @@
 
 			<div class="divider my-0"></div>
 
-			{#if isReverting}
-				<div>
-					<h4 class="mb-2 font-semibold text-error">Revert ke Draft</h4>
-					<div class="form-control w-full">
-						<label class="label" for="revertReason">
-							<span class="label-text">Alasan Revert <span class="text-error">*</span></span>
-						</label>
-						<textarea
-							id="revertReason"
-							class="textarea textarea-bordered h-24"
-							placeholder="Masukkan alasan mengapa logbook dikembalikan ke draft..."
-							bind:value={revertReason}
-						></textarea>
-					</div>
-				</div>
-			{:else}
 				<div>
 					<h4 class="mb-2 font-semibold">Beri Penilaian</h4>
 					
@@ -391,25 +358,12 @@
 						></textarea>
 					</div>
 				</div>
-			{/if}
 		</div>
 	{/if}
 
 	{#snippet actions()}
-		{#if isReverting}
-			<button class="btn btn-ghost" onclick={() => isReverting = false} disabled={isSubmitting}>
-				Batal
-			</button>
-			<button class="btn btn-error" onclick={revertToDraft} disabled={isSubmitting || !revertReason.trim()}>
-				Konfirmasi Revert
-			</button>
-		{:else}
-			<button class="btn btn-outline btn-error" onclick={() => isReverting = true} disabled={isSubmitting}>
-				Revert ke Draft
-			</button>
-			<button class="btn btn-success" onclick={submitReview} disabled={isSubmitting || !reviewerComment.trim()}>
-				Simpan Penilaian
-			</button>
-		{/if}
+		<button class="btn btn-success" onclick={submitReview} disabled={isSubmitting || !reviewerComment.trim()}>
+			Simpan Penilaian
+		</button>
 	{/snippet}
 </Modal>

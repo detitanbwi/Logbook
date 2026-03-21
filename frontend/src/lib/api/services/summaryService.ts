@@ -16,6 +16,7 @@ export interface SummaryDateParams {
 	tanggal?: string;
 	per_page?: number;
 	page?: number;
+	user_id?: string;
 }
 
 export const summaryService = {

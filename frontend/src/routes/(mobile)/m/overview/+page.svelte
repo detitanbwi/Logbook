@@ -15,6 +15,34 @@
 	let kpis = $state<DailyKpiSummary[]>([]);
 	let logbooks = $state<Logbook[]>([]);
 
+	const averageRating = $derived.by(() => {
+		const ratedLogbooks = logbooks.filter((logbook) => logbook.rating != null);
+		if (ratedLogbooks.length === 0) return null;
+
+		const totalRating = ratedLogbooks.reduce((sum, logbook) => sum + (logbook.rating ?? 0), 0);
+		return totalRating / ratedLogbooks.length;
+	});
+
+	const averageKpiPercent = $derived.by(() => {
+		if (kpis.length === 0) return summary?.progress_percent || 0;
+
+		const validKpis = kpis.filter((kpi) => kpi.target_angka_total > 0);
+		if (validKpis.length === 0) return summary?.progress_percent || 0;
+
+		const totalPercent = validKpis.reduce((sum, kpi) => {
+			return sum + Math.min((kpi.capaian_angka_total / kpi.target_angka_total) * 100, 100);
+		}, 0);
+
+		return totalPercent / validKpis.length;
+	});
+
+	const averageKpiUnit = $derived.by(() => {
+		const uniqueUnits = Array.from(new Set(kpis.map((kpi) => kpi.satuan).filter(Boolean)));
+		if (uniqueUnits.length === 0) return null;
+		if (uniqueUnits.length === 1) return `Satuan: ${uniqueUnits[0]}`;
+		return `Satuan campuran (${uniqueUnits.length} jenis)`;
+	});
+
 	const today = new Date();
 	const todayStrAPI = today.toLocaleDateString('en-CA'); // YYYY-MM-DD
 	const todayStrID = new Intl.DateTimeFormat('id-ID', {
@@ -30,8 +58,8 @@
 			error = null;
 
 			const [summaryRes, kpiRes, logbooksData] = await Promise.all([
-				summaryService.daily(),
-				summaryService.kpiDaily(),
+				summaryService.daily({ date: todayStrAPI, date_from: todayStrAPI, date_to: todayStrAPI }),
+				summaryService.kpiDaily({ date: todayStrAPI, date_from: todayStrAPI, date_to: todayStrAPI }),
 				staffLogbookService.getLogbooks({ date_from: todayStrAPI, date_to: todayStrAPI })
 			]);
 
@@ -78,8 +106,9 @@
 			<PerformanceSummaryCard 
 				totalLogbooks={summary?.total_logbooks || 0}
 				totalWorkMinutes={summary?.total_work_minutes || 0}
-				progressPercent={summary?.progress_percent || 0}
-				averageRating={null}
+				progressPercent={averageKpiPercent}
+				progressUnit={averageKpiUnit}
+				averageRating={averageRating}
 			/>
 		</section>
 

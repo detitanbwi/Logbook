@@ -1,10 +1,5 @@
 import { api } from '../core/client';
-import {
-	ReviewLogbookRequestSchema,
-	RevertLogbookRequestSchema,
-	type ReviewLogbookRequest,
-	type RevertLogbookRequest
-} from '../schemas/logbook.schema';
+import { ReviewLogbookRequestSchema, type ReviewLogbookRequest } from '../schemas/logbook.schema';
 import * as v from 'valibot';
 import type { PaginatedResponse } from '../core/types';
 import type { Logbook } from '../../types';
@@ -25,13 +20,6 @@ export class ManagerLogbookService {
 		return api.put(`/logbooks/${logbookId}/review`, validated);
 	}
 
-	async revertLogbook(
-		logbookId: string,
-		data: RevertLogbookRequest
-	): Promise<{ message: string; data: { id: string; status: string } }> {
-		const validated = v.parse(RevertLogbookRequestSchema, data);
-		return api.post(`/logbooks/${logbookId}/revert`, validated);
-	}
 }
 
 export const managerLogbookService = new ManagerLogbookService();

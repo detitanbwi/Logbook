@@ -3,12 +3,14 @@
 		totalLogbooks = 0,
 		totalWorkMinutes = 0,
 		progressPercent = 0,
+		progressUnit = null,
 		averageRating,
 		class: className = ''
 	}: {
 		totalLogbooks?: number;
 		totalWorkMinutes?: number;
 		progressPercent?: number;
+		progressUnit?: string | null;
 		averageRating?: number | null;
 		class?: string;
 	} = $props();
@@ -32,12 +34,13 @@
 	</div>
 
 	<div class="rounded-lg border border-base-300 bg-base-100 p-3 text-center">
-		<div class="text-xs text-base-content/60">KPI %</div>
+		<div class="text-xs text-base-content/60">Rata-rata KPI</div>
 		<div class="text-xl font-bold">{Math.round(progressPercent)}%</div>
+		<div class="mt-1 text-[11px] text-base-content/50 line-clamp-1">{progressUnit || '-'}</div>
 	</div>
 
 	<div class="rounded-lg border border-base-300 bg-base-100 p-3 text-center">
-		<div class="text-xs text-base-content/60">Rating</div>
+		<div class="text-xs text-base-content/60">Rata-rata Bintang</div>
 		<div class="text-xl font-bold">
 			{#if averageRating != null}
 				⭐ {averageRating.toFixed(1)}

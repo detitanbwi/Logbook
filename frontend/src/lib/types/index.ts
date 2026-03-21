@@ -1,5 +1,5 @@
 export type UserRole = 'SuperAdmin' | 'Admin' | 'Staff';
-export type LogbookStatus = 'DRAFT' | 'SUBMITTED' | 'ACCEPTED' | 'REJECTED';
+export type LogbookStatus = 'SUBMITTED' | 'ACCEPTED' | 'REJECTED';
 
 export interface User {
 	id: string;
@@ -14,6 +14,7 @@ export interface User {
 	manager_id: string | null;
 	has_subordinates?: boolean;
 	foto?: string | null;
+	foto_url?: string | null;
 	manager?: User;
 	last_password_change?: string;
 	tempat_lahir?: string | null;
@@ -72,6 +73,8 @@ export interface Logbook {
 	start_kerja: string;
 	end_kerja?: string | null;
 	lokasi?: string | null;
+	lokasi_lat?: number | null;
+	lokasi_lng?: number | null;
 	status: LogbookStatus;
 	rating?: number | null;
 	reviewer_comment?: string | null;
@@ -91,8 +94,7 @@ export type NotificationType =
 	| 'KPI_ASSIGNMENT'
 	| 'LOGBOOK_SUBMITTED'
 	| 'LOGBOOK_ACCEPTED'
-	| 'LOGBOOK_REJECTED'
-	| 'LOGBOOK_REVERTED';
+	| 'LOGBOOK_REJECTED';
 
 export interface Notification {
 	id: string;

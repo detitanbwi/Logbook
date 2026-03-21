@@ -179,8 +179,8 @@ describe('Store State Flow', () => {
 	describe('LogbookStore', () => {
 		it('fetchLogbooks() sets isLoading to true then false and updates state', async () => {
 			const mockLogbooks = [
-				{ id: '101', status: 'DRAFT' },
-				{ id: '102', status: 'SUBMITTED' }
+				{ id: '101', status: 'SUBMITTED' },
+				{ id: '102', status: 'ACCEPTED' }
 			] as unknown as Logbook[];
 			(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
 				ok: true,
@@ -218,8 +218,8 @@ describe('Store State Flow', () => {
 		});
 
 		it('startLogbook() success updates the state', async () => {
-			const mockLogbooks = [{ id: '101', status: 'DRAFT' }] as unknown as Logbook[];
-			const mockStartedResponse = { id: '101', status: 'DRAFT' } as unknown as Logbook;
+			const mockLogbooks = [{ id: '101', status: 'SUBMITTED' }] as unknown as Logbook[];
+			const mockStartedResponse = { id: '101', status: 'SUBMITTED' } as unknown as Logbook;
 
 			(global.fetch as ReturnType<typeof vi.fn>)
 				.mockResolvedValueOnce({
@@ -247,7 +247,7 @@ describe('Store State Flow', () => {
 	it('updateKpiProgress() updates the specific KPI in the nested array optimally without resetting everything', async () => {
 		logbookStore.currentLogbook = {
 			id: '101',
-			status: 'DRAFT',
+			status: 'SUBMITTED',
 			details: [
 				{
 					id: 'd1',
@@ -297,7 +297,7 @@ describe('Store State Flow', () => {
 		it('submitLogbook() updates the status of currentLogbook', async () => {
 			logbookStore.currentLogbook = {
 				id: '101',
-				status: 'DRAFT'
+				status: 'SUBMITTED'
 			} as unknown as Logbook;
 
 			const submitResponse = { message: 'Success' };

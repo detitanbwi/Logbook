@@ -4,10 +4,15 @@
 	import { staffLogbookService } from '$lib/api/services/staffLogbookService';
 	import { goto } from '$app/navigation';
 	import StatusBadge from '$lib/components/ui/StatusBadge.svelte';
+	import LocationMap from '$lib/components/ui/LocationMap.svelte';
 	import type { LogbookKpiDetail } from '$lib/types';
+	import { toastStore } from '$lib/stores/toast.svelte';
 
 	let kpiList = $derived(logbookStore.currentLogbook?.details || []);
-	let isDraft = $derived(logbookStore.currentLogbook?.status === 'DRAFT');
+	let isEditable = $derived(
+		logbookStore.currentLogbook?.status === 'SUBMITTED' ||
+			logbookStore.currentLogbook?.status === 'REJECTED'
+	);
 	let isSubmitting = $state(false);
 	let errorMsg = $state<string | null>(null);
 
@@ -16,6 +21,32 @@
 	let endKerja = $state('');
 	let lokasi = $state('');
 
+	let gpsLat = $state<number | null>(null);
+	let gpsLng = $state<number | null>(null);
+	let gpsLoading = $state(false);
+
+	function getGPS() {
+		if (!navigator.geolocation) {
+			toastStore.error('Geolokasi tidak didukung oleh browser ini.');
+			return;
+		}
+		gpsLoading = true;
+		navigator.geolocation.getCurrentPosition(
+			(pos) => {
+				gpsLat = pos.coords.latitude;
+				gpsLng = pos.coords.longitude;
+				gpsLoading = false;
+				toastStore.success('Lokasi GPS berhasil diambil.');
+			},
+			(err) => {
+				gpsLoading = false;
+				toastStore.error('Tidak dapat mengambil lokasi GPS.');
+				console.error(err);
+			},
+			{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+		);
+	}
+
 	let kpiProgressValues = $state<Record<string, number>>({});
 	let kpiUpdating = $state<Record<string, boolean>>({});
 	let attachmentUploading = $state<Record<string, boolean>>({});
@@ -23,7 +54,9 @@
 	onMount(async () => {
 		try {
 			await logbookStore.fetchLogbooks();
-			const activeLogbook = logbookStore.logbooks.find((l) => l.status === 'DRAFT');
+			const activeLogbook = logbookStore.logbooks.find(
+				(l) => l.status === 'SUBMITTED' || l.status === 'REJECTED'
+			);
 			if (activeLogbook) {
 				await logbookStore.fetchLogbookById(activeLogbook.id);
 				syncKpiProgressValues();
@@ -56,13 +89,16 @@
 				tanggal,
 				start_kerja: startKerja,
 				end_kerja: endKerja || null,
-				lokasi
+				lokasi,
+				lokasi_lat: gpsLat || undefined,
+				lokasi_lng: gpsLng || undefined
 			});
-			const activeLogbook = logbookStore.logbooks.find((l) => l.status === 'DRAFT');
-			if (activeLogbook) {
-				await logbookStore.fetchLogbookById(activeLogbook.id);
+			if (logbookStore.currentLogbook) {
+				await logbookStore.fetchLogbookById(logbookStore.currentLogbook.id);
 				syncKpiProgressValues();
 			}
+			gpsLat = null;
+			gpsLng = null;
 		} catch (err: unknown) {
 			const e = err as { message?: string };
 			errorMsg = e.message || 'Gagal memulai logbook';
@@ -226,6 +262,26 @@
 					</div>
 				</div>
 
+				<div class="mt-4 rounded-lg border border-base-300 bg-base-200/50 p-4">
+					<div class="label pt-0"><span class="label-text font-medium">Lokasi GPS (Opsional)</span></div>
+					<button type="button" class="btn btn-sm btn-outline w-full sm:w-auto" onclick={getGPS} disabled={gpsLoading}>
+						{#if gpsLoading}
+							<span class="loading loading-spinner loading-xs"></span> Mencari lokasi...
+						{:else}
+							Ambil Lokasi GPS
+						{/if}
+					</button>
+
+					{#if gpsLat && gpsLng}
+						<div class="mt-3 text-sm text-success font-medium">
+							Lokasi berhasil diambil: {gpsLat.toFixed(5)}, {gpsLng.toFixed(5)}
+						</div>
+						<div class="mt-2 rounded-lg overflow-hidden border border-base-300">
+							<LocationMap lat={gpsLat} lng={gpsLng} zoom={15} height="h-40" />
+						</div>
+					{/if}
+				</div>
+
 				<div class="mt-4 card-actions justify-end">
 					<button
 						class="btn px-8 btn-primary"
@@ -253,6 +309,12 @@
 						<span>Lokasi: <strong>{logbookStore.currentLogbook.lokasi}</strong></span>
 					{/if}
 				</div>
+
+				{#if logbookStore.currentLogbook.lokasi_lat && logbookStore.currentLogbook.lokasi_lng}
+					<div class="mb-4 rounded-lg overflow-hidden border border-base-300">
+						<LocationMap lat={logbookStore.currentLogbook.lokasi_lat} lng={logbookStore.currentLogbook.lokasi_lng} zoom={15} height="h-48" />
+					</div>
+				{/if}
 
 				<h2 class="mb-4 card-title">Daftar KPI</h2>
 
@@ -283,8 +345,8 @@
 									max="100"
 								></progress>
 
-								{#if isDraft}
-									<div class="mt-3 flex items-end gap-2">
+							{#if isEditable}
+								<div class="mt-3 flex items-end gap-2">
 										<div class="form-control flex-1">
 											<label class="label" for="capaian-{kpi.id}">
 												<span class="label-text text-xs">Capaian ({kpi.satuan})</span>
@@ -334,14 +396,14 @@
 											/>
 										{/if}
 									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				{/if}
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{/if}
 
-				{#if isDraft}
-					<div class="divider"></div>
+			{#if isEditable}
+				<div class="divider"></div>
 					<div class="card-actions justify-end">
 						<button
 							class="btn btn-primary"

@@ -100,7 +100,7 @@ describe('E2E API Tests', () => {
 		}
 
 			// Submit Logbook
-		if (logbook.status === 'DRAFT') {
+		if (logbook.status === 'SUBMITTED') {
 			const submitRes = await staffLogbookService.submitLogbook(logbookId);
 			expect(submitRes).toBeDefined();
 		}

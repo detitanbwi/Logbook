@@ -33,16 +33,30 @@
 		return `${h}h ${m}m`;
 	}
 
+	function getAttachmentUrl(filePath: string): string {
+		if (!filePath) return '#';
+		if (filePath.startsWith('http')) return filePath;
+		return `/storage/${filePath}`;
+	}
+
+	function isImageFile(filePath: string): boolean {
+		const ext = filePath.split('.').pop()?.toLowerCase() ?? '';
+		return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
+	}
+
+	function isPdfFile(filePath: string): boolean {
+		return filePath.split('.').pop()?.toLowerCase() === 'pdf';
+	}
+
+	function getFileName(filePath: string): string {
+		return filePath.split('/').pop() ?? filePath;
+	}
+
 	const statusClass: Record<string, string> = {
-		DRAFT: 'badge-ghost',
 		SUBMITTED: 'badge-info',
 		ACCEPTED: 'badge-success',
 		REJECTED: 'badge-error'
 	};
-
-	function getAttachmentUrl(detail: LogbookKpiDetail): string | null {
-		return detail.lampiran_file ?? null;
-	}
 </script>
 
 <SlideOutDrawer bind:isOpen title="Detail Logbook" width="max-w-lg">
@@ -98,7 +112,7 @@
 
 		<h3 class="mb-2 text-sm font-bold">Progress KPI</h3>
 		{#if logbook.details && logbook.details.length > 0}
-			<div class="space-y-2">
+			<div class="space-y-3">
 				{#each logbook.details as detail (detail.id)}
 					<div>
 						<KpiProgressBar
@@ -107,17 +121,46 @@
 							target={detail.target_angka}
 							satuan={detail.satuan}
 						/>
-						{#if getAttachmentUrl(detail)}
-							<div class="mt-1 flex items-center gap-1 pl-3 text-xs text-base-content/60">
-								<span>📎</span>
-								<a
-									href={getAttachmentUrl(detail) ?? '#'}
-									target="_blank"
-									rel="noopener noreferrer"
-									class="link link-primary"
-								>
-									Lihat Lampiran
-								</a>
+						{#if detail.lampiran_file}
+							{@const url = getAttachmentUrl(detail.lampiran_file)}
+							<div class="mt-1.5 pl-3">
+								{#if isImageFile(detail.lampiran_file)}
+									<a href={url} target="_blank" rel="noopener noreferrer" class="group block">
+										<img
+											src={url}
+											alt={getFileName(detail.lampiran_file)}
+											class="h-20 w-auto rounded border border-base-300 object-cover transition-opacity group-hover:opacity-80"
+										/>
+									</a>
+								{:else if isPdfFile(detail.lampiran_file)}
+									<a
+										href={url}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="inline-flex items-center gap-1.5 rounded-md border border-base-300 bg-base-200/50 px-2 py-1 text-xs text-base-content/70 transition-colors hover:bg-base-300"
+									>
+										<svg class="h-4 w-4 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+											<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+											<path d="M14 2v6h6" />
+											<path d="M10 13h4" />
+											<path d="M10 17h4" />
+										</svg>
+										{getFileName(detail.lampiran_file)}
+									</a>
+								{:else}
+									<a
+										href={url}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="inline-flex items-center gap-1.5 rounded-md border border-base-300 bg-base-200/50 px-2 py-1 text-xs text-base-content/70 transition-colors hover:bg-base-300"
+									>
+										<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+											<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+											<path d="M14 2v6h6" />
+										</svg>
+										{getFileName(detail.lampiran_file)}
+									</a>
+								{/if}
 							</div>
 						{/if}
 					</div>

@@ -9,7 +9,6 @@
 
 	const statusOptions = [
 		{ label: 'Semua', value: '' },
-		{ label: 'Draft', value: 'DRAFT' },
 		{ label: 'Diajukan', value: 'SUBMITTED' },
 		{ label: 'Diterima', value: 'ACCEPTED' },
 		{ label: 'Ditolak', value: 'REJECTED' }

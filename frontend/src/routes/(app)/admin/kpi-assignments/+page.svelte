@@ -12,7 +12,7 @@
 
 	let loading = $state(true);
 	let error = $state<string | null>(null);
-	let fetchRequestId = $state(0);
+	let fetchRequestId = 0;
 	let refreshNonce = $state(0);
 
 	let assigningKpiId = $state<string | null>(null);

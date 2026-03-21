@@ -6,10 +6,22 @@
 	import { analyticsService } from '$lib/api/services/analyticsService';
 
 	let drawerOpen = $state(false);
-	let selectedStaff = $state<{ user_id: string; nama: string; npp: string } | null>(null);
+	let selectedStaff = $state<{
+		user_id: string;
+		nama: string;
+		npp: string;
+		date_from?: string;
+		date_to?: string;
+	} | null>(null);
 
 	function openStaffDrawer(item: StaffPerformanceSummaryItem) {
-		selectedStaff = { user_id: String(item.user_id), nama: item.nama, npp: item.npp };
+		selectedStaff = {
+			user_id: String(item.user_id),
+			nama: item.nama,
+			npp: item.npp,
+			date_from: dateFrom || undefined,
+			date_to: dateTo || undefined
+		};
 		drawerOpen = true;
 	}
 

@@ -135,11 +135,19 @@ class ApiClient {
 
 	put<T>(endpoint: string, data?: unknown, options?: FetchOptions) {
 		// Di Laravel, file upload (FormData) tidak bisa dikirim via PUT secara langsung.
-		// Solusi: Gunakan method POST dan append '_method="PUT"' di FormData jika perlu.
+		// Solusi: Gunakan method POST dan append '_method=PUT' di FormData.
+		if (data instanceof FormData) {
+			data.append('_method', 'PUT');
+			return this.request<T>(endpoint, {
+				...options,
+				method: 'POST',
+				body: data
+			});
+		}
 		return this.request<T>(endpoint, {
 			...options,
 			method: 'PUT',
-			body: data instanceof FormData ? data : JSON.stringify(data)
+			body: JSON.stringify(data)
 		});
 	}
 
