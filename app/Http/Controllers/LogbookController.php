@@ -1,0 +1,122 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Logbook;
+use App\Models\LogbookItem;
+use App\Models\LogbookAttachment;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
+
+class LogbookController extends Controller
+{
+    public function index()
+    {
+        $logbooks = auth()->user()->logbooks()
+            ->with(['items.kpi', 'latestReview'])
+            ->latest('start_time')
+            ->paginate(10);
+
+        return view('logbooks.index', [
+            'logbooks' => $logbooks,
+            'title' => 'Logbook Saya',
+            'active' => 'logbooks'
+        ]);
+    }
+
+    public function create()
+    {
+        $user = auth()->user();
+        $assignedKpis = $user->kpis;
+
+        return view('logbooks.create', [
+            'kpis' => $assignedKpis,
+            'title' => 'Buat Logbook',
+            'active' => 'logbooks'
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'latitude' => 'nullable|string',
+            'longitude' => 'nullable|string',
+            'start_time' => 'required',
+            'end_time' => 'required',
+            'items' => 'required|array|min:1',
+            'items.*.kpi_id' => 'required|exists:kpis,id',
+            'items.*.details' => 'required|string',
+            'daily_report' => 'required|string',
+            'main_photo' => 'nullable|image|max:2048',
+            'attachments.*' => 'nullable|file|max:5120',
+        ]);
+
+        // Combine with today's date if only time is provided
+        $date = $request->date ?? now()->toDateString();
+        $startTime = Carbon::parse($date . ' ' . $request->start_time);
+        $endTime = Carbon::parse($date . ' ' . $request->end_time);
+
+        $logbook = Logbook::create([
+            'employee_id' => auth()->id(),
+            'supervisor_id' => auth()->user()->supervisor_id,
+            'latitude' => $request->latitude ?? 0,
+            'longitude' => $request->longitude ?? 0,
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'daily_report' => $request->daily_report,
+            'main_photo_path' => null,
+            'status' => 'pending',
+        ]);
+
+        foreach ($request->items as $item) {
+            LogbookItem::create([
+                'logbook_id' => $logbook->id,
+                'kpi_id' => $item['kpi_id'],
+                'work_description' => $item['details']
+            ]);
+        }
+
+        if ($request->hasFile('main_photo')) {
+            $path = $request->file('main_photo')->store('logbook_photos', 'public');
+            LogbookAttachment::create([
+                'logbook_id' => $logbook->id,
+                'file_path' => $path,
+                'file_type' => 'photo'
+            ]);
+            $logbook->update(['main_photo_path' => $path]);
+        }
+
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store('logbook_files', 'public');
+                LogbookAttachment::create([
+                    'logbook_id' => $logbook->id,
+                    'file_path' => $path,
+                    'file_type' => 'file'
+                ]);
+            }
+        }
+
+        return redirect()->route('logbooks.index')->with('success', 'Logbook berhasil dikirim.');
+    }
+
+    public function show(Logbook $logbook)
+    {
+        $this->authorizeAccess($logbook);
+        $logbook->load(['items.kpi', 'attachments', 'latestReview.reviewer', 'employee', 'supervisor']);
+
+        return view('logbooks.show', [
+            'logbook' => $logbook,
+            'title' => 'Detail Logbook',
+            'active' => 'logbooks'
+        ]);
+    }
+
+    private function authorizeAccess(Logbook $logbook)
+    {
+        $user = auth()->user();
+        if ($user->role === 'staff' && $logbook->employee_id !== $user->id) abort(403);
+        if ($user->role !== 'staff' && $logbook->supervisor_id !== $user->id && $user->role !== 'super_admin') abort(403);
+    }
+}

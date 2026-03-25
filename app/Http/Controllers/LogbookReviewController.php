@@ -1,0 +1,98 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Logbook;
+use App\Models\LogbookReview;
+use App\Models\LogbookItem;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class LogbookReviewController extends Controller
+{
+    public function index()
+    {
+        // Allow access if user is NOT staff OR if they have subordinates to review
+        if (auth()->user()->role === 'staff' && !auth()->user()->subordinates()->exists()) {
+            abort(403);
+        }
+
+        $user = auth()->user();
+
+        // Supervisors see logbooks from their subordinates
+        $query = Logbook::with(['employee', 'items.kpi', 'latestReview'])
+            ->where('supervisor_id', $user->id);
+
+        // Super admins can see everything
+        if ($user->role === 'super_admin') {
+            $query = Logbook::with(['employee', 'items.kpi', 'latestReview', 'supervisor']);
+        }
+
+        $logbooks = $query->latest()->paginate(10);
+
+        return view('reviews.index', [
+            'logbooks' => $logbooks,
+            'title' => 'Review Logbook',
+            'active' => 'reviews'
+        ]);
+    }
+
+    public function edit(Logbook $logbook)
+    {
+        $this->authorizeReview($logbook);
+        $logbook->load(['employee', 'items.kpi', 'attachments', 'latestReview']);
+
+        return view('reviews.edit', [
+            'logbook' => $logbook,
+            'title' => 'Penilaian Logbook',
+            'active' => 'reviews'
+        ]);
+    }
+
+    public function update(Request $request, Logbook $logbook)
+    {
+        $this->authorizeReview($logbook);
+
+        $validated = $request->validate([
+            'status' => 'required|in:approved,rejected',
+            'items' => 'required_if:status,approved|array',
+            'items.*.id' => 'required_if:status,approved|exists:logbook_items,id',
+            'items.*.score' => 'required_if:status,approved|integer|min:0|max:100',
+            'review_comment' => 'nullable|string',
+            'final_score' => 'nullable|integer|min:0|max:100',
+        ]);
+
+        DB::transaction(function () use ($validated, $logbook) {
+            $status = $validated['status'];
+
+            if ($status === 'approved') {
+                foreach ($validated['items'] as $itemData) {
+                    LogbookItem::where('id', $itemData['id'])
+                        ->where('logbook_id', $logbook->id)
+                        ->update(['score' => $itemData['score']]);
+                }
+            }
+
+            $finalScore = (int) ($validated['final_score'] ?? 0);
+            $rating = max(1, min(5, (int) ceil($finalScore / 20)));
+
+            LogbookReview::create([
+                'logbook_id' => $logbook->id,
+                'reviewer_id' => auth()->id(),
+                'rating' => $rating,
+                'comment' => $validated['review_comment'] ?? null,
+                'reviewed_at' => now(),
+            ]);
+
+            $logbook->update(['status' => $status]);
+        });
+
+        return redirect()->route('reviews.index')->with('success', 'Penilaian logbook berhasil diproses.');
+    }
+
+    private function authorizeReview(Logbook $logbook)
+    {
+        if (auth()->user()->role === 'super_admin') return;
+        if ($logbook->supervisor_id !== auth()->id()) abort(403);
+    }
+}

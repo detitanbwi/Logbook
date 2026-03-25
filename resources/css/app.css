@@ -1,0 +1,101 @@
+@import 'tailwindcss';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/inter/800.css';
+@import '@fontsource/manrope/700.css';
+@import '@fontsource/manrope/800.css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    /* Colors from Stitch Design System */
+    --color-primary: #002a58;
+    --color-primary-container: #004080;
+    --color-surface: #f7f9fb;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-container-low: #f2f4f6;
+    --color-surface-container-high: #e6e8ea;
+    --color-surface-container-highest: #e0e3e5;
+    --color-on-surface: #191c1e;
+    --color-error: #ba1a1a;
+    --color-outline-variant: #c3c6d2;
+
+    /* Spacing & Borders */
+    --radius-md: 0.75rem;
+    --radius-xl: 1.5rem;
+
+    /* Typography */
+    --font-heading: 'Manrope', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+    body {
+        @apply bg-surface text-on-surface font-body;
+    }
+
+    .material-symbols-outlined {
+        font-family: 'Material Symbols Outlined';
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        display: inline-block;
+        line-height: 1;
+        text-transform: none;
+        letter-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        direction: ltr;
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        @apply font-heading font-semibold;
+    }
+}
+
+/* Custom Utilities for Editorial HR Design */
+@utility glass-morphism {
+    @apply bg-surface-container-lowest/80 backdrop-blur-xl border-outline-variant/15;
+}
+
+@utility primary-gradient {
+    @apply bg-linear-to-b from-primary to-primary-container;
+}
+
+/* No-border Rule for inputs as per design system */
+input, textarea, select {
+    @apply bg-surface-container-highest border-none focus:ring-1 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all duration-200 outline-hidden;
+}
+
+/* Hide Spinners for type="number" */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Clean time input visuals on mobile WebView */
+input[type='time'] {
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 2.75rem;
+}
+
+input[type='time']::-webkit-calendar-picker-indicator {
+    opacity: 0.8;
+    filter: grayscale(1) contrast(0.9);
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Editorial Shadows */
+@utility editorial-shadow {
+    box-shadow: 0 40px 40px 0 rgba(25, 28, 30, 0.06);
+}

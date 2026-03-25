@@ -1,0 +1,16 @@
+{
+  "appId": "com.wirodev.tirtamoico.logbook",
+  "appName": "My Logbook",
+  "webDir": "public",
+  "server": {
+    "url": "http://192.168.1.6/hris/public",
+    "cleartext": true
+  },
+  "plugins": {
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DARK",
+      "backgroundColor": "#002A58"
+    }
+  }
+}
