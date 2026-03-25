@@ -1,4 +1,4 @@
-<x-layouts.app title="Logbook Saya" active="dashboard">
+<x-layouts.app :title="auth()->user()->nama" active="dashboard">
     <div class="space-y-6 pb-28">
         <!-- Dashboard Greeting -->
         <div class="px-2">

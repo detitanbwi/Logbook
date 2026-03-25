@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - HR Management System</title>
+    <title>Login - Tirta Moico Logbook</title>
 
     <!-- Material Symbols Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,11 +53,11 @@
     } }">
         <div class="w-full max-w-lg p-6 lg:p-12 bg-transparent lg:bg-white lg:editorial-shadow rounded-none lg:rounded-xl animate-in fade-in zoom-in duration-700">
             <div class="mb-12 text-center">
-                <div class="inline-flex w-16 h-16 primary-gradient rounded-xl mb-6 items-center justify-center text-white shadow-xl shadow-primary/20">
-                    <span class="material-symbols-outlined text-3xl">corporate_fare</span>
+                <div class="inline-flex w-20 h-20 mb-6 items-center justify-center overflow-hidden">
+                    <img src="{{ asset('images/branding/logo.jpeg') }}" alt="Tirta Moico" class="w-full h-full object-cover">
                 </div>
-                <h1 class="text-3xl font-extrabold tracking-tight text-primary mb-2">HR Management System</h1>
-                <p class="text-[0.7rem] font-bold tracking-[0.3em] text-on-surface/40 uppercase">Sistem Informasi SDM Terintegrasi</p>
+                <h1 class="text-3xl font-extrabold tracking-tight text-primary mb-2">Tirta Moico Logbook</h1>
+                <p class="text-[0.7rem] font-bold tracking-[0.3em] text-on-surface/40 uppercase">Sistem Pelaporan SDM Terintegrasi</p>
             </div>
 
             <form action="{{ route('login') }}" method="POST" class="space-y-6" id="loginForm" @submit="onLoginSubmit">
