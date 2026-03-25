@@ -1,0 +1,958 @@
+openapi: 3.0.3
+info:
+  title: 'API Logbook & KPI Pegawai'
+  description: 'Dokumentasi API untuk Aplikasi Manajemen Logbook & KPI Pegawai'
+  version: 1.0.0
+servers:
+  -
+    url: 'http://localhost:8000'
+tags:
+  -
+    name: Analytics
+    description: ''
+  -
+    name: Authentication
+    description: ''
+  -
+    name: 'KPI Assignments'
+    description: ''
+  -
+    name: 'Manager Logbook'
+    description: ''
+  -
+    name: 'Master KPIs'
+    description: ''
+  -
+    name: Notifications
+    description: ''
+  -
+    name: 'Staff Logbook'
+    description: ''
+  -
+    name: 'System & Notifications'
+    description: "\nAPIs for managing system-wide audit logs"
+  -
+    name: 'User Management'
+    description: ''
+components:
+  securitySchemes:
+    default:
+      type: http
+      scheme: bearer
+      description: 'You can retrieve your token by visiting your dashboard and clicking <b>Generate API token</b>.'
+security:
+  -
+    default: []
+paths:
+  /api/v1/dashboard/admin:
+    get:
+      summary: ''
+      operationId: getApiV1DashboardAdmin
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - Analytics
+  /api/v1/dashboard/manager:
+    get:
+      summary: ''
+      operationId: getApiV1DashboardManager
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - Analytics
+  /api/v1/dashboard/staff:
+    get:
+      summary: ''
+      operationId: getApiV1DashboardStaff
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - Analytics
+  '/api/v1/users/{user_id}/kpi-achievements':
+    get:
+      summary: ''
+      operationId: getApiV1UsersUser_idKpiAchievements
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - Analytics
+    parameters:
+      -
+        in: path
+        name: user_id
+        description: 'The ID of the user.'
+        example: 019d02be-04be-720b-be8e-c775143c6ba4
+        required: true
+        schema:
+          type: string
+  /api/v1/reports/export:
+    get:
+      summary: ''
+      operationId: getApiV1ReportsExport
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - Analytics
+  /api/v1/auth/login:
+    post:
+      summary: ''
+      operationId: postApiV1AuthLogin
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nip:
+                  type: string
+                  description: ''
+                  example: architecto
+                password:
+                  type: string
+                  description: ''
+                  example: '|]|{+-'
+              required:
+                - nip
+                - password
+  /api/v1/auth/logout:
+    post:
+      summary: ''
+      operationId: postApiV1AuthLogout
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - Authentication
+  /api/v1/auth/me:
+    get:
+      summary: ''
+      operationId: getApiV1AuthMe
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - Authentication
+  /api/v1/auth/change-password:
+    put:
+      summary: ''
+      operationId: putApiV1AuthChangePassword
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password:
+                  type: string
+                  description: ''
+                  example: architecto
+                new_password:
+                  type: string
+                  description: 'Must be at least 8 characters.'
+                  example: ngzmiyvdljnikhwaykcmyuwpwl
+              required:
+                - old_password
+                - new_password
+  /api/v1/kpi/assignments:
+    get:
+      summary: ''
+      operationId: getApiV1KpiAssignments
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'KPI Assignments'
+    post:
+      summary: ''
+      operationId: postApiV1KpiAssignments
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'KPI Assignments'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  description: 'The <code>id</code> of an existing record in the users table.'
+                  example: architecto
+                kpi_id:
+                  type: string
+                  description: 'The <code>id</code> of an existing record in the kpi_masters table.'
+                  example: architecto
+              required:
+                - user_id
+                - kpi_id
+  '/api/v1/kpi/assignments/{assignment_id}':
+    delete:
+      summary: ''
+      operationId: deleteApiV1KpiAssignmentsAssignment_id
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'KPI Assignments'
+    parameters:
+      -
+        in: path
+        name: assignment_id
+        description: 'The ID of the assignment.'
+        example: 019d02be-061d-70af-a0ce-31c8033dd0bf
+        required: true
+        schema:
+          type: string
+  /api/v1/kpi/me:
+    get:
+      summary: ''
+      operationId: getApiV1KpiMe
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'KPI Assignments'
+  '/api/v1/logbooks/{logbook_id}/revert':
+    post:
+      summary: ''
+      operationId: postApiV1LogbooksLogbook_idRevert
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'Manager Logbook'
+    parameters:
+      -
+        in: path
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        example: 019d02be-063a-71fd-b32b-be23a64cd484
+        required: true
+        schema:
+          type: string
+  '/api/v1/logbooks/{logbook_id}/rate':
+    put:
+      summary: ''
+      operationId: putApiV1LogbooksLogbook_idRate
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'Manager Logbook'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  description: 'Must be at least 1. Must not be greater than 5.'
+                  example: 1
+              required:
+                - rating
+    parameters:
+      -
+        in: path
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        example: 019d02be-063a-71fd-b32b-be23a64cd484
+        required: true
+        schema:
+          type: string
+  /api/v1/kpi/master:
+    get:
+      summary: ''
+      operationId: getApiV1KpiMaster
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Master KPIs'
+    post:
+      summary: ''
+      operationId: postApiV1KpiMaster
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'Master KPIs'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+                status_aktif:
+                  type: boolean
+                  description: ''
+                  example: false
+              required:
+                - nama
+  '/api/v1/kpi/master/{kpi_id}':
+    get:
+      summary: ''
+      operationId: getApiV1KpiMasterKpi_id
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Master KPIs'
+    put:
+      summary: ''
+      operationId: putApiV1KpiMasterKpi_id
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'Master KPIs'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+                status_aktif:
+                  type: boolean
+                  description: ''
+                  example: true
+    delete:
+      summary: ''
+      operationId: deleteApiV1KpiMasterKpi_id
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'Master KPIs'
+    parameters:
+      -
+        in: path
+        name: kpi_id
+        description: 'The ID of the kpi.'
+        example: 019d02be-0561-7192-b3e6-bfb36ddae03c
+        required: true
+        schema:
+          type: string
+  /api/v1/notifications:
+    get:
+      summary: ''
+      operationId: getApiV1Notifications
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - Notifications
+  /api/v1/notifications/read-all:
+    put:
+      summary: ''
+      operationId: putApiV1NotificationsReadAll
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - Notifications
+  '/api/v1/notifications/{notification_id}/read':
+    put:
+      summary: ''
+      operationId: putApiV1NotificationsNotification_idRead
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - Notifications
+    parameters:
+      -
+        in: path
+        name: notification_id
+        description: 'The ID of the notification.'
+        example: architecto
+        required: true
+        schema:
+          type: string
+  /api/v1/logbooks/start:
+    post:
+      summary: ''
+      operationId: postApiV1LogbooksStart
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'Staff Logbook'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                gps_location_start:
+                  type: string
+                  description: ''
+                  example: architecto
+              required:
+                - gps_location_start
+  /api/v1/logbooks:
+    get:
+      summary: ''
+      operationId: getApiV1Logbooks
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Staff Logbook'
+  '/api/v1/logbooks/{logbook_id}':
+    get:
+      summary: ''
+      operationId: getApiV1LogbooksLogbook_id
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'Staff Logbook'
+    parameters:
+      -
+        in: path
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        example: 019d02be-063a-71fd-b32b-be23a64cd484
+        required: true
+        schema:
+          type: string
+  '/api/v1/logbooks/{logbook_id}/kpi/{detail_id}/toggle':
+    patch:
+      summary: ''
+      operationId: patchApiV1LogbooksLogbook_idKpiDetail_idToggle
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'Staff Logbook'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_finished:
+                  type: boolean
+                  description: ''
+                  example: false
+              required:
+                - is_finished
+    parameters:
+      -
+        in: path
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        example: 019d02be-063a-71fd-b32b-be23a64cd484
+        required: true
+        schema:
+          type: string
+      -
+        in: path
+        name: detail_id
+        description: 'The ID of the detail.'
+        example: 019d02be-0641-71ec-93a4-cf6779a2abdc
+        required: true
+        schema:
+          type: string
+  '/api/v1/logbooks/{logbook_id}/submit':
+    post:
+      summary: ''
+      operationId: postApiV1LogbooksLogbook_idSubmit
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'Staff Logbook'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                gps_location_end:
+                  type: string
+                  description: ''
+                  example: architecto
+                gambar_bukti:
+                  type: array
+                  description: ''
+                  example: null
+                  items:
+                    type: string
+                    nullable: true
+              required:
+                - gps_location_end
+    parameters:
+      -
+        in: path
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        example: 019d02be-063a-71fd-b32b-be23a64cd484
+        required: true
+        schema:
+          type: string
+  /api/v1/audit-logs:
+    get:
+      summary: 'Get all audit logs.'
+      operationId: getAllAuditLogs
+      description: 'Menampilkan riwayat aktivitas sistem (untuk Dashboard Admin & Security Auditing)'
+      parameters: []
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    -
+                      id: 9b1a59f1-331b-4cf7-8b01-e7a9e1e77f0a
+                      table_name: users
+                      record_id: 9b1a59f1-331b-4cf7-8b01-e7a9e1e77f01
+                      action: UPDATE
+                      old_data:
+                        role: STAFF
+                      new_data:
+                        role: MANAGER
+                      performed_by: 9b1a59f1-331b-4cf7-8b01-e7a9e1e77f00
+                      performed_at: '2024-03-10T10:00:00.000000Z'
+                      ip_address: 127.0.0.1
+                      user_agent: Mozilla/5.0...
+                  meta:
+                    current_page: 1
+                    last_page: 5
+                    per_page: 15
+                    total: 65
+                properties:
+                  data:
+                    type: array
+                    example:
+                      -
+                        id: 9b1a59f1-331b-4cf7-8b01-e7a9e1e77f0a
+                        table_name: users
+                        record_id: 9b1a59f1-331b-4cf7-8b01-e7a9e1e77f01
+                        action: UPDATE
+                        old_data:
+                          role: STAFF
+                        new_data:
+                          role: MANAGER
+                        performed_by: 9b1a59f1-331b-4cf7-8b01-e7a9e1e77f00
+                        performed_at: '2024-03-10T10:00:00.000000Z'
+                        ip_address: 127.0.0.1
+                        user_agent: Mozilla/5.0...
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: 9b1a59f1-331b-4cf7-8b01-e7a9e1e77f0a
+                        table_name:
+                          type: string
+                          example: users
+                        record_id:
+                          type: string
+                          example: 9b1a59f1-331b-4cf7-8b01-e7a9e1e77f01
+                        action:
+                          type: string
+                          example: UPDATE
+                        old_data:
+                          type: object
+                          properties:
+                            role:
+                              type: string
+                              example: STAFF
+                        new_data:
+                          type: object
+                          properties:
+                            role:
+                              type: string
+                              example: MANAGER
+                        performed_by:
+                          type: string
+                          example: 9b1a59f1-331b-4cf7-8b01-e7a9e1e77f00
+                        performed_at:
+                          type: string
+                          example: '2024-03-10T10:00:00.000000Z'
+                        ip_address:
+                          type: string
+                          example: 127.0.0.1
+                        user_agent:
+                          type: string
+                          example: Mozilla/5.0...
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                        example: 1
+                      last_page:
+                        type: integer
+                        example: 5
+                      per_page:
+                        type: integer
+                        example: 15
+                      total:
+                        type: integer
+                        example: 65
+      tags:
+        - 'System & Notifications'
+  /api/v1/users:
+    get:
+      summary: ''
+      operationId: getApiV1Users
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User Management'
+    post:
+      summary: ''
+      operationId: postApiV1Users
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'User Management'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+                email:
+                  type: string
+                  description: 'Must be a valid email address. Must not be greater than 255 characters.'
+                  example: zbailey@example.net
+                nip:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: i
+                role:
+                  type: string
+                  description: ''
+                  example: architecto
+                password:
+                  type: string
+                  description: 'Must be at least 8 characters.'
+                  example: ']|{+-0pBNvYg'
+                manager_id:
+                  type: string
+                  description: 'Must be a valid UUID. The <code>id</code> of an existing record in the users table.'
+                  example: 5e4f00df-4238-35bd-9edc-0b98dc359c80
+                  nullable: true
+              required:
+                - name
+                - email
+                - nip
+                - role
+                - password
+  '/api/v1/users/{id}':
+    get:
+      summary: ''
+      operationId: getApiV1UsersId
+      description: ''
+      parameters: []
+      responses:
+        401:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: Unauthenticated.
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+      tags:
+        - 'User Management'
+    put:
+      summary: ''
+      operationId: putApiV1UsersId
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'User Management'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: b
+                nip:
+                  type: string
+                  description: 'Must not be greater than 255 characters.'
+                  example: 'n'
+                role:
+                  type: string
+                  description: ''
+                  example: null
+                manager_id:
+                  type: string
+                  description: 'Must be a valid UUID. The <code>id</code> of an existing record in the users table.'
+                  example: 6b72fe4a-5b40-307c-bc24-f79acf9a1bb9
+                  nullable: true
+    delete:
+      summary: ''
+      operationId: deleteApiV1UsersId
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'User Management'
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The ID of the user.'
+        example: 019d02be-04be-720b-be8e-c775143c6ba4
+        required: true
+        schema:
+          type: string
+  '/api/v1/users/{user_id}/reset-password':
+    put:
+      summary: ''
+      operationId: putApiV1UsersUser_idResetPassword
+      description: ''
+      parameters: []
+      responses: {  }
+      tags:
+        - 'User Management'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_password:
+                  type: string
+                  description: 'Must be at least 8 characters.'
+                  example: bngzmiyvdljnikhwaykcmyuwpw
+              required:
+                - new_password
+    parameters:
+      -
+        in: path
+        name: user_id
+        description: 'The ID of the user.'
+        example: 019d02be-04be-720b-be8e-c775143c6ba4
+        required: true
+        schema:
+          type: string

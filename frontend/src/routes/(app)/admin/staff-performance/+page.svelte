@@ -1,0 +1,226 @@
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import DataTable from '$lib/components/ui/DataTable.svelte';
+	import StaffDetailDrawer from '$lib/components/drawers/StaffDetailDrawer.svelte';
+	import { analyticsService } from '$lib/api/services/analyticsService';
+
+	let drawerOpen = $state(false);
+	let selectedStaff = $state<{
+		user_id: string;
+		nama: string;
+		npp: string;
+		date_from?: string;
+		date_to?: string;
+	} | null>(null);
+
+	function openStaffDrawer(item: StaffPerformanceSummaryItem) {
+		selectedStaff = {
+			user_id: String(item.user_id),
+			nama: item.nama,
+			npp: item.npp,
+			date_from: dateFrom || undefined,
+			date_to: dateTo || undefined
+		};
+		drawerOpen = true;
+	}
+
+	interface StaffPerformanceSummaryItem {
+		user_id: string | number;
+		nama: string;
+		npp: string;
+		total_logbooks: number;
+		accepted_logbooks: number;
+		rejected_logbooks: number;
+		target_angka_total: number;
+		capaian_angka_total: number;
+		progress_percent: number;
+	}
+
+	let items = $state<StaffPerformanceSummaryItem[]>([]);
+	let loading = $state(true);
+	let error = $state<string | null>(null);
+	let fetchRequestId = 0;
+	let refreshNonce = $state(0);
+
+	let dateFrom = $derived($page.url.searchParams.get('date_from') || '');
+	let dateTo = $derived($page.url.searchParams.get('date_to') || '');
+
+	let dateFromDraft = $state('');
+	let dateToDraft = $state('');
+
+	const totalStaff = $derived(items.length);
+	const totalLogbooks = $derived(items.reduce((sum, item) => sum + (item.total_logbooks || 0), 0));
+	const avgProgress = $derived(
+		totalStaff > 0
+			? Math.round((items.reduce((sum, item) => sum + (item.progress_percent || 0), 0) / totalStaff) * 100) /
+					100
+			: 0
+	);
+
+	$effect(() => {
+		dateFromDraft = dateFrom;
+		dateToDraft = dateTo;
+	});
+
+	function refreshData() {
+		refreshNonce += 1;
+	}
+
+	$effect(() => {
+		refreshNonce;
+
+		const requestId = ++fetchRequestId;
+		loading = true;
+		error = null;
+
+		(async () => {
+			try {
+				const response = await analyticsService.getStaffPerformanceSummary({
+					date_from: dateFrom || undefined,
+					date_to: dateTo || undefined
+				});
+
+				if (requestId !== fetchRequestId) {
+					return;
+				}
+
+				items = response?.items || [];
+			} catch (fetchError: any) {
+				if (requestId !== fetchRequestId) {
+					return;
+				}
+
+				console.error('Failed to fetch staff performance summary', fetchError);
+				error = fetchError?.message || 'Gagal memuat ringkasan performa staff.';
+			} finally {
+				if (requestId === fetchRequestId) {
+					loading = false;
+				}
+			}
+		})();
+	});
+
+	function updateUrl(params: Record<string, string>) {
+		const url = new URL($page.url);
+
+		Object.entries(params).forEach(([key, value]) => {
+			if (value) {
+				url.searchParams.set(key, value);
+			} else {
+				url.searchParams.delete(key);
+			}
+		});
+
+		goto(url.toString(), { replaceState: true, noScroll: true });
+	}
+
+	function applyDateFilters() {
+		updateUrl({ date_from: dateFromDraft, date_to: dateToDraft });
+	}
+
+	function clearDateFilters() {
+		dateFromDraft = '';
+		dateToDraft = '';
+		updateUrl({ date_from: '', date_to: '' });
+	}
+
+	function formatNumber(value: number | null | undefined): string {
+		if (value === null || value === undefined || Number.isNaN(Number(value))) return '0';
+		return Number(value).toLocaleString('id-ID');
+	}
+
+	function formatPercent(value: number | null | undefined): string {
+		if (value === null || value === undefined || Number.isNaN(Number(value))) return '0%';
+		return `${Number(value).toFixed(2)}%`;
+	}
+</script>
+
+<svelte:head>
+	<title>Staff Performance | Admin</title>
+</svelte:head>
+
+<div class="mb-6 space-y-2">
+	<h1 class="text-2xl font-bold">Staff Performance</h1>
+	<p class="text-base-content/70">Ringkasan performa staff berdasarkan periode tanggal.</p>
+</div>
+
+<div class="mb-4 flex flex-wrap items-end gap-3">
+	<div class="form-control">
+		<label class="label" for="date_from">
+			<span class="label-text">Dari</span>
+		</label>
+		<input id="date_from" type="date" class="input-bordered input input-sm" bind:value={dateFromDraft} />
+	</div>
+
+	<div class="form-control">
+		<label class="label" for="date_to">
+			<span class="label-text">Sampai</span>
+		</label>
+		<input id="date_to" type="date" class="input-bordered input input-sm" bind:value={dateToDraft} />
+	</div>
+
+	<div class="flex gap-2">
+		<button class="btn btn-sm" onclick={applyDateFilters}>Terapkan</button>
+		<button class="btn btn-outline btn-sm" onclick={clearDateFilters}>Reset Tanggal</button>
+	</div>
+</div>
+
+<div class="mb-6 grid gap-3 md:grid-cols-3">
+	<div class="card border border-base-300 bg-base-100 shadow-sm">
+		<div class="card-body py-4">
+			<div class="text-sm text-base-content/70">Total Staff</div>
+			<div class="text-2xl font-semibold">{formatNumber(totalStaff)}</div>
+		</div>
+	</div>
+	<div class="card border border-base-300 bg-base-100 shadow-sm">
+		<div class="card-body py-4">
+			<div class="text-sm text-base-content/70">Total Logbooks</div>
+			<div class="text-2xl font-semibold">{formatNumber(totalLogbooks)}</div>
+		</div>
+	</div>
+	<div class="card border border-base-300 bg-base-100 shadow-sm">
+		<div class="card-body py-4">
+			<div class="text-sm text-base-content/70">Rata-rata Progress</div>
+			<div class="text-2xl font-semibold">{formatPercent(avgProgress)}</div>
+		</div>
+	</div>
+</div>
+
+{#if error}
+	<div class="alert alert-error mb-4">
+		<span>{error}</span>
+		<button class="btn btn-ghost btn-sm" onclick={refreshData}>Coba Lagi</button>
+	</div>
+{/if}
+
+<DataTable loading={loading} empty={items.length === 0} columnsCount={6}>
+	{#snippet head()}
+		<tr>
+			<th>Nama</th>
+			<th>NPP</th>
+			<th>Total / Accepted / Rejected</th>
+			<th>Target Angka</th>
+			<th>Capaian Angka</th>
+			<th>Progress</th>
+		</tr>
+	{/snippet}
+
+	{#each items as item (item.user_id)}
+		<tr class="cursor-pointer hover:bg-base-200" onclick={() => openStaffDrawer(item)}>
+			<td class="font-medium">{item.nama || '-'}</td>
+			<td>{item.npp || '-'}</td>
+			<td>
+				{formatNumber(item.total_logbooks)} / {formatNumber(item.accepted_logbooks)} /
+				{formatNumber(item.rejected_logbooks)}
+			</td>
+			<td>{formatNumber(item.target_angka_total)}</td>
+			<td>{formatNumber(item.capaian_angka_total)}</td>
+			<td>
+				<span class="badge badge-info">{formatPercent(item.progress_percent)}</span>
+			</td>
+		</tr>
+	{/each}
+</DataTable>
+
+<StaffDetailDrawer bind:isOpen={drawerOpen} staff={selectedStaff} />

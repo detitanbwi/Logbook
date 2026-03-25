@@ -1,0 +1,147 @@
+name: 'Manager Logbook'
+description: ''
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: 'api/v1/logbooks/{logbook_id}/review'
+    metadata:
+      custom: []
+      groupName: 'Manager Logbook'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      logbook_id:
+        custom: []
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      logbook_id: architecto
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      decision:
+        custom: []
+        name: decision
+        description: ''
+        required: true
+        example: REJECTED
+        type: string
+        enumValues:
+          - ACCEPTED
+          - REJECTED
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      rating:
+        custom: []
+        name: rating
+        description: 'Must be at least 1. Must not be greater than 5.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      reviewer_comment:
+        custom: []
+        name: reviewer_comment
+        description: 'Must not be greater than 5000 characters.'
+        required: true
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      decision: REJECTED
+      rating: 1
+      reviewer_comment: 'n'
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/logbooks/{logbook_id}/revert'
+    metadata:
+      custom: []
+      groupName: 'Manager Logbook'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: ''
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      logbook_id:
+        custom: []
+        name: logbook_id
+        description: 'The ID of the logbook.'
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      logbook_id: architecto
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      reason:
+        custom: []
+        name: reason
+        description: 'Must not be greater than 5000 characters.'
+        required: true
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      reason: b
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
