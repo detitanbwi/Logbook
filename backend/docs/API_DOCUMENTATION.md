@@ -1,45 +1,63 @@
-# Logbook API Documentation
+# Logbook API Documentation (Backend Source of Truth)
 
-> **LLM Context Document** — Optimized for AI-assisted frontend development  
 > **Base URL**: `http://localhost:8000/api/v1`  
-> **Auth**: Bearer token (Laravel Sanctum)
+> **Authentication**: Laravel Sanctum Bearer token (`Authorization: Bearer <token>`) for all endpoints except login.
 
 ---
 
 ## Table of Contents
 
-1. [Authentication](#1-authentication)
-2. [Users](#2-users)
-3. [KPI Master](#3-kpi-master)
-4. [KPI Assignments](#4-kpi-assignments)
-5. [Logbooks](#5-logbooks)
-6. [Summaries](#6-summaries)
-7. [Dashboards](#7-dashboards)
+1. [Role & Access Model](#1-role--access-model)
+2. [Authentication](#2-authentication)
+3. [Users](#3-users)
+4. [KPI Master](#4-kpi-master)
+5. [KPI Assignments](#5-kpi-assignments)
+6. [Logbooks](#6-logbooks)
+7. [Summaries](#7-summaries)
 8. [Notifications](#8-notifications)
 9. [Audit Logs](#9-audit-logs)
-10. [Common Patterns](#10-common-patterns)
+10. [Analytics & Dashboards](#10-analytics--dashboards)
+11. [Response Shape Conventions](#11-response-shape-conventions)
+12. [Observers & Derived Summary Behavior](#12-observers--derived-summary-behavior)
+13. [Error Responses](#13-error-responses)
 
 ---
 
-## Role System
+## 1. Role & Access Model
 
-| Role | Description | Capabilities |
-|------|-------------|--------------|
-| `SuperAdmin` | System administrator | Full access, all users/data |
-| `Admin` | Operational admin | Manage Staff users, KPIs, review logbooks |
-| `Staff` | Regular employee | Own logbooks, can have subordinates via `manager_id` |
+### Roles
 
-**Manager capability** is determined by `has_subordinates: true`, not a separate role.
+| Role | Meaning |
+|---|---|
+| `SuperAdmin` | Full privileged access |
+| `Admin` | Privileged operational access |
+| `Staff` | Regular user; can also act as manager if they have subordinates |
+
+### Manager Capability
+
+There is no dedicated `Manager` role. A user is treated as manager when:
+
+- `role = Staff`, and
+- the user has subordinates (`hasSubordinates()` returns true).
+
+### Common Access Rules in Controllers
+
+- **Privileged** (`isPrivileged`) = `Admin` or `SuperAdmin`
+- **Regular staff** (`isStaff && !hasSubordinates`) is frequently restricted to own data.
+- **Manager-like staff** (`hasSubordinates`) can access direct subordinate data in specific endpoints.
 
 ---
 
-## 1. Authentication
+## 2. Authentication
 
 ### POST `/auth/login`
 
-Login with NPP (Nomor Pokok Pegawai).
+Login using NPP and password.
 
-**Request:**
+- Middleware: `throttle:5,1`
+- No auth token required
+
+**Request**
 ```json
 {
   "npp": "199003032010012003",
@@ -47,71 +65,86 @@ Login with NPP (Nomor Pokok Pegawai).
 }
 ```
 
-**Response 200:**
+**Validation rules**
+- `npp`: required, string
+- `password`: required, string
+
+**Response 200**
 ```json
 {
   "message": "Login successful",
-  "access_token": "7|jA58Vg38RCBPQ0cP2x...",
+  "access_token": "7|...",
   "token_type": "Bearer",
   "user": {
-    "id": "019d11a9-20f0-701c-8c44-1835f1d1c663",
+    "id": "uuid",
     "npp": "199003032010012003",
-    "nama": "Staff Koordinator Lapangan",
-    "email": "staff.lead@logbook.com",
+    "nama": "...",
+    "email": "...",
     "role": "Staff",
-    "manager_id": "019d11a9-20e6-73db-bf66-a8f67c0683eb",
-    "has_subordinates": true
+    "manager_id": "uuid-or-null",
+    "foto": null,
+    "foto_url": null,
+    "tempat_lahir": null,
+    "tanggal_lahir": null,
+    "nik": null,
+    "npwp": null,
+    "alamat": null,
+    "status_kawin": null,
+    "riwayat_pendidikan": null,
+    "riwayat_karir": null,
+    "has_subordinates": false,
+    "manager": null,
+    "last_password_change": null,
+    "created_at": "2026-03-21T18:29:49.000000Z",
+    "updated_at": "2026-03-21T18:29:49.000000Z"
   }
 }
 ```
 
-**Error 401:**
+**Response 401**
 ```json
-{ "message": "Invalid credentials" }
+{ "message": "Kredensial tidak valid" }
+```
+
+---
+
+### POST `/auth/logout`
+
+Invalidate current access token.
+
+**Response 200**
+```json
+{ "message": "Logged out successfully" }
 ```
 
 ---
 
 ### GET `/auth/me`
 
-Get current authenticated user's full profile.
+Get authenticated user profile.
 
-**Headers:** `Authorization: Bearer <token>`
-
-**Response 200:**
+**Response 200**
 ```json
 {
   "user": {
-    "id": "019d11a9-20c9-7184-9fac-d94fb153ceb8",
-    "npp": "198001012000011001",
-    "nama": "Super Admin Sistem",
-    "email": "superadmin@logbook.com",
+    "id": "uuid",
+    "npp": "...",
+    "nama": "...",
+    "email": "...",
     "role": "SuperAdmin",
     "manager_id": null,
     "foto": null,
     "foto_url": null,
-    "tempat_lahir": "Ternate",
-    "tanggal_lahir": "1972-12-08",
-    "nik": "7885751958220264",
-    "npwp": "21.572.549.3-483.152",
-    "alamat": "Psr. Suniaraja No. 798, Banjar 18676, Kaltim",
-    "status_kawin": "Belum_Kawin",
-    "riwayat_pendidikan": [
-      {
-        "jenjang": "SMA",
-        "jurusan": "adipisci",
-        "institusi": "Perum Yolanda Tbk",
-        "tahun": 2001
-      }
-    ],
-    "riwayat_karir": [
-      {
-        "jabatan": "Hakim",
-        "perusahaan": "PD Rahimah",
-        "periode": "2002-1976"
-      }
-    ],
+    "tempat_lahir": "...",
+    "tanggal_lahir": "YYYY-MM-DD",
+    "nik": "...",
+    "npwp": "...",
+    "alamat": "...",
+    "status_kawin": "...",
+    "riwayat_pendidikan": [],
+    "riwayat_karir": [],
     "has_subordinates": false,
+    "manager": null,
     "last_password_change": "2026-03-21T18:29:49.000000Z",
     "created_at": "2026-03-21T18:29:49.000000Z",
     "updated_at": "2026-03-21T18:29:49.000000Z"
@@ -121,327 +154,467 @@ Get current authenticated user's full profile.
 
 ---
 
-### POST `/auth/logout`
+### PUT `/auth/profile`
 
-Revoke current token.
+Update authenticated profile.
 
-**Response 200:**
+Supports `multipart/form-data` for `foto`.
+
+**Validated fields**
+- `foto`: sometimes, nullable, image, mimes `jpg,jpeg,png,webp`, max 5 MB
+- `alamat`: sometimes, nullable, string, max 2000
+- `tempat_lahir`: sometimes, nullable, string, max 255
+- `tanggal_lahir`: sometimes, nullable, date
+- `nik`: sometimes, nullable, string, max 32
+- `npwp`: sometimes, nullable, string, max 32
+- `status_kawin`: sometimes, nullable, string, max 32
+- `riwayat_pendidikan`: sometimes, nullable, array
+- `riwayat_karir`: sometimes, nullable, array
+
+**Response 200**
 ```json
-{ "message": "Logged out successfully" }
+{
+  "message": "Profil berhasil diperbarui",
+  "data": {
+    "id": "uuid",
+    "npp": "...",
+    "nama": "...",
+    "email": "...",
+    "role": "Staff",
+    "manager_id": "uuid-or-null",
+    "foto": "profile-photos/filename.jpg",
+    "foto_url": "/storage/profile-photos/filename.jpg",
+    "tempat_lahir": "...",
+    "tanggal_lahir": "YYYY-MM-DD",
+    "nik": "...",
+    "npwp": "...",
+    "alamat": "...",
+    "status_kawin": "...",
+    "riwayat_pendidikan": [],
+    "riwayat_karir": [],
+    "has_subordinates": false,
+    "manager": null,
+    "last_password_change": "...",
+    "created_at": "...",
+    "updated_at": "..."
+  }
+}
 ```
 
 ---
 
 ### PUT `/auth/change-password`
 
-**Request:**
+Change authenticated user password.
+
+**Request**
 ```json
 {
-  "current_password": "password123",
-  "password": "newpassword123",
-  "password_confirmation": "newpassword123"
+  "old_password": "current-password",
+  "new_password": "new-password-123",
+  "new_password_confirmation": "new-password-123"
 }
+```
+
+**Validation rules**
+- `old_password`: required, string
+- `new_password`: required, string, min:8, confirmed
+
+**Response 200**
+```json
+{ "message": "Password updated successfully" }
+```
+
+**Response 400**
+```json
+{ "message": "Current password does not match" }
 ```
 
 ---
 
-### PUT `/auth/profile`
+## 3. Users
 
-Update own profile. Accepts multipart/form-data for photo upload.
-
-**Accepted fields:**
-- `foto` (image: jpg/jpeg/png, max 5MB)
-- `alamat`, `tempat_lahir`, `tanggal_lahir`
-- `nik`, `npwp`, `status_kawin`
-- `riwayat_pendidikan` (JSON array)
-- `riwayat_karir` (JSON array)
-
-**Protected fields** (cannot be changed): `npp`, `role`, `email`
-
----
-
-## 2. Users
+All endpoints require auth.
 
 ### GET `/users`
 
-List all users with pagination.
+List users with role-based filtering.
 
-**Query Parameters:**
-| Param | Type | Description |
-|-------|------|-------------|
-| `per_page` | int | Items per page (default: 15) |
-| `page` | int | Page number |
-| `search` | string | Filter by nama or npp |
-| `role` | string | Filter by role |
+**Query params**
+- `search` (nama/email/npp)
+- `role`
+- `sort_by`: `nama|email|npp|role|created_at`
+- `sort_dir`: `asc|desc`
+- `per_page` (max 100)
 
-**Response 200:**
+**Access**
+- Staff without subordinates: `403 Forbidden`
+- Non-privileged manager-like staff: auto-filtered to own subordinates
+
+**Response**
+- Resource pagination: `data + links + meta`
+
+---
+
+### POST `/users`
+
+Create user.
+
+**Validation rules**
+- `nama`: required, string, max:255
+- `email`: required, email, max:255, unique
+- `npp`: required, string, max:255, unique
+- `role`: required, one of `SuperAdmin|Admin|Staff|ADMIN|STAFF`
+- `password`: required, string, min:8
+- `manager_id`: nullable, uuid, exists:users,id
+
+**Access**
+- Privileged only (`Admin`/`SuperAdmin`)
+- Additional rule: `Admin` cannot create `Admin` or `SuperAdmin`
+
+**Response 201**
+- Single `UserResource` (`{ "data": { ... } }`)
+
+---
+
+### GET `/users/{user}`
+
+View user detail.
+
+**Access**
+- Allowed if requester can manage target user, or target is requester
+
+**Response**
+- Single `UserResource`
+
+---
+
+### PUT/PATCH `/users/{user}`
+
+Update user profile/account fields.
+
+**Validation (all `sometimes`)**
+- `nama`: required|string|max:255
+- `npp`: required|string|max:255|unique(ignore current)
+- `role`: required|in(`SuperAdmin,Admin,Staff,ADMIN,STAFF`)
+- `manager_id`: nullable|uuid|exists
+- `email`: required|email|max:255|unique(ignore current)
+- `foto`: nullable image `jpg,jpeg,png,webp`, max 5 MB
+- `tempat_lahir`: nullable string max:255
+- `tanggal_lahir`: nullable date
+- `nik`: nullable string max:32
+- `npwp`: nullable string max:32
+- `alamat`: nullable string max:2000
+- `status_kawin`: nullable string max:32
+- `riwayat_pendidikan`: nullable array
+- `riwayat_karir`: nullable array
+
+**Access**
+- Privileged only
+- `Admin` cannot assign role `Admin` or `SuperAdmin`
+
+**Response**
+- Single `UserResource`
+
+---
+
+### DELETE `/users/{user}`
+
+Delete user and revoke user tokens.
+
+**Access**: privileged only
+
+**Response 200**
 ```json
-{
-  "data": [
-    {
-      "id": "019d11a9-20c9-7184-9fac-d94fb153ceb8",
-      "npp": "198001012000011001",
-      "nama": "Super Admin Sistem",
-      "email": "superadmin@logbook.com",
-      "role": "SuperAdmin",
-      "manager_id": null,
-      "foto": null,
-      "foto_url": null,
-      "tempat_lahir": "Ternate",
-      "tanggal_lahir": "1972-12-08",
-      "nik": "7885751958220264",
-      "npwp": "21.572.549.3-483.152",
-      "alamat": "Psr. Suniaraja No. 798, Banjar 18676, Kaltim",
-      "status_kawin": "Belum_Kawin",
-      "riwayat_pendidikan": [...],
-      "riwayat_karir": [...],
-      "has_subordinates": false,
-      "last_password_change": "2026-03-21T18:29:49.000000Z",
-      "created_at": "2026-03-21T18:29:49.000000Z",
-      "updated_at": "2026-03-21T18:29:49.000000Z"
-    }
-  ],
-  "links": {
-    "first": "http://localhost:8000/api/v1/users?page=1",
-    "last": "http://localhost:8000/api/v1/users?page=2",
-    "prev": null,
-    "next": "http://localhost:8000/api/v1/users?page=2"
-  },
-  "meta": {
-    "current_page": 1,
-    "from": 1,
-    "last_page": 2,
-    "per_page": 3,
-    "to": 3,
-    "total": 4
-  }
-}
+{ "message": "Pengguna berhasil dihapus" }
 ```
 
 ---
 
-### GET `/users/{id}/subordinates`
+### PUT `/users/{user}/reset-password`
 
-Get subordinates of a user (users where `manager_id` = this user).
+Reset user password.
 
-**Response 200:**
+**Validation**
+- `new_password`: required|string|min:8
+
+**Access**: privileged only
+
+**Response 200**
 ```json
-{
-  "data": [
-    {
-      "id": "019d11a9-20f8-70e3-9af9-787b6543af35",
-      "npp": "199204142012012004",
-      "nama": "Staff Pelaksana Lapangan",
-      "email": "staff.subordinate@logbook.com",
-      "role": "Staff",
-      "manager_id": "019d11a9-20f0-701c-8c44-1835f1d1c663",
-      "has_subordinates": false,
-      ...
-    }
-  ],
-  "meta": { "current_page": 1, "total": 1, ... }
-}
+{ "message": "Password reset successfully" }
 ```
 
 ---
 
-## 3. KPI Master
+### GET `/users/{user}/subordinates`
+
+List subordinates for a user.
+
+**Access**
+- Privileged: may view subordinates of any user
+- Non-privileged: only for own user id and must actually have subordinates
+
+**Response**
+- Resource pagination (`UserResource` collection)
+
+---
+
+## 4. KPI Master
+
+Resource routes from `Route::apiResource('kpi/master', MasterKpiController::class)`.
 
 ### GET `/kpi/master`
 
-List all KPI definitions.
+List master KPIs.
 
-**Response 200:**
-```json
-{
-  "data": [
-    {
-      "id": "019d11a9-2132-7117-ba37-fd1b59971710",
-      "nama": "Respon Keluhan Pelanggan",
-      "target_angka": 5,
-      "satuan": "tiket",
-      "deskripsi": "Penanganan keluhan pelanggan sampai status tindak lanjut jelas.",
-      "status_aktif": true,
-      "created_at": "2026-03-21T18:29:50.000000Z",
-      "updated_at": "2026-03-21T18:29:50.000000Z"
-    }
-  ],
-  "meta": { "current_page": 1, "last_page": 2, "total": 6 }
-}
-```
+**Query params**
+- `search` (by `nama`)
+- `status_aktif` (boolean)
+- `sort_by`: `nama|created_at`
+- `sort_dir`: `asc|desc`
+- `per_page` (max 100)
+
+**Access**
+- Staff without subordinates: forbidden
+
+**Response**
+- Resource pagination (`MasterKpiResource`)
+
+---
 
 ### POST `/kpi/master`
 
-Create new KPI. **Admin/SuperAdmin only.**
+Create KPI.
 
-**Request:**
+**Validation**
+- `nama`: required|string|max:255
+- `target_angka`: nullable|numeric|min:0
+- `satuan`: nullable|string|max:100
+- `deskripsi`: nullable|string
+- `status_aktif`: boolean
+
+**Access**: privileged only
+
+**Response 201**
+- Single `MasterKpiResource`
+
+---
+
+### GET `/kpi/master/{kpi}`
+
+Show KPI detail.
+
+**Access**
+- Staff without subordinates: forbidden
+
+**Response**
+- Single `MasterKpiResource`
+
+---
+
+### PUT/PATCH `/kpi/master/{kpi}`
+
+Update KPI.
+
+**Validation**
+- Same as create, with `nama` as `sometimes|required`
+
+**Access**: privileged only
+
+**Response**
+- Single `MasterKpiResource`
+
+---
+
+### DELETE `/kpi/master/{kpi}`
+
+Delete KPI.
+
+**Access**: privileged only
+
+**Response 200**
 ```json
-{
-  "nama": "New KPI Name",
-  "target_angka": 10,
-  "satuan": "unit",
-  "deskripsi": "KPI description",
-  "status_aktif": true
-}
+{ "message": "KPI deleted successfully" }
 ```
 
 ---
 
-## 4. KPI Assignments
+## 5. KPI Assignments
 
 ### GET `/kpi/assignments`
 
-List KPI assignments with user and KPI details.
+List assignments.
 
-**Response 200:**
-```json
-{
-  "data": [
-    {
-      "id": "019d11a9-213c-722f-8aee-c8e89584a712",
-      "user_id": "019d11a9-20f0-701c-8c44-1835f1d1c663",
-      "kpi_id": "019d11a9-2101-73aa-b471-3e7eef7676ff",
-      "assigned_by": "019d11a9-20e6-73db-bf66-a8f67c0683eb",
-      "user": {
-        "id": "019d11a9-20f0-701c-8c44-1835f1d1c663",
-        "npp": "199003032010012003",
-        "nama": "Staff Koordinator Lapangan",
-        "email": "staff.lead@logbook.com",
-        "role": "Staff",
-        "manager_id": "019d11a9-20e6-73db-bf66-a8f67c0683eb",
-        "has_subordinates": true,
-        ...
-      },
-      "kpi": {
-        "id": "019d11a9-2101-73aa-b471-3e7eef7676ff",
-        "nama": "Meninjau Rencana Kerja Harian",
-        "target_angka": 3,
-        "satuan": "dokumen",
-        "deskripsi": "Memastikan rencana kerja tim harian tervalidasi dengan baik.",
-        "status_aktif": true
-      },
-      "assigner": {
-        "id": "019d11a9-20e6-73db-bf66-a8f67c0683eb",
-        "nama": "Admin Operasional",
-        "email": "admin@logbook.com",
-        "role": "Admin"
-      },
-      "created_at": "2026-03-21T18:29:50.000000Z"
-    }
-  ],
-  "meta": { "total": 6 }
-}
-```
+**Query params**
+- `per_page` (default 15)
+
+**Access**
+- Staff without subordinates: forbidden
+- Non-privileged manager-like users: results limited to subordinate users
+
+**Response**
+- Resource pagination (`KpiAssignmentResource`)
+
+---
+
+### POST `/kpi/assignments`
+
+Assign KPI to user.
+
+**Validation**
+- `user_id`: required|exists:users,id
+- `kpi_id`: required|exists:kpi_masters,id
+
+**Access**
+- Staff without subordinates: forbidden
+- Non-privileged manager-like users can assign only to direct subordinates
+
+**Side effect**
+- Creates `Notification` of type `KPI_ASSIGNMENT` for assignee.
+
+**Response 201**
+- Single `KpiAssignmentResource`
+
+---
+
+### DELETE `/kpi/assignments/{assignment}`
+
+Delete assignment.
+
+**Access**
+- Staff without subordinates: forbidden
+- Non-privileged manager-like users only for direct subordinate assignments
+
+**Response 204**
+- No content
 
 ---
 
 ### GET `/kpi/me`
 
-Get current user's assigned KPIs.
+Current user assignments.
 
-**Response 200:** (Array, not paginated)
-```json
-[
-  {
-    "id": "019d11a9-213c-722f-8aee-c8e89584a712",
-    "user_id": "019d11a9-20f0-701c-8c44-1835f1d1c663",
-    "kpi_id": "019d11a9-2101-73aa-b471-3e7eef7676ff",
-    "assigned_by": "019d11a9-20e6-73db-bf66-a8f67c0683eb",
-    "kpi": {
-      "id": "019d11a9-2101-73aa-b471-3e7eef7676ff",
-      "nama": "Meninjau Rencana Kerja Harian",
-      "target_angka": "3.00",
-      "satuan": "dokumen",
-      "deskripsi": "Memastikan rencana kerja tim harian tervalidasi dengan baik.",
-      "status_aktif": true
-    },
-    "assigner": { "nama": "Admin Operasional", ... }
-  }
-]
-```
+**Response 200**
+- Raw array of assignment models with loaded relations (`kpi`, `assigner`)  
+  (not wrapped with `KpiAssignmentResource`)
 
 ---
 
-## 5. Logbooks
+## 6. Logbooks
+
+### POST `/logbooks/start`
+### POST `/logbooks`
+
+Both create a new logbook (`/logbooks` delegates to `start()` internally).
+
+**Validation**
+- `tanggal`: required|date
+- `start_kerja`: required|date_format:H:i
+- `end_kerja`: nullable|date_format:H:i
+- `lokasi`: required|string|max:1000
+- `lokasi_lat`: nullable|numeric|between:-90,90
+- `lokasi_lng`: nullable|numeric|between:-180,180
+
+**Business checks**
+- Only `Staff` can create
+- `start_kerja >= 07:00`
+- if `end_kerja` present, must be greater than `start_kerja`
+- user must have assigned KPIs
+
+**Important implementation behavior**
+- New logbook is created with status `SUBMITTED`.
+- KPI details are auto-generated from user KPI assignments.
+
+**Response 201**
+- Single `LogbookResource`
+
+---
 
 ### GET `/logbooks`
 
-List logbooks with filtering.
+List logbooks with role-aware visibility.
 
-**Query Parameters:**
-| Param | Type | Description |
-|-------|------|-------------|
-| `per_page` | int | Items per page |
-| `status` | string | `DRAFT`, `SUBMITTED`, `ACCEPTED`, `REJECTED` |
-| `date_from` | string | Start date (YYYY-MM-DD) |
-| `date_to` | string | End date (YYYY-MM-DD) |
-| `user_id` | string | Filter by user (Admin/Manager) |
-| `search` | string | Search by nama/npp |
-| `sort_by` | string | Field to sort by |
-| `sort_dir` | string | `asc` or `desc` |
+**Query params**
+- `user_id`
+- `search` (owner `nama`/`npp`)
+- `status`: only `SUBMITTED|ACCEPTED|REJECTED` are applied
+- `date_from`
+- `date_to`
+- `sort_by`: `tanggal|start_kerja|end_kerja|status|created_at`
+- `sort_dir`: `asc|desc`
+- `per_page` (max 100)
 
-**Response 200:**
+**Access/filtering**
+- Staff without subordinates: own data only
+- Non-privileged manager-like users: own + direct subordinates
+
+**Response**
+- Resource pagination (`LogbookResource`)
+
+---
+
+### GET `/logbooks/{logbook}`
+
+Get single logbook.
+
+**Access**
+- Privileged, or owner, or manager of owner
+
+**Response**
+- Single `LogbookResource` (includes loaded `user`, `reviewer`, `details`)
+
+---
+
+### PATCH `/logbooks/{logbook}`
+
+Update logbook basic fields.
+
+**Validation (`sometimes`)**
+- `tanggal`: date
+- `start_kerja`: date_format:H:i
+- `end_kerja`: nullable|date_format:H:i
+- `lokasi`: string|max:1000
+- `lokasi_lat`: nullable|numeric|between:-90,90
+- `lokasi_lng`: nullable|numeric|between:-180,180
+
+**Business checks**
+- Owner only
+- Not allowed when status = `ACCEPTED`
+- If `start_kerja` provided, must be `>= 07:00`
+- Effective `end_kerja` must be greater than effective `start_kerja`
+
+**Response**
+- Single `LogbookResource`
+
+---
+
+### DELETE `/logbooks/{logbook}`
+
+Delete logbook.
+
+**Business checks**
+- Owner only
+- Not allowed when status = `ACCEPTED`
+
+**Response 200**
 ```json
-{
-  "data": [
-    {
-      "id": "019d11a9-24b5-70e7-af1a-36de5d0f52c3",
-      "user_id": "019d11a9-20f0-701c-8c44-1835f1d1c663",
-      "tanggal": "2026-03-21",
-      "start_kerja": "07:45:00",
-      "end_kerja": "16:30:00",
-      "lokasi": "Kantor Operasional Pusat",
-      "lokasi_lat": -6.21,
-      "lokasi_lng": 106.84513,
-      "status": "SUBMITTED",
-      "rating": null,
-      "reviewed_by": null,
-      "reviewed_at": null,
-      "reviewer_comment": null,
-      "user": {
-        "id": "019d11a9-20f0-701c-8c44-1835f1d1c663",
-        "npp": "199003032010012003",
-        "nama": "Staff Koordinator Lapangan",
-        "role": "Staff",
-        "manager_id": "019d11a9-20e6-73db-bf66-a8f67c0683eb",
-        "has_subordinates": true
-      },
-      "reviewer": null,
-      "details": [
-        {
-          "id": "019d11a9-24bf-71e3-927a-461c03d75928",
-          "kpi_id": "019d11a9-2101-73aa-b471-3e7eef7676ff",
-          "kpi_nama": "Meninjau Rencana Kerja Harian",
-          "target_angka": 3,
-          "satuan": "dokumen",
-          "capaian_angka": 1.95,
-          "lampiran_file": "logbook-kpi-attachments/today-proof-019d11a9-20f0-701c-8c44-1835f1d1c663.pdf",
-          "finished_at": "2026-03-21T14:29:00.000000Z"
-        }
-      ],
-      "created_at": "2026-03-21T18:29:50.000000Z"
-    }
-  ],
-  "meta": { "current_page": 1, "last_page": 13, "total": 26 }
-}
+{ "message": "Logbook berhasil dihapus" }
 ```
 
 ---
 
-### GET `/logbooks/{id}`
+### GET `/logbooks/{logbook}/duration`
 
-Get single logbook with full details.
+Get computed work duration.
 
----
+**Access**
+- Privileged, owner, or manager of owner
 
-### GET `/logbooks/{id}/duration`
-
-Get work duration breakdown.
-
-**Response 200:**
+**Response 200**
 ```json
 {
-  "logbook_id": "019d11a9-24b5-70e7-af1a-36de5d0f52c3",
+  "logbook_id": "uuid",
   "tanggal": "2026-03-21",
   "start_kerja": "07:45:00",
   "end_kerja": "16:30:00",
@@ -453,193 +626,239 @@ Get work duration breakdown.
 
 ---
 
-### POST `/logbooks/start` or POST `/logbooks`
+### PATCH `/logbooks/{logbook}/kpi/{detail}/progress`
 
-Create new logbook (DRAFT status).
+Update KPI progress on a logbook detail.
 
-**Request:**
+**Validation**
+- `capaian_angka`: required|numeric|min:0
+
+**Business checks**
+- Owner only
+- `detail` must belong to `logbook`
+- Not allowed when status = `ACCEPTED`
+
+**Response 200**
 ```json
 {
-  "tanggal": "2026-03-22",
-  "start_kerja": "08:00",
-  "end_kerja": "17:00",
-  "lokasi": "Kantor Pusat"
-}
-```
-
-**Rules:**
-- `start_kerja` must be >= 07:00
-- `end_kerja` must be > `start_kerja` if provided
-- Multiple logbooks per day allowed
-
----
-
-### PATCH `/logbooks/{id}/kpi/{detail_id}/progress`
-
-Update KPI progress (DRAFT only).
-
-**Request:**
-```json
-{
-  "capaian_angka": 7.5
+  "id": "uuid",
+  "capaian_angka": 7.5,
+  "target_angka": 10,
+  "satuan": "unit",
+  "finished_at": "2026-03-21T14:29:00.000000Z"
 }
 ```
 
 ---
 
-### POST `/logbooks/{id}/kpi/{detail_id}/attachment`
+### POST `/logbooks/{logbook}/kpi/{detail}/attachment`
 
-Upload KPI attachment (DRAFT only). Multipart form-data.
+Upload attachment for KPI detail.
 
-**Request:** `file` (image or PDF, max 5MB)
+**Validation**
+- `lampiran_file`: required|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx
 
----
+**Business checks**
+- Owner only
+- `detail` must belong to `logbook`
+- Not allowed when status = `ACCEPTED`
 
-### POST `/logbooks/{id}/submit`
-
-Submit logbook for review.
-
-**Rules:**
-- Only from DRAFT status
-- At least one KPI must have `capaian_angka > 0`
-- Creates notification for manager
-
----
-
-### PUT `/logbooks/{id}/review`
-
-Manager/Admin review a SUBMITTED logbook.
-
-**Request:**
+**Response 200**
 ```json
 {
-  "decision": "ACCEPTED",
-  "rating": 4,
-  "reviewer_comment": "Bagus dan lengkap"
+  "message": "Lampiran KPI berhasil diunggah",
+  "data": {
+    "id": "uuid",
+    "lampiran_file": "logbook-kpi-attachments/filename.pdf"
+  }
 }
 ```
 
-**Rules:**
-- `decision`: `ACCEPTED` or `REJECTED`
-- `rating`: 1-5
-- `reviewer_comment`: required
-- Creates notification for logbook owner
+---
+
+### DELETE `/logbooks/{logbook}/kpi/{detail}/attachment`
+
+Delete attachment for KPI detail.
+
+**Business checks**
+- Owner only
+- `detail` must belong to `logbook`
+- Not allowed when status = `ACCEPTED`
+
+**Response 200**
+```json
+{
+  "message": "Lampiran KPI berhasil dihapus",
+  "data": {
+    "id": "uuid",
+    "lampiran_file": null
+  }
+}
+```
 
 ---
 
-## 6. Summaries
+### POST `/logbooks/{logbook}/submit`
 
-Pre-aggregated daily and period summaries. Auto-synced via Observers.
+Submit (or re-submit) logbook.
+
+**Business checks**
+- Owner only
+- Not allowed when status = `ACCEPTED`
+- `end_kerja` must be filled
+- At least one KPI detail must have `capaian_angka > 0`
+
+**Side effect**
+- If owner has manager, creates `Notification` type `LOGBOOK_SUBMITTED` for manager.
+
+**Response**
+- Single `LogbookResource`
+
+---
+
+### PUT `/logbooks/{logbook}/review`
+
+Review submitted logbook (manager/admin/superadmin flow).
+
+**Validation**
+- `decision`: required|string|in:`ACCEPTED,REJECTED`
+- `rating`: required|integer|min:1|max:5
+- `reviewer_comment`: required|string|max:5000
+
+**Business checks**
+- Privileged users can review any logbook
+- Non-privileged reviewer must have subordinates and target must be direct subordinate
+- Logbook must be `SUBMITTED`
+- Uses DB transaction with row lock to avoid double-review race
+
+**Side effect**
+- Creates notification for logbook owner with type:
+  - `LOGBOOK_ACCEPTED` or
+  - `LOGBOOK_REJECTED`
+
+**Response 200**
+```json
+{
+  "message": "Logbook review berhasil disimpan",
+  "data": {
+    "id": "uuid",
+    "status": "ACCEPTED",
+    "rating": 4,
+    "reviewer_comment": "Bagus",
+    "reviewed_by": "uuid",
+    "reviewed_at": "2026-03-21T18:29:50.000000Z",
+    "user": { "id": "...", "nama": "..." },
+    "reviewer": { "id": "...", "nama": "..." },
+    "details": []
+  }
+}
+```
+
+---
+
+## 7. Summaries
+
+> Summary endpoints are derived/aggregated outputs. Several endpoints return **raw paginator JSON** (not API Resource pagination).
 
 ### GET `/summaries/daily`
 
-Daily staff summaries (all users, Admin/SA view).
+Daily staff summary rows.
 
-**Query Parameters:**
-| Param | Type | Description |
-|-------|------|-------------|
-| `date` | string | Single date |
-| `date_from` | string | Start date |
-| `date_to` | string | End date |
-| `user_id` | string | Filter by user |
-| `per_page` | int | Items per page |
+**Query params**
+- `tanggal`
+- `date_from`
+- `date_to`
+- `per_page` (max 100)
 
-**Response 200:**
-```json
-{
-  "data": [
-    {
-      "id": "019d11c0-a32f-71cf-9f4a-b252dfe2d663",
-      "user_id": "019d11a9-20f8-70e3-9af9-787b6543af35",
-      "tanggal": "2026-03-22T00:00:00.000000Z",
-      "total_logbooks": 1,
-      "submitted_logbooks": 1,
-      "accepted_logbooks": 0,
-      "rejected_logbooks": 0,
-      "total_work_minutes": 0,
-      "total_kpi": 3,
-      "target_angka_total": "23.00",
-      "capaian_angka_total": "6.50",
-      "progress_percent": "28.26",
-      "user": {
-        "id": "019d11a9-20f8-70e3-9af9-787b6543af35",
-        "nama": "Staff Pelaksana Lapangan",
-        "npp": "199204142012012004",
-        "role": "Staff",
-        "manager_id": "019d11a9-20f0-701c-8c44-1835f1d1c663"
-      }
-    }
-  ],
-  "current_page": 1,
-  "last_page": 13,
-  "total": 26
-}
-```
+**Access/filtering**
+- Staff without subordinates: own summary rows only
+- Non-privileged manager-like users: only subordinate rows
+
+**Response**
+- Raw Laravel paginator (`current_page`, `data`, `first_page_url`, `last_page`, `links[]`, etc.)
 
 ---
 
 ### GET `/summaries/daily/{user_id}`
 
-Daily summaries for specific user.
+Daily summaries by specific user.
+
+**Access**
+- Requester must manage target user or be the target user
+
+**Query params**
+- `date_from`
+- `date_to`
+- `per_page` (max 100)
+
+**Response**
+- Raw paginator
 
 ---
 
-### GET `/summaries/kpi/daily`
+### GET `/summaries/period`
 
-KPI-level daily summaries.
+Aggregated period summary.
 
-**Response 200:**
+**Query params**
+- `date_from` (default start of current month)
+- `date_to` (default today)
+
+**Response 200**
 ```json
 {
-  "data": [
-    {
-      "id": "019d11c0-a334-7132-97c8-6adb5724f85c",
-      "user_id": "019d11a9-20f8-70e3-9af9-787b6543af35",
-      "kpi_id": "019d11a9-2124-7013-97a1-809841208604",
-      "tanggal": "2026-03-22T00:00:00.000000Z",
-      "kpi_nama": "Eksekusi Pemeriksaan Lapangan",
-      "satuan": "unit",
-      "target_angka_total": "8.00",
-      "capaian_angka_total": "6.50",
-      "progress_percent": "81.25",
-      "total_lampiran": 0,
-      "user": {
-        "id": "019d11a9-20f8-70e3-9af9-787b6543af35",
-        "nama": "Staff Pelaksana Lapangan",
-        "npp": "199204142012012004",
-        "manager_id": "019d11a9-20f0-701c-8c44-1835f1d1c663"
-      },
-      "kpi": {
-        "id": "019d11a9-2124-7013-97a1-809841208604",
-        "nama": "Eksekusi Pemeriksaan Lapangan"
-      }
-    }
-  ]
+  "date_from": "2026-03-01",
+  "date_to": "2026-03-31",
+  "total_logbooks": 26,
+  "submitted_logbooks": 10,
+  "accepted_logbooks": 14,
+  "rejected_logbooks": 2,
+  "total_work_minutes": 12345,
+  "total_kpi": 100,
+  "target_angka_total": 250,
+  "capaian_angka_total": 190,
+  "progress_percent": 76
 }
 ```
 
 ---
 
+### GET `/summaries/kpi/daily`
+
+KPI-level daily summary rows.
+
+**Query params**
+- `tanggal`
+- `per_page`
+
+**Response**
+- Raw paginator
+
+---
+
 ### GET `/summaries/kpi/period`
 
-KPI aggregation over date range.
+KPI aggregation over period.
 
-**Query Parameters:** `date_from`, `date_to`
+**Query params**
+- `date_from` (default start of current month)
+- `date_to` (default today)
+- `user_id` (optional)
 
-**Response 200:**
+**Response 200**
 ```json
 {
   "date_from": "2026-03-01",
   "date_to": "2026-03-31",
   "items": [
     {
-      "kpi_id": "019d11a9-212b-7214-8f7f-c5a58f72b0b5",
-      "kpi_nama": "Dokumentasi Bukti Pekerjaan",
-      "satuan": "dokumen",
-      "target_angka_total": 110,
-      "capaian_angka_total": 73.5,
-      "progress_percent": 66.82,
-      "total_lampiran": 0
+      "kpi_id": "uuid",
+      "kpi_nama": "...",
+      "satuan": "unit",
+      "target_angka_total": 100,
+      "capaian_angka_total": 81.5,
+      "progress_percent": 81.5,
+      "total_lampiran": 10
     }
   ]
 }
@@ -649,28 +868,41 @@ KPI aggregation over date range.
 
 ### GET `/summaries/team/daily`
 
-Team daily summaries (for managers, shows subordinates).
+Daily subordinate summary rows.
 
-**Response 200:** Same structure as `/summaries/daily` but filtered to subordinates.
+**Access**
+- Requires privileged user OR user with subordinates
+
+**Query params**
+- `tanggal`
+- `per_page`
+
+**Response**
+- Raw paginator
 
 ---
 
 ### GET `/summaries/staff-performance`
 
-Staff performance ranking over period. Returns aggregated metrics per staff member including work hours, days worked, and average rating.
+Staff performance ranking over period.
 
-**Query Parameters:** `date_from`, `date_to`
+**Access**
+- Staff without subordinates: forbidden
 
-**Response 200:**
+**Query params**
+- `date_from` (default start of month)
+- `date_to` (default today)
+
+**Response 200**
 ```json
 {
   "date_from": "2026-03-01",
   "date_to": "2026-03-21",
   "items": [
     {
-      "user_id": "019d11a9-20f0-701c-8c44-1835f1d1c663",
-      "nama": "Staff Koordinator Lapangan",
-      "npp": "199003032010012003",
+      "user_id": "uuid",
+      "nama": "...",
+      "npp": "...",
       "total_logbooks": 14,
       "accepted_logbooks": 9,
       "rejected_logbooks": 1,
@@ -683,23 +915,110 @@ Staff performance ranking over period. Returns aggregated metrics per staff memb
 }
 ```
 
-**Response Fields:**
-| Field | Type | Description |
-|-------|------|-------------|
-| `total_days_worked` | integer | Count of unique days with logbook activity |
-| `total_work_hours` | float | Sum of work hours across all days (lunch breaks excluded) |
-| `average_rating` | float\|null | Average rating of ACCEPTED logbooks with ratings, null if none |
-| `progress_percent` | float | Overall KPI progress percentage |
+---
+
+## 8. Notifications
+
+### GET `/notifications`
+
+Get authenticated user's notifications.
+
+**Query params**
+- `is_read` (boolean)
+- `unread_only` (boolean, overrides `is_read` to false)
+- `type`
+- `sort_by` (`created_at`)
+- `sort_dir` (`asc|desc`)
+- `per_page` (max 100)
+
+**Response shape**
+- Raw paginator
+- Each item contains notification model fields plus appended fields:
+  - `preview_message`
+  - `target_path`
+  - `target_params`
+
+**Example item**
+```json
+{
+  "id": "uuid",
+  "user_id": "uuid",
+  "title": "Logbook Submitted",
+  "message": "Terdapat logbook baru yang menunggu review.",
+  "type": "LOGBOOK_SUBMITTED",
+  "reference_id": "uuid",
+  "is_read": false,
+  "created_at": "2026-03-21T18:55:30.000000Z",
+  "updated_at": "2026-03-21T18:55:30.000000Z",
+  "preview_message": "Terdapat logbook baru yang menunggu review.",
+  "target_path": "/manager/reviews",
+  "target_params": { "logbook_id": "uuid" }
+}
+```
 
 ---
 
-## 7. Dashboards
+### PUT `/notifications/{notification}/read`
+
+Mark one notification as read.
+
+**Access**
+- Notification must belong to authenticated user
+
+**Response 200**
+- Raw notification model JSON
+
+---
+
+### PUT `/notifications/read-all`
+
+Mark all authenticated user's unread notifications as read.
+
+**Response 200**
+```json
+{ "message": "All notifications marked as read" }
+```
+
+---
+
+## 9. Audit Logs
+
+### GET `/audit-logs`
+
+List audit logs.
+
+**Access**
+- `SuperAdmin` only
+
+**Query params**
+- `search` (table name)
+- `action`: `created|updated|deleted`
+- `date_from`
+- `date_to`
+- `sort_by`: `performed_at|created_at`
+- `sort_dir`: `asc|desc`
+- `per_page` (max 100)
+
+**Response**
+- Resource pagination (`AuditLogResource`)
+
+**`AuditLogResource` item highlights**
+- Canonical aliases: `event`, `auditable_type`, `auditable_id`, `old_values`, `new_values`
+- Backward-compatible fields also included: `table_name`, `record_id`, `action`, `old_data`, `new_data`
+- Nested `user` (if loaded): `id`, `nama`, `email`, `npp`, `role`
+
+---
+
+## 10. Analytics & Dashboards
 
 ### GET `/dashboard/admin`
 
-Admin/SuperAdmin dashboard statistics.
+Admin/SuperAdmin dashboard.
 
-**Response 200:**
+**Access**
+- Privileged only
+
+**Response**
 ```json
 {
   "data": {
@@ -708,21 +1027,61 @@ Admin/SuperAdmin dashboard statistics.
     "total_logbooks_last_month": 0,
     "pending_logbooks_count": 10,
     "active_kpis": 6,
-    "logbooks_by_day": [
-      { "date": "2026-03-21", "count": 26 }
-    ],
-    "logbooks_by_status": [
-      { "status": "ACCEPTED", "count": 14 },
-      { "status": "REJECTED", "count": 2 },
-      { "status": "SUBMITTED", "count": 10 }
-    ],
-    "users_by_role": [
-      { "role": "Admin", "count": 1 },
-      { "role": "Staff", "count": 2 },
-      { "role": "SuperAdmin", "count": 1 }
-    ],
+    "logbooks_by_day": [{ "date": "2026-03-21", "count": 26 }],
+    "logbooks_by_status": [{ "status": "ACCEPTED", "count": 14 }],
+    "users_by_role": [{ "role": "Admin", "count": 1 }],
     "logbook_trend": 100
   }
+}
+```
+
+---
+
+### GET `/dashboard/manager`
+
+Manager dashboard.
+
+**Access**
+- User must have subordinates
+
+**Response**
+```json
+{
+  "data": {
+    "subordinates": [
+      {
+        "id": "uuid",
+        "nama": "...",
+        "target_angka_total": 253,
+        "capaian_angka_total": 174.05,
+        "completion_rate": 68.79
+      }
+    ],
+    "pending_logbooks_count": 5
+  }
+}
+```
+
+---
+
+### GET `/dashboard/manager/locations`
+
+Get today's subordinate locations.
+
+**Access**
+- Privileged OR manager with subordinates
+
+**Response**
+```json
+{
+  "data": [
+    {
+      "lat": -6.21,
+      "lng": 106.84,
+      "title": "Staff Name",
+      "status": "SUBMITTED"
+    }
+  ]
 }
 ```
 
@@ -732,7 +1091,10 @@ Admin/SuperAdmin dashboard statistics.
 
 Staff personal dashboard.
 
-**Response 200:**
+**Access**
+- Must be staff without subordinates
+
+**Response**
 ```json
 {
   "data": {
@@ -754,237 +1116,363 @@ Staff personal dashboard.
 
 ---
 
-### GET `/dashboard/manager`
+### GET `/users/{user}/kpi-achievements`
 
-Manager dashboard (shows subordinate summary).
+Monthly KPI achievement snapshot for a specific user.
 
-**Response 200:**
+**Access**
+- Privileged OR requester's id equals target user's `manager_id`
+
+**Response**
 ```json
 {
   "data": {
-    "subordinates": [
-      {
-        "id": "019d11a9-20f8-70e3-9af9-787b6543af35",
-        "nama": "Staff Pelaksana Lapangan",
-        "target_angka_total": 253,
-        "capaian_angka_total": 174.05,
-        "completion_rate": 68.79
-      }
-    ],
-    "pending_logbooks_count": 5
+    "user_id": "uuid",
+    "user_nama": "...",
+    "total_kpi_details": 20,
+    "completed_kpi_details": 14,
+    "completion_rate": 70
   }
 }
 ```
 
 ---
 
-## 8. Notifications
+### GET `/reports/export`
 
-### GET `/notifications`
+Initiate export report.
 
-Get user's notifications.
+**Access**
+- Staff without subordinates: forbidden
 
-**Query Parameters:**
-| Param | Type | Description |
-|-------|------|-------------|
-| `is_read` | bool | Filter by read status |
-| `unread_only` | bool | Only unread |
-| `per_page` | int | Items per page |
-
-**Response 200:**
+**Response 200**
 ```json
 {
-  "data": [
-    {
-      "id": "uuid",
-      "type": "LOGBOOK_SUBMITTED",
-      "message": "Staff X submitted logbook",
-      "is_read": false,
-      "preview_message": "Short preview",
-      "target_path": "/admin/logbooks",
-      "target_params": { "id": "logbook-uuid" },
-      "created_at": "2026-03-21T18:55:30.000000Z"
-    }
-  ]
-}
-```
-
-**Notification Types:**
-- `KPI_ASSIGNMENT` — KPI assigned to staff
-- `LOGBOOK_SUBMITTED` — Staff submitted logbook (to manager)
-- `LOGBOOK_ACCEPTED` — Logbook accepted (to staff)
-- `LOGBOOK_REJECTED` — Logbook rejected (to staff)
-
----
-
-### PUT `/notifications/{id}/read`
-
-Mark single notification as read.
-
-### PUT `/notifications/read-all`
-
-Mark all notifications as read.
-
----
-
-## 9. Audit Logs
-
-### GET `/audit-logs`
-
-**SuperAdmin only.** View system audit trail.
-
-**Response 200:**
-```json
-{
-  "data": [
-    {
-      "id": "019d11a9-2136-7115-98a2-a23ac0b57628",
-      "event": "created",
-      "auditable_type": "kpi_masters",
-      "auditable_id": "019d11a9-2132-7117-ba37-fd1b59971710",
-      "old_values": [],
-      "new_values": "{...}",
-      "table_name": "kpi_masters",
-      "action": "created",
-      "performed_by": null,
-      "performed_at": "2026-03-21T18:29:50.000000Z",
-      "ip_address": "127.0.0.1",
-      "user_agent": "Symfony",
-      "user": null
-    }
-  ],
-  "meta": { "total": 10 }
+  "message": "Export initiated",
+  "download_url": "http://localhost:8000/api/v1/exports/report-1710000000.pdf"
 }
 ```
 
 ---
 
-## 10. Common Patterns
+## 11. Response Shape Conventions
 
-### Pagination Format
+### A. Resource Pagination Shape
 
-All paginated endpoints use this structure:
+Used by endpoints returning `Resource::collection($query->paginate())`.
 
 ```json
 {
-  "data": [...],
+  "data": [ ...resource items... ],
   "links": {
-    "first": "url?page=1",
-    "last": "url?page=N",
-    "prev": "url?page=X" | null,
-    "next": "url?page=Y" | null
+    "first": "...",
+    "last": "...",
+    "prev": null,
+    "next": "..."
   },
   "meta": {
     "current_page": 1,
     "from": 1,
-    "last_page": N,
+    "last_page": 3,
     "per_page": 15,
     "to": 15,
-    "total": 100
+    "total": 45
   }
 }
 ```
 
----
+### B. Raw Paginator Shape
 
-### Attachment URL Construction
+Used by endpoints returning `response()->json($paginator)`.
 
-**Backend stores:** `logbook-kpi-attachments/filename.pdf`
-
-**Frontend must construct:**
-```typescript
-function getAttachmentUrl(filePath: string): string {
-  if (!filePath) return '#';
-  if (filePath.startsWith('http')) return filePath;
-  return `/storage/${filePath}`;
+```json
+{
+  "current_page": 1,
+  "data": [ ... ],
+  "first_page_url": "...",
+  "from": 1,
+  "last_page": 3,
+  "last_page_url": "...",
+  "links": [ ... ],
+  "path": "...",
+  "per_page": 15,
+  "to": 15,
+  "total": 45
 }
 ```
 
-**File type detection:**
-```typescript
-function isImageFile(filePath: string): boolean {
-  const ext = filePath.split('.').pop()?.toLowerCase() ?? '';
-  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
-}
+### C. Embedded Resource in Custom JSON
 
-function isPdfFile(filePath: string): boolean {
-  return filePath.split('.').pop()?.toLowerCase() === 'pdf';
-}
+Some endpoints embed `new Resource(...)` under a custom key:
+
+```json
+{ "user": { ...resource fields... } }
+```
+
+or
+
+```json
+{ "message": "...", "data": { ...resource fields... } }
 ```
 
 ---
 
-### Date/Time Formats
+## 12. Observers & Derived Summary Behavior
 
-| Field | Format | Example |
-|-------|--------|---------|
-| `tanggal` | `YYYY-MM-DD` | `2026-03-21` |
-| `start_kerja` | `HH:MM:SS` or `HH:MM` | `07:45:00` |
-| `end_kerja` | `HH:MM:SS` or `HH:MM` | `16:30:00` |
-| `*_at` timestamps | ISO 8601 | `2026-03-21T18:29:50.000000Z` |
+Summary synchronization is **observer-driven**, not explicitly called from controllers.
+
+- `LogbookObserver`
+  - On `created/updated/deleted/restored/forceDeleted`: calls `DailySummaryService::syncForLogbook($logbook)`
+  - On `tanggal` change: also rebuilds old date staff and KPI summaries
+
+- `LogbookKpiDetailObserver`
+  - On `created/updated/deleted/restored`: calls `DailySummaryService::syncForDetail($detail)`
+
+Implication for clients:
+- Summary endpoints can change immediately after logbook or KPI-detail writes.
 
 ---
 
-### Error Responses
+## 13. Error Responses
 
-**401 Unauthorized:**
+### 401 Unauthenticated
 ```json
 { "message": "Unauthenticated." }
 ```
 
-**403 Forbidden:**
+### 403 Forbidden
+Controller-specific variants include:
 ```json
-{ "message": "This action is unauthorized." }
+{ "message": "Forbidden" }
+```
+or abort-driven messages such as:
+- `Unauthorized.`
+- `Unauthorized action.`
+- `You can only review your direct subordinates' logbooks`
+
+### 404 Not Found
+Default Laravel model binding or explicit aborts, e.g.:
+```json
+{ "message": "No query results for model [...]" }
+```
+or
+```json
+{ "message": "Logbook owner not found" }
 ```
 
-**404 Not Found:**
+### 409 Conflict
+Used in review race condition:
 ```json
-{ "message": "Record not found" }
+{ "message": "Logbook sudah direview atau tidak tersedia." }
 ```
 
-**422 Validation Error:**
+### 422 Validation / Business Rule Errors
+Validation format (Laravel):
 ```json
 {
   "message": "The given data was invalid.",
   "errors": {
-    "field_name": ["Error message"]
+    "field": ["..."]
   }
 }
 ```
 
----
-
-### Status Enum
-
-| Status | Description | Transitions |
-|--------|-------------|-------------|
-| `DRAFT` | Initial state, editable | → SUBMITTED |
-| `SUBMITTED` | Awaiting review | → ACCEPTED, REJECTED |
-| `ACCEPTED` | Approved by manager | Final |
-| `REJECTED` | Rejected by manager | Final |
-
----
-
-### Test Credentials
-
-| Role | NPP | Password | Email |
-|------|-----|----------|-------|
-| SuperAdmin | `198001012000011001` | `password123` | superadmin@logbook.com |
-| Admin | `198502022005011002` | `password123` | admin@logbook.com |
-| Staff (Lead) | `199003032010012003` | `password123` | staff.lead@logbook.com |
-| Staff (Sub) | `199204142012012004` | `password123` | staff.subordinate@logbook.com |
+Business-rule 422 examples used by controllers:
+```json
+{ "message": "Jam mulai minimal 07:00" }
+```
+```json
+{ "message": "Jam selesai harus lebih besar dari jam mulai" }
+```
+```json
+{ "message": "Anda belum memiliki KPI yang ditugaskan. Hubungi manager Anda." }
+```
+```json
+{ "message": "Minimal satu KPI harus memiliki capaian lebih dari 0 sebelum submit" }
+```
 
 ---
 
-### Test User IDs
+## 14. Live Verification Matrix (Executed Against Running API)
 
-| Role | ID |
-|------|-----|
-| SuperAdmin | `019d11a9-20c9-7184-9fac-d94fb153ceb8` |
-| Admin | `019d11a9-20e6-73db-bf66-a8f67c0683eb` |
-| Staff Lead | `019d11a9-20f0-701c-8c44-1835f1d1c663` |
-| Staff Sub | `019d11a9-20f8-70e3-9af9-787b6543af35` |
+This matrix was generated from a full live flow run (real HTTP calls against `http://127.0.0.1:8000/api/v1`) after `migrate:fresh --seed`.
+
+- Total live calls: **74**
+- Passed expected assertions: **74**
+- Failed expected assertions: **0**
+- Covered: auth, users, KPI master, KPI assignments, logbook lifecycle, summaries, notifications, audit logs, analytics/dashboard, reports.
+
+| Method | Path | Success status (observed) | Edge status (observed) | Roles tested |
+|---|---|---|---|---|
+| GET | `/audit-logs` | 200 | 403 | admin, superadmin |
+| PUT | `/auth/change-password` | 200 | 400 | sub |
+| POST | `/auth/login` | 200 | - | - |
+| POST | `/auth/logout` | 200 | - | sub |
+| GET | `/auth/me` | 200 | 401 | superadmin |
+| PUT | `/auth/profile` | 200 | 422 | sub |
+| GET | `/dashboard/admin` | 200 | 403 | sub, superadmin |
+| GET | `/dashboard/manager` | 200 | 403 | lead, sub |
+| GET | `/dashboard/manager/locations` | 200 | - | lead |
+| GET | `/dashboard/staff` | 200 | 403 | lead, sub |
+| GET | `/kpi/assignments` | 200 | - | admin |
+| POST | `/kpi/assignments` | 201 | 403 | lead, sub |
+| DELETE | `/kpi/assignments/{assignment}` | 204 | - | lead |
+| GET | `/kpi/master` | 200 | - | admin |
+| POST | `/kpi/master` | 201 | - | admin |
+| DELETE | `/kpi/master/{kpi}` | 200 | - | admin |
+| GET | `/kpi/master/{kpi}` | 200 | - | admin |
+| PUT | `/kpi/master/{kpi}` | 200 | - | admin |
+| GET | `/kpi/me` | 200 | - | sub |
+| GET | `/logbooks` | 200 | - | sub |
+| POST | `/logbooks` | 201 | - | sub |
+| POST | `/logbooks/start` | 201 | - | sub |
+| DELETE | `/logbooks/{logbook}` | 200 | 400 | sub |
+| GET | `/logbooks/{logbook}` | 200 | - | sub |
+| PATCH | `/logbooks/{logbook}` | 200 | 400, 422 | sub |
+| GET | `/logbooks/{logbook}/duration` | 200 | - | sub |
+| DELETE | `/logbooks/{logbook}/kpi/{detail}/attachment` | 200 | - | sub |
+| POST | `/logbooks/{logbook}/kpi/{detail}/attachment` | 200 | 400 | sub |
+| PATCH | `/logbooks/{logbook}/kpi/{detail}/progress` | 200 | 422 | sub |
+| PUT | `/logbooks/{logbook}/review` | 200 | 400 | lead |
+| POST | `/logbooks/{logbook}/submit` | 200 | - | sub |
+| GET | `/notifications` | 200 | - | sub |
+| PUT | `/notifications/read-all` | 200 | - | sub |
+| PUT | `/notifications/{notification}/read` | 200 | 403 | lead, sub |
+| GET | `/reports/export` | 200 | 403 | admin, sub |
+| GET | `/summaries/daily` | 200 | - | admin |
+| GET | `/summaries/daily/{user_id}` | 200 | - | lead |
+| GET | `/summaries/kpi/daily` | 200 | - | admin |
+| GET | `/summaries/kpi/period` | 200 | - | admin |
+| GET | `/summaries/period` | 200 | - | admin |
+| GET | `/summaries/staff-performance` | 200 | 403 | admin, sub |
+| GET | `/summaries/team/daily` | 200 | - | lead |
+| GET | `/users` | 200 | - | lead, superadmin |
+| POST | `/users` | 201 | 403 | admin |
+| DELETE | `/users/{user}` | 200 | - | admin |
+| GET | `/users/{user}` | 200 | - | lead |
+| PUT | `/users/{user}` | 200 | - | admin |
+| GET | `/users/{user}/kpi-achievements` | 200 | 403 | lead, sub |
+| PUT | `/users/{user}/reset-password` | 200 | - | admin |
+| GET | `/users/{user}/subordinates` | 200 | 403 | lead |
 
 ---
 
-*Last updated: 2026-03-22*
+## 15. Real Request/Response Samples (Captured Live)
+
+### A. Login success (SuperAdmin)
+
+**Request**
+```json
+{
+  "npp": "198001012000011001",
+  "password": "password123"
+}
+```
+
+**Observed response (200)**
+```json
+{
+  "message": "Login successful",
+  "access_token": "21|...",
+  "token_type": "Bearer",
+  "user": {
+    "id": "019d22f4-4c1c-73aa-8e08-8845d971a472",
+    "npp": "198001012000011001",
+    "nama": "Super Admin Sistem",
+    "email": "superadmin@logbook.com",
+    "role": "SuperAdmin"
+  }
+}
+```
+
+### B. Create user success (Admin)
+
+**Request**
+```json
+{
+  "nama": "Temp Staff API",
+  "email": "temp.staff.api.1774408388770@example.com",
+  "npp": "1774408388770",
+  "role": "Staff",
+  "password": "password123",
+  "manager_id": "019d22f4-4c58-72b1-95b9-2f2aef9c4ad9"
+}
+```
+
+**Observed response (201)**
+```json
+{
+  "data": {
+    "id": "019d22fb-5163-73aa-adad-a30cbfe25487",
+    "npp": "1774408388770",
+    "nama": "Temp Staff API",
+    "email": "temp.staff.api.1774408388770@example.com",
+    "role": "Staff",
+    "manager_id": "019d22f4-4c58-72b1-95b9-2f2aef9c4ad9"
+  }
+}
+```
+
+### C. Logbook validation edge (`start_kerja` too early)
+
+**Request**
+```json
+{
+  "start_kerja": "06:59"
+}
+```
+
+**Observed response (422)**
+```json
+{ "message": "Jam mulai minimal 07:00" }
+```
+
+### D. Review flow success (Lead reviews subordinate logbook)
+
+**Request**
+```json
+{
+  "decision": "ACCEPTED",
+  "rating": 4,
+  "reviewer_comment": "Reviewed via live API run"
+}
+```
+
+**Observed response (200)**
+```json
+{
+  "message": "Logbook review berhasil disimpan",
+  "data": {
+    "id": "019d22fb-5354-730e-aea6-c2a1086e73bf",
+    "status": "ACCEPTED",
+    "rating": 4,
+    "reviewed_by": "019d22f4-4c58-72b1-95b9-2f2aef9c4ad9"
+  }
+}
+```
+
+### E. Notification ownership edge (forbidden)
+
+`PUT /notifications/{notification}/read` by non-owner observed:
+
+```json
+{
+  "message": ""
+}
+```
+
+with HTTP status **403**.
+
+### F. Audit logs forbidden for non-superadmin
+
+`GET /audit-logs` by `Admin` observed:
+
+```json
+{ "message": "Forbidden" }
+```
+
+with HTTP status **403**.
+
+---
+
+*Last synchronized with backend source: 2026-03-25*

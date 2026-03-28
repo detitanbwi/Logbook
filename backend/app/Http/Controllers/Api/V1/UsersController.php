@@ -25,7 +25,7 @@ class UsersController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $query = User::query();
+        $query = User::query()->with('manager');
 
         if (! $user->isPrivileged()) {
             $query->where('manager_id', $user->id);

@@ -142,6 +142,14 @@ class SummaryController extends Controller
             $query->whereDate('tanggal', $request->input('tanggal'));
         }
 
+        if ($request->filled('date_from')) {
+            $query->whereDate('tanggal', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('tanggal', '<=', $request->input('date_to'));
+        }
+
         return response()->json($query->orderByDesc('tanggal')->paginate(min($request->integer('per_page', 15), 100)));
     }
 
@@ -214,6 +222,14 @@ class SummaryController extends Controller
 
         if ($request->filled('tanggal')) {
             $query->whereDate('tanggal', $request->input('tanggal'));
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('tanggal', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('tanggal', '<=', $request->input('date_to'));
         }
 
         return response()->json($query->orderByDesc('tanggal')->paginate(min($request->integer('per_page', 15), 100)));
