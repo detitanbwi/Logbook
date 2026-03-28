@@ -222,20 +222,6 @@ describe('API Services Integration', () => {
 		);
 	});
 
-	it('should call revert endpoint', async () => {
-		(global.fetch as any).mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			json: async () => ({ success: true })
-		});
-
-		await managerLogbookService.revertLogbook('logbook-2', { reason: 'Needs corrections' });
-
-		expect(global.fetch).toHaveBeenCalledWith(
-			expect.stringContaining('/logbooks/logbook-2/revert'),
-			expect.objectContaining({ method: 'POST' })
-		);
-	});
 	});
 
 		describe('analyticsService', () => {

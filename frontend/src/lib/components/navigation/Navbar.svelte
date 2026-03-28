@@ -8,10 +8,10 @@
 		handleNotificationClick
 	} from '$lib/utils/notification';
 	import { onMount } from 'svelte';
+	import UserAvatar from '$lib/components/ui/UserAvatar.svelte';
 
 	let { isSidebarOpen = $bindable(false) }: { isSidebarOpen?: boolean } = $props();
 
-	let userInitial = $derived((auth.user.current?.nama?.charAt(0) || 'U').toUpperCase());
 	let userName = $derived(auth.user.current?.nama || 'User');
 
 	let notifications = $derived(notificationStore.unread);
@@ -114,11 +114,7 @@
 
 		<div class="dropdown dropdown-end">
 			<button tabindex="0" class="btn gap-2 pl-2 btn-ghost">
-				<div class="placeholder avatar">
-					<div class="w-8 rounded-full bg-primary text-primary-content">
-						<span class="text-sm font-semibold">{userInitial}</span>
-					</div>
-				</div>
+				<UserAvatar foto={auth.user.current?.foto} fotoUrl={auth.user.current?.foto_url} name={userName} size="sm" />
 				<span class="hidden text-sm font-medium md:inline-block">{userName}</span>
 			</button>
 

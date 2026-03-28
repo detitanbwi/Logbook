@@ -43,7 +43,7 @@ export const usersService = {
 		const response = await api.post<BaseResponse<User>>('/users', data);
 		return normalizeUserWithManager(response.data);
 	},
-	async update(id: string, data: UserUpdateDto): Promise<User> {
+	async update(id: string, data: UserUpdateDto | FormData): Promise<User> {
 		const response = await api.put<BaseResponse<User>>(`/users/${id}`, data);
 		return normalizeUserWithManager(response.data);
 	},

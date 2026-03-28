@@ -6,16 +6,21 @@
 	let data = $state<AdminDashboard | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+	let fetchTriggered = $state(0);
+
+	function retry() {
+		fetchTriggered += 1;
+	}
 
 	$effect(() => {
+		fetchTriggered;
+
 		loading = true;
 		error = null;
 		analyticsService
 			.getAdminDashboard()
 			.then((res) => {
-				// Backend returns { data: ... }
-				const rawData = (res as any)?.data || res;
-				data = rawData as AdminDashboard;
+				data = res as AdminDashboard;
 			})
 			.catch((e) => {
 				console.error('Failed to load dashboard', e);
@@ -73,7 +78,7 @@
 	{#if error}
 		<div class="alert alert-error mb-6">
 			<span>{error}</span>
-			<button class="btn btn-ghost btn-sm" onclick={() => loading = true}>Coba Lagi</button>
+			<button class="btn btn-ghost btn-sm" onclick={retry}>Coba Lagi</button>
 		</div>
 	{/if}
 

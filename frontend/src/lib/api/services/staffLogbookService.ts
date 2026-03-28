@@ -19,6 +19,7 @@ export interface LogbookFilters extends PaginationParams {
 	date_to?: string;
 	sort_by?: string;
 	sort_dir?: 'asc' | 'desc';
+	user_id?: string;
 }
 
 export class StaffLogbookService {

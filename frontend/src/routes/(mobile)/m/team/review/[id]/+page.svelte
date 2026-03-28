@@ -5,8 +5,23 @@
 	import { managerLogbookService } from '$lib/api/services/managerLogbookService';
 	import { toastStore } from '$lib/stores/toast.svelte';
 	import type { Logbook, LogbookKpiDetail } from '$lib/types';
+	import UserAvatar from '$lib/components/ui/UserAvatar.svelte';
+	import LocationMap from '$lib/components/ui/LocationMap.svelte';
 
 	let logbookId = $derived($page.params.id);
+
+	function getFileExtension(filename: string): string {
+		return filename.split('.').pop()?.toLowerCase() || '';
+	}
+	function isImageFile(filename: string): boolean {
+		return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(getFileExtension(filename));
+	}
+	function isPdfFile(filename: string): boolean {
+		return getFileExtension(filename) === 'pdf';
+	}
+	function getAttachmentUrl(path: string): string {
+		return path.startsWith('http') ? path : `/storage/${path}`;
+	}
 
 	let logbook = $state<Logbook | null>(null);
 	let loading = $state(true);
@@ -93,7 +108,7 @@
 <div class="min-h-screen bg-base-200 pb-24">
 	<div class="navbar bg-base-100 sticky top-0 z-10 shadow-sm">
 		<div class="flex-none">
-			<button class="btn btn-square btn-ghost" onclick={() => goto('/m/team')}>
+			<button class="btn btn-square btn-ghost" aria-label="Kembali ke daftar tim" onclick={() => goto('/m/team')}>
 				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
 				</svg>
@@ -117,11 +132,7 @@
 		{:else if logbook}
 			<div class="card bg-base-100 shadow-sm border border-base-300">
 				<div class="card-body p-4 flex flex-row items-center gap-4">
-					<div class="avatar placeholder">
-						<div class="bg-neutral text-neutral-content rounded-full w-12">
-							<span class="text-xl">{logbook.user?.nama?.charAt(0) || '?'}</span>
-						</div>
-					</div>
+					<UserAvatar foto={logbook.user?.foto} fotoUrl={logbook.user?.foto_url} name={logbook.user?.nama} size="md" />
 					<div>
 						<h2 class="card-title text-base">{logbook.user?.nama || 'Unknown User'}</h2>
 						<p class="text-sm text-base-content/70">NPP: {logbook.user?.npp || '-'}</p>
@@ -148,6 +159,17 @@
 				</div>
 			</div>
 
+			{#if logbook.lokasi_lat && logbook.lokasi_lng}
+				<div class="card bg-base-100 shadow-sm border border-base-300 overflow-hidden">
+					<div class="card-body p-4 pb-0">
+						<h3 class="font-bold text-sm">Lokasi GPS</h3>
+					</div>
+					<div class="p-2">
+						<LocationMap lat={logbook.lokasi_lat} lng={logbook.lokasi_lng} zoom={15} height="h-48" />
+					</div>
+				</div>
+			{/if}
+
 			<h3 class="font-bold px-1 mt-6">Capaian KPI</h3>
 			
 			<div class="space-y-3">
@@ -171,12 +193,39 @@
 							<div class="mt-4 border-t border-base-200 pt-3">
 								<h5 class="text-xs font-semibold text-base-content/70 mb-2">Lampiran:</h5>
 								<div class="flex flex-col gap-2">
-									<a href={detail.lampiran_file.startsWith('http') ? detail.lampiran_file : `/storage/${detail.lampiran_file}`} target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline btn-neutral justify-start">
-										<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1">
-											<path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
-										</svg>
-										<span class="truncate">{detail.lampiran_file.split('/').pop()}</span>
-									</a>
+									{#if isImageFile(detail.lampiran_file)}
+										<img 
+											src={getAttachmentUrl(detail.lampiran_file)} 
+											alt="Lampiran" 
+											class="w-full h-auto max-h-48 object-contain rounded bg-base-200"
+										/>
+										<a href={getAttachmentUrl(detail.lampiran_file)} target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline btn-neutral justify-start">
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+												<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+											</svg>
+											<span class="truncate">Lihat Gambar</span>
+										</a>
+									{:else if isPdfFile(detail.lampiran_file)}
+										<div class="flex items-center gap-2 text-sm font-medium text-error">
+											<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+											<span class="truncate">{detail.lampiran_file.split('/').pop()}</span>
+										</div>
+										<a href={getAttachmentUrl(detail.lampiran_file)} target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline btn-error justify-start">
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+												<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+											</svg>
+											<span class="truncate">Preview PDF</span>
+										</a>
+									{:else}
+										<a href={getAttachmentUrl(detail.lampiran_file)} target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline btn-neutral justify-start">
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+											</svg>
+											<span class="truncate">Download: {detail.lampiran_file.split('/').pop()}</span>
+										</a>
+									{/if}
 								</div>
 							</div>
 						{/if}
@@ -197,7 +246,7 @@
 						<h3 class="font-bold border-b border-base-200 pb-2 mb-4">Manager Review</h3>
 						
 						<div class="form-control w-full mb-4">
-							<label class="label pt-0"><span class="label-text font-medium">Rating Capaian <span class="text-error">*</span></span></label>
+							<div class="label pt-0"><span class="label-text font-medium">Rating Capaian <span class="text-error">*</span></span></div>
 							<div class="rating rating-lg">
 								<input type="radio" name="rating-2" class="rating-hidden" checked={rating === 0} value={0} onchange={() => rating = 0} />
 								<input type="radio" name="rating-2" class="mask mask-star-2 bg-orange-400" checked={rating === 1} value={1} onchange={() => rating = 1} />
@@ -206,11 +255,11 @@
 								<input type="radio" name="rating-2" class="mask mask-star-2 bg-orange-400" checked={rating === 4} value={4} onchange={() => rating = 4} />
 								<input type="radio" name="rating-2" class="mask mask-star-2 bg-orange-400" checked={rating === 5} value={5} onchange={() => rating = 5} />
 							</div>
-							<label class="label pb-0"><span class="label-text-alt text-base-content/50">{rating} dari 5 bintang</span></label>
+							<div class="label pb-0"><span class="label-text-alt text-base-content/50">{rating} dari 5 bintang</span></div>
 						</div>
 
 						<div class="form-control w-full mb-6">
-							<label class="label"><span class="label-text font-medium">Komentar / Catatan <span class="text-error">*</span></span></label>
+							<div class="label"><span class="label-text font-medium">Komentar / Catatan <span class="text-error">*</span></span></div>
 							<textarea 
 								class="textarea textarea-bordered h-24 w-full" 
 								placeholder="Berikan catatan atas capaian logbook ini..."

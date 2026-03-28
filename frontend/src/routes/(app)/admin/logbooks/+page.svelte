@@ -4,7 +4,6 @@
 	import DataTable from '$lib/components/ui/DataTable.svelte';
 	import Pagination from '$lib/components/ui/Pagination.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
-	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import { SearchInput, FilterDropdown, SortableHeader } from '$lib/components/ui';
 	import { staffLogbookService } from '$lib/api/services/staffLogbookService';
 	import { managerLogbookService } from '$lib/api/services/managerLogbookService';
@@ -13,7 +12,6 @@
 	type SortDir = 'asc' | 'desc';
 
 	const statusOptions = [
-		{ label: 'Draft', value: 'DRAFT' },
 		{ label: 'Submitted', value: 'SUBMITTED' },
 		{ label: 'Accepted', value: 'ACCEPTED' },
 		{ label: 'Rejected', value: 'REJECTED' }
@@ -44,10 +42,7 @@
 	let selectedDecision = $state<'ACCEPTED' | 'REJECTED'>('ACCEPTED');
 	let reviewerComment = $state('');
 	let reviewing = $state(false);
-
-	let revertDialogOpen = $state(false);
-	let revertingLogbookId = $state<string | null>(null);
-	let reverting = $state(false);
+	let loadingDetail = $state(false);
 
 	$effect(() => {
 		dateFromDraft = dateFrom;
@@ -188,12 +183,41 @@
 		}
 	}
 
-	function openReview(logbook: any) {
+	function getAttachmentUrl(filePath: string): string {
+		if (!filePath) return '#';
+		if (filePath.startsWith('http')) return filePath;
+		return `/storage/${filePath}`;
+	}
+
+	function isImageFile(filePath: string): boolean {
+		const ext = filePath.split('.').pop()?.toLowerCase() ?? '';
+		return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
+	}
+
+	function isPdfFile(filePath: string): boolean {
+		return filePath.split('.').pop()?.toLowerCase() === 'pdf';
+	}
+
+	function getFileName(filePath: string): string {
+		return filePath.split('/').pop() ?? filePath;
+	}
+
+	async function openReview(logbook: any) {
 		selectedLogbook = logbook;
 		selectedRating = getRating(logbook) ?? 5;
 		selectedDecision = 'ACCEPTED';
 		reviewerComment = '';
 		reviewModalOpen = true;
+		loadingDetail = true;
+
+		try {
+			const fullLogbook = await staffLogbookService.getLogbookById(String(logbook.id));
+			selectedLogbook = fullLogbook;
+		} catch (e) {
+			console.error('Failed to load logbook detail', e);
+		} finally {
+			loadingDetail = false;
+		}
 	}
 
 	async function submitReview() {
@@ -227,27 +251,6 @@
 		}
 	}
 
-	function confirmRevert(logbookId: string) {
-		revertingLogbookId = logbookId;
-		revertDialogOpen = true;
-	}
-
-	async function executeRevert() {
-		if (!revertingLogbookId) return;
-
-		reverting = true;
-		try {
-			await managerLogbookService.revertLogbook(revertingLogbookId, { reason: 'Reverted by admin' });
-			toastStore.success('Logbook berhasil direvert.');
-			refreshData();
-		} catch (revertError) {
-			console.error('Failed to revert logbook', revertError);
-			toastStore.error('Gagal revert logbook.');
-		} finally {
-			reverting = false;
-			revertingLogbookId = null;
-		}
-	}
 </script>
 
 <svelte:head>
@@ -256,7 +259,7 @@
 
 <div class="mb-6 space-y-2">
 	<h1 class="text-2xl font-bold">Monitoring Logbooks</h1>
-	<p class="text-base-content/70">Pantau logbook staff dan lakukan review/revert bila diperlukan.</p>
+	<p class="text-base-content/70">Pantau logbook staff dan lakukan review bila diperlukan.</p>
 </div>
 
 <div class="mb-4 flex flex-wrap items-end gap-3">
@@ -350,18 +353,9 @@
 			</td>
 			<td>{formatDate(logbook.created_at)}</td>
 			<td>
-				<div class="flex flex-wrap gap-2">
-					<button class="btn btn-outline btn-sm btn-secondary" onclick={() => openReview(logbook)}>
-						Review
-					</button>
-					<button
-						class="btn btn-outline btn-sm btn-error"
-						onclick={() => confirmRevert(String(logbook.id))}
-						disabled={reverting && revertingLogbookId === String(logbook.id)}
-					>
-						{reverting && revertingLogbookId === String(logbook.id) ? 'Reverting...' : 'Revert'}
-					</button>
-				</div>
+				<button class="btn btn-outline btn-sm btn-secondary" onclick={() => openReview(logbook)}>
+					Review
+				</button>
 			</td>
 		</tr>
 	{/each}
@@ -382,6 +376,75 @@
 					<span class="font-medium text-base-content">{getLogbookDate(selectedLogbook)}</span>
 				</div>
 			</div>
+
+			<div class="divider my-1"></div>
+			<h3 class="text-sm font-bold">Progress KPI</h3>
+
+			{#if loadingDetail}
+				<div class="space-y-2">
+					{#each Array(3) as _}
+						<div class="h-12 w-full animate-pulse rounded-lg bg-base-300"></div>
+					{/each}
+				</div>
+			{:else if selectedLogbook.details && selectedLogbook.details.length > 0}
+				<div class="max-h-64 space-y-3 overflow-y-auto">
+					{#each selectedLogbook.details as detail (detail.id)}
+						<div class="rounded-lg border border-base-300 p-3">
+							<div class="mb-1 flex items-center justify-between">
+								<span class="text-sm font-medium">{detail.kpi_nama}</span>
+								<span class="text-xs text-base-content/60">
+									{detail.capaian_angka}/{detail.target_angka} {detail.satuan}
+								</span>
+							</div>
+							<progress
+								class="progress progress-primary w-full"
+								value={detail.target_angka > 0 ? (detail.capaian_angka / detail.target_angka) * 100 : 0}
+								max="100"
+							></progress>
+
+							{#if detail.lampiran_file}
+								{@const url = getAttachmentUrl(detail.lampiran_file)}
+								<div class="mt-2 rounded-lg border border-base-200 bg-base-200/50 p-2">
+									{#if isImageFile(detail.lampiran_file)}
+										<a href={url} target="_blank" rel="noopener noreferrer">
+											<img
+												src={url}
+												alt="Lampiran {detail.kpi_nama}"
+												class="max-h-40 w-full rounded-md object-contain"
+											/>
+										</a>
+									{:else if isPdfFile(detail.lampiran_file)}
+										<a href={url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm text-primary hover:underline">
+											<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 text-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+												<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+												<polyline points="14 2 14 8 20 8"/>
+												<path d="M10 13v4"/>
+												<path d="M14 13v4"/>
+												<path d="M10 17h4"/>
+											</svg>
+											<span class="truncate">{getFileName(detail.lampiran_file)}</span>
+										</a>
+									{:else}
+										<a href={url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm text-primary hover:underline">
+											<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+												<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+												<polyline points="14 2 14 8 20 8"/>
+											</svg>
+											<span class="truncate">{getFileName(detail.lampiran_file)}</span>
+										</a>
+									{/if}
+								</div>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="rounded-lg border border-base-300 p-3 text-center text-sm text-base-content/50">
+					Belum ada KPI
+				</div>
+			{/if}
+
+			<div class="divider my-1"></div>
 
 			<div class="form-control">
 				<label class="label" for="decision-select">
@@ -429,11 +492,4 @@
 	{/snippet}
 </Modal>
 
-<ConfirmDialog
-	bind:open={revertDialogOpen}
-	title="Revert Logbook"
-	message="Apakah Anda yakin ingin revert logbook ini ke staff untuk diperbaiki?"
-	confirmText="Revert"
-	type="warning"
-	onConfirm={executeRevert}
-/>
+

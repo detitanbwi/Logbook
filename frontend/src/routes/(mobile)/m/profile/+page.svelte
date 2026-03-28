@@ -3,6 +3,7 @@
 	import { authService } from '$lib/api/services/authService';
 	import { goto } from '$app/navigation';
 	import { slide } from 'svelte/transition';
+	import UserAvatar from '$lib/components/ui/UserAvatar.svelte';
 
 	let user = $derived(auth.user?.current);
 
@@ -12,16 +13,6 @@
 	let isChangingPassword = $state(false);
 	let passwordSuccess = $state('');
 	let passwordError = $state('');
-
-	function getInitials(name?: string) {
-		if (!name) return 'U';
-		return name
-			.split(' ')
-			.map((n) => n[0])
-			.join('')
-			.substring(0, 2)
-			.toUpperCase();
-	}
 
 	function formatDate(dateStr?: string | null) {
 		if (!dateStr) return 'Belum diisi';
@@ -86,11 +77,7 @@
 	{#if user}
 		<div class="bg-base-100 px-4 py-8 shadow-sm rounded-b-3xl mb-6">
 			<div class="flex flex-col items-center text-center space-y-4">
-				<div class="avatar placeholder">
-					<div class="bg-primary text-primary-content rounded-full w-24 shadow-md ring ring-primary ring-offset-base-100 ring-offset-2">
-						<span class="text-3xl font-bold">{getInitials(user.nama)}</span>
-					</div>
-				</div>
+				<UserAvatar foto={user.foto} fotoUrl={user.foto_url} name={user.nama} size="lg" />
 				
 				<div class="space-y-1">
 					<h2 class="text-xl font-bold text-base-content">{user.nama}</h2>

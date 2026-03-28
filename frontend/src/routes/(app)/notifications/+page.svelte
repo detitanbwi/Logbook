@@ -29,8 +29,8 @@
 		{ label: 'Semua', value: '' },
 		{ label: 'Penugasan KPI', value: 'KPI_ASSIGNMENT' },
 		{ label: 'Logbook Diajukan', value: 'LOGBOOK_SUBMITTED' },
-		{ label: 'Logbook Dikembalikan', value: 'LOGBOOK_REVERTED' },
-		{ label: 'Logbook Direview', value: 'LOGBOOK_REVIEWED' }
+		{ label: 'Logbook Diterima', value: 'LOGBOOK_ACCEPTED' },
+		{ label: 'Logbook Ditolak', value: 'LOGBOOK_REJECTED' }
 	];
 
 	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);

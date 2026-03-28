@@ -71,7 +71,6 @@ export function resolveNotificationDestination(notification: Notification): stri
 
 	if (
 		notification.type === 'LOGBOOK_SUBMITTED' ||
-		notification.type === 'LOGBOOK_REVERTED' ||
 		notification.type === 'LOGBOOK_ACCEPTED' ||
 		notification.type === 'LOGBOOK_REJECTED'
 	) {

@@ -1,15 +1,15 @@
 <script lang="ts">
-	type LogbookStatus = 'DRAFT' | 'SUBMITTED' | 'REVIEWED' | string;
+	type LogbookStatus = 'SUBMITTED' | 'ACCEPTED' | 'REJECTED' | string;
 	let { status }: { status: LogbookStatus } = $props();
 
 	let badgeClass = $derived.by(() => {
 		switch (status) {
-			case 'DRAFT':
-				return 'badge-ghost';
 			case 'SUBMITTED':
 				return 'badge-warning';
-			case 'REVIEWED':
+			case 'ACCEPTED':
 				return 'badge-success';
+			case 'REJECTED':
+				return 'badge-error';
 			default:
 				return 'badge-neutral';
 		}
