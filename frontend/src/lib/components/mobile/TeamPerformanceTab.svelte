@@ -51,18 +51,18 @@
 
 	{#if mode === 'daily'}
 		<div class="form-control w-full">
-			<label class="label"><span class="label-text font-semibold">Date</span></label>
-			<input type="date" class="input input-bordered w-full" bind:value={date} />
+			<label class="label" for="team-date"><span class="label-text font-semibold">Date</span></label>
+			<input id="team-date" type="date" class="input input-bordered w-full" bind:value={date} />
 		</div>
 	{:else}
 		<div class="flex gap-2 w-full">
 			<div class="form-control w-1/2">
-				<label class="label"><span class="label-text font-semibold">From</span></label>
-				<input type="date" class="input input-bordered w-full" bind:value={dateFrom} />
+				<label class="label" for="team-date-from"><span class="label-text font-semibold">From</span></label>
+				<input id="team-date-from" type="date" class="input input-bordered w-full" bind:value={dateFrom} />
 			</div>
 			<div class="form-control w-1/2">
-				<label class="label"><span class="label-text font-semibold">To</span></label>
-				<input type="date" class="input input-bordered w-full" bind:value={dateTo} />
+				<label class="label" for="team-date-to"><span class="label-text font-semibold">To</span></label>
+				<input id="team-date-to" type="date" class="input input-bordered w-full" bind:value={dateTo} />
 			</div>
 		</div>
 	{/if}

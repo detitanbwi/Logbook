@@ -13,17 +13,32 @@
 
   let mode = $state<'daily' | 'period'>('daily');
   
-  const today = new Date().toISOString().split('T')[0];
+  function toLocalDateInputValue(date: Date): string {
+    const timezoneOffsetMs = date.getTimezoneOffset() * 60_000;
+    return new Date(date.getTime() - timezoneOffsetMs).toISOString().split('T')[0];
+  }
+
+  function normalizeDateKey(dateString: string | null | undefined): string {
+    if (!dateString) return '';
+    return dateString.split('T')[0];
+  }
+
+  const today = toLocalDateInputValue(new Date());
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
 
-  let dateFrom = $state(startOfMonth.toISOString().split('T')[0]);
+  let dateFrom = $state(toLocalDateInputValue(startOfMonth));
   let dateTo = $state(today);
 
   let loading = $state(false);
   let error = $state<string | null>(null);
   let dailyView = $state<'summary' | 'detail'>('summary');
   let selectedSummaryDate = $state<string | null>(null);
+  let expandedLogbookId = $state<string | null>(null);
+  let expandedLogbook = $state<Logbook | null>(null);
+  let loadingLogbookDetail = $state(false);
+  let loadingDailyLogbooks = $state(false);
+  let detailRequestId = 0;
 
   let dailySummaries = $state<DailyStaffSummary[]>([]);
   let dailyKpis = $state<DailyKpiSummary[]>([]);
@@ -47,13 +62,13 @@
 
   const selectedDailySummary = $derived(
     selectedSummaryDate
-      ? dailySummaries.find((summary) => summary.tanggal === selectedSummaryDate) ?? null
+      ? dailySummaries.find((summary) => normalizeDateKey(summary.tanggal) === selectedSummaryDate) ?? null
       : null
   );
 
   const currentDailyKpis = $derived.by(() => {
     if (!selectedSummaryDate) return [];
-    return dailyKpis.filter((kpi) => kpi.tanggal === selectedSummaryDate);
+    return dailyKpis.filter((kpi) => normalizeDateKey(kpi.tanggal) === selectedSummaryDate);
   });
 
   const averageDailyRating = $derived.by(() => {
@@ -111,7 +126,7 @@
   });
 
   function getDailyLogbooks(dateKey: string): Logbook[] {
-    return dailyLogbooksMap[dateKey] ?? [];
+    return dailyLogbooksMap[normalizeDateKey(dateKey)] ?? [];
   }
 
   function getAverageRatingForDate(dateKey: string): number | null {
@@ -123,7 +138,8 @@
   }
 
   function getKpisForDate(dateKey: string): DailyKpiSummary[] {
-    return dailyKpis.filter((kpi) => kpi.tanggal === dateKey);
+    const normalizedDateKey = normalizeDateKey(dateKey);
+    return dailyKpis.filter((kpi) => normalizeDateKey(kpi.tanggal) === normalizedDateKey);
   }
 
   function getAverageKpiPercentForDate(dateKey: string): number {
@@ -145,7 +161,7 @@
   }
 
   async function preloadDailyLogbooks(summaries: DailyStaffSummary[]) {
-    const uniqueDates = Array.from(new Set(summaries.map((summary) => summary.tanggal)));
+    const uniqueDates = Array.from(new Set(summaries.map((summary) => normalizeDateKey(summary.tanggal)).filter(Boolean)));
 
     const responses = await Promise.all(
       uniqueDates.map(async (dateKey) => {
@@ -165,7 +181,7 @@
   }
 
   function formatDate(dateString: string) {
-    return new Date(dateString).toLocaleDateString('id-ID', {
+    return new Date(normalizeDateKey(dateString)).toLocaleDateString('id-ID', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -198,29 +214,35 @@
   }
 
   async function openDailyDetail(summary: DailyStaffSummary) {
-    selectedSummaryDate = summary.tanggal;
+    const dateKey = normalizeDateKey(summary.tanggal);
+    selectedSummaryDate = dateKey;
     dailyView = 'detail';
     error = null;
+    expandedLogbookId = null;
+    expandedLogbook = null;
+    loadingDailyLogbooks = true;
 
     try {
-      if (!dailyLogbooksMap[summary.tanggal]) {
+      if (!dailyLogbooksMap[dateKey]) {
         const logbookResponse = await staffLogbookService.getLogbooks({
-          date_from: summary.tanggal,
-          date_to: summary.tanggal,
+          date_from: dateKey,
+          date_to: dateKey,
           per_page: 100,
           sort_by: 'tanggal',
           sort_dir: 'desc'
         });
         dailyLogbooksMap = {
           ...dailyLogbooksMap,
-          [summary.tanggal]: logbookResponse.data
+          [dateKey]: logbookResponse.data
         };
       }
 
-      selectedDayLogbooks = getDailyLogbooks(summary.tanggal);
+      selectedDayLogbooks = getDailyLogbooks(dateKey);
     } catch (e: unknown) {
       error = e instanceof Error ? e.message : 'Gagal memuat ringkasan logbook harian';
       selectedDayLogbooks = [];
+    } finally {
+      loadingDailyLogbooks = false;
     }
   }
 
@@ -228,6 +250,38 @@
     dailyView = 'summary';
     selectedSummaryDate = null;
     selectedDayLogbooks = [];
+    expandedLogbookId = null;
+    expandedLogbook = null;
+    loadingDailyLogbooks = false;
+  }
+
+  async function toggleLogbookDetail(logbookId: string) {
+    if (expandedLogbookId === logbookId) {
+      expandedLogbookId = null;
+      expandedLogbook = null;
+      return;
+    }
+
+    const requestId = ++detailRequestId;
+    expandedLogbookId = logbookId;
+    expandedLogbook = null;
+    loadingLogbookDetail = true;
+
+    try {
+      const logbookDetail = await staffLogbookService.getLogbookById(logbookId);
+      if (requestId !== detailRequestId) {
+        return;
+      }
+      expandedLogbook = logbookDetail;
+    } catch {
+      if (requestId === detailRequestId) {
+        expandedLogbook = null;
+      }
+    } finally {
+      if (requestId === detailRequestId) {
+        loadingLogbookDetail = false;
+      }
+    }
   }
 
   async function loadData() {
@@ -245,7 +299,7 @@
         if (dailyView === 'detail' && selectedSummaryDate) {
           selectedDayLogbooks = getDailyLogbooks(selectedSummaryDate);
         }
-        if (selectedSummaryDate && !summaryRes.data?.some((summary) => summary.tanggal === selectedSummaryDate)) {
+        if (selectedSummaryDate && !summaryRes.data?.some((summary) => normalizeDateKey(summary.tanggal) === selectedSummaryDate)) {
           goBackToDailySummaries();
         }
       } else {
@@ -272,6 +326,9 @@
       dailyView = 'summary';
       selectedSummaryDate = null;
       selectedDayLogbooks = [];
+      expandedLogbookId = null;
+      expandedLogbook = null;
+      loadingDailyLogbooks = false;
     }
   });
 </script>
@@ -419,7 +476,13 @@
           <div class="rounded-2xl border border-base-300 bg-base-100 p-4">
             <h3 class="text-sm font-semibold">Ringkasan Logbook Hari Itu</h3>
             <div class="mt-3 flex flex-col gap-3">
-              {#if selectedDayLogbooks.length === 0}
+              {#if loadingDailyLogbooks}
+                <div class="space-y-2">
+                  {#each Array(2) as _}
+                    <div class="skeleton h-16 w-full rounded-xl"></div>
+                  {/each}
+                </div>
+              {:else if selectedDayLogbooks.length === 0}
                 <div class="rounded-xl bg-base-200/60 px-4 py-5 text-center text-sm text-base-content/60">
                   Tidak ada logbook harian untuk tanggal ini.
                 </div>
@@ -448,6 +511,37 @@
                         </div>
                       {/if}
                     </div>
+
+                    <button
+                      type="button"
+                      class="btn btn-xs btn-outline mt-3"
+                      onclick={() => toggleLogbookDetail(logbook.id)}
+                    >
+                      {expandedLogbookId === logbook.id ? 'Sembunyikan Detail' : 'Lihat Detail Logbook'}
+                    </button>
+
+                    {#if expandedLogbookId === logbook.id}
+                      <div class="mt-3 border-t border-base-200 pt-3">
+                        {#if loadingLogbookDetail}
+                          <div class="skeleton h-10 w-full rounded"></div>
+                        {:else if expandedLogbook?.details && expandedLogbook.details.length > 0}
+                          <div class="space-y-3">
+                            {#each expandedLogbook.details as detail (detail.id)}
+                              <KpiProgressBar
+                                nama={detail.kpi_nama}
+                                capaian={detail.capaian_angka}
+                                target={detail.target_angka}
+                                satuan={detail.satuan}
+                              />
+                            {/each}
+                          </div>
+                        {:else if expandedLogbook}
+                          <div class="text-xs text-base-content/60">Belum ada detail KPI.</div>
+                        {:else}
+                          <div class="text-xs text-error">Gagal memuat detail logbook.</div>
+                        {/if}
+                      </div>
+                    {/if}
                   </div>
                 {/each}
               {/if}

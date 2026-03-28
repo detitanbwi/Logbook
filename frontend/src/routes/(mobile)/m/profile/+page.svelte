@@ -190,7 +190,7 @@
 							</div>
 						{/if}
 
-						{#if passwordSuccess}
+					{#if passwordSuccess}
 							<div transition:slide class="alert alert-success text-sm rounded-xl py-3">
 								<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-5 w-5" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
 								<span>{passwordSuccess}</span>
@@ -198,8 +198,9 @@
 						{/if}
 
 						<div class="form-control w-full">
-							<label class="label pt-0"><span class="label-text font-medium text-xs text-base-content/60">Password Lama</span></label>
+							<label class="label pt-0" for="old-password"><span class="label-text font-medium text-xs text-base-content/60">Password Lama</span></label>
 							<input 
+								id="old-password"
 								type="password" 
 								bind:value={oldPassword} 
 								required 
@@ -208,8 +209,9 @@
 						</div>
 
 						<div class="form-control w-full">
-							<label class="label pt-0"><span class="label-text font-medium text-xs text-base-content/60">Password Baru</span></label>
+							<label class="label pt-0" for="new-password-mobile"><span class="label-text font-medium text-xs text-base-content/60">Password Baru</span></label>
 							<input 
+								id="new-password-mobile"
 								type="password" 
 								bind:value={newPassword} 
 								required 
@@ -218,8 +220,9 @@
 						</div>
 
 						<div class="form-control w-full mb-2">
-							<label class="label pt-0"><span class="label-text font-medium text-xs text-base-content/60">Konfirmasi Password Baru</span></label>
+							<label class="label pt-0" for="confirm-password-mobile"><span class="label-text font-medium text-xs text-base-content/60">Konfirmasi Password Baru</span></label>
 							<input 
+								id="confirm-password-mobile"
 								type="password" 
 								bind:value={confirmPassword} 
 								required 
