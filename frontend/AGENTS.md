@@ -1,31 +1,47 @@
-## Project Configuration
+# FRONTEND KNOWLEDGE BASE
 
-- **Language**: TypeScript
-- **Package Manager**: pnpm
-- **Add-ons**: prettier, eslint, devtools-json, tailwindcss, mcp
+## OVERVIEW
+SvelteKit 5 frontend (TypeScript) for role-based web and mobile experiences, using Svelte runes, centralized auth guard logic, and API service modules under `src/lib/api`.
 
----
+## STRUCTURE
+```text
+frontend/
+├── src/routes/                 # Route groups: (auth), (app), (mobile)
+├── src/lib/auth/               # Guard + role/path permission matrix
+├── src/lib/stores/             # Stateful app stores (auth, logbook, notifications)
+├── src/lib/api/services/       # HTTP endpoint wrappers
+├── src/lib/api/schemas/        # Valibot request/response schemas
+└── src/lib/components/         # Shared UI, navigation, mobile components
+```
 
-You are able to use the Svelte MCP server, where you have access to comprehensive Svelte 5 and SvelteKit documentation. Here's how to use the available tools effectively:
+## WHERE TO LOOK
+| Task | Location | Notes |
+|---|---|---|
+| Route access failures | `src/lib/auth/route-guards.ts`, `src/lib/auth/permissions.ts` | Centralized gate + redirects |
+| Login/session bugs | `src/lib/stores/auth.svelte.ts`, `src/routes/(auth)/login/*` | Auth state and redirect behavior |
+| Role navigation/menu issues | `src/lib/auth/permissions.ts`, `src/lib/components/navigation/*` | Links map to normalized role |
+| API payload validation | `src/lib/api/schemas/*` | Valibot schemas mirror contracts |
+| Service endpoint wiring | `src/lib/api/services/*` | Keep endpoint paths centralized |
 
-## Available MCP Tools:
+## CONVENTIONS
+- Route groups are organizational only: `(auth)`, `(app)`, `(mobile)` shape layout/ownership, not URL segments.
+- Root layout is static-style (`prerender=true`, `ssr=false`), while protected app/mobile layouts enforce auth guard.
+- Always normalize role before route checks; avoid ad-hoc page-level role branching.
+- Keep request/response transforms in API services/utilities, not inside page markup blocks.
 
-### 1. list-sections
+## ANTI-PATTERNS
+- Do not use Svelte 4 reactivity patterns (`$:` and `export let`) in new code.
+- Do not call remote `/auth/logout` during unauthorized revalidation flows.
+- Do not implement duplicate role checks in pages when guard utilities already enforce access.
+- Do not rely on `.svelte-kit/*` outputs for architecture reasoning.
 
-Use this FIRST to discover all available documentation sections. Returns a structured list with titles, use_cases, and paths.
-When asked about Svelte or SvelteKit topics, ALWAYS use this tool at the start of the chat to find relevant sections.
+## COMMANDS
+```bash
+cd frontend && pnpm dev
+cd frontend && pnpm test
+cd frontend && pnpm check && pnpm lint
+```
 
-### 2. get-documentation
-
-Retrieves full documentation content for specific sections. Accepts single or multiple sections.
-After calling the list-sections tool, you MUST analyze the returned documentation sections (especially the use_cases field) and then use the get-documentation tool to fetch ALL documentation sections that are relevant for the user's task.
-
-### 3. svelte-autofixer
-
-Analyzes Svelte code and returns issues and suggestions.
-You MUST use this tool whenever writing Svelte code before sending it to the user. Keep calling it until no issues or suggestions are returned.
-
-### 4. playground-link
-
-Generates a Svelte Playground link with the provided code.
-After completing the code, ask the user if they want a playground link. Only call this tool after user confirmation and NEVER if code was written to files in their project.
+## NOTES
+- Frontend includes role-aware legacy redirect from `/admin/audit-logs` to `/superadmin/audit-logs`.
+- Larger route files exist in admin/mobile modules; prefer extracting reusable logic to `src/lib/*` when extending features.
