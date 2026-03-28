@@ -20,17 +20,17 @@
 	} = $props();
 </script>
 
-<div class="stats border border-base-300 bg-base-100 shadow-sm {className}">
+<div class="stats rounded-2xl border border-base-300 bg-base-100 shadow-sm {className}">
 	<div class="stat">
 		{#if icon}
-			<div class="stat-figure text-primary">
+			<div class="stat-figure rounded-xl border border-primary/25 bg-primary/10 p-2 text-primary">
 				{@render icon()}
 			</div>
 		{/if}
-		<div class="stat-title font-bold">{title}</div>
+		<div class="stat-title text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-base-content/60">{title}</div>
 		<div class="stat-value text-primary">{value}</div>
 		{#if description || trend}
-			<div class="stat-desc mt-1 flex items-center gap-1">
+			<div class="stat-desc mt-1 flex items-center gap-1 text-[0.78rem]">
 				{#if trend}
 					<span
 						class={trend === 'up'

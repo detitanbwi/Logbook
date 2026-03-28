@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { Filter, ChevronDown } from 'lucide-svelte';
-
 	interface FilterOption {
 		label: string;
 		value: string;
@@ -24,56 +22,23 @@
 		class: className = ''
 	}: Props = $props();
 
-	let isOpen = $state(false);
+	let inputId = $derived.by(() => `filter-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`);
 
-	function select(newValue: string) {
-		value = newValue;
-		onChange?.(newValue);
-		isOpen = false;
+	function handleChange(event: Event) {
+		const nextValue = (event.currentTarget as HTMLSelectElement).value;
+		value = nextValue;
+		onChange?.(nextValue);
 	}
-
-	let selectedLabel = $derived(
-		value ? options.find((o) => o.value === value)?.label || value : null
-	);
-
-	let chevronClass = $derived(`transition-transform ${isOpen ? 'rotate-180' : ''}`);
 </script>
 
-<div class="dropdown {className}" class:dropdown-open={isOpen}>
-	<button
-		type="button"
-		tabindex="0"
-		class="btn gap-2 btn-outline btn-sm"
-		onclick={() => (isOpen = !isOpen)}
-		onblur={() => setTimeout(() => (isOpen = false), 150)}
-	>
-		<Filter size={16} />
-		{label}
-		{#if selectedLabel}
-			<span class="badge badge-sm badge-primary">{selectedLabel}</span>
-		{/if}
-		<ChevronDown size={14} class={chevronClass} />
-	</button>
-
-	{#if isOpen}
-		<ul class="dropdown-content menu z-[1] mt-1 w-52 rounded-box bg-base-100 p-2 shadow">
-			<li>
-				<button type="button" class:active={!value} onclick={() => select('')}>
-					{allLabel}
-				</button>
-			</li>
-			<div class="divider my-1"></div>
-			{#each options as option (option.value)}
-				<li>
-					<button
-						type="button"
-						class:active={value === option.value}
-						onclick={() => select(option.value)}
-					>
-						{option.label}
-					</button>
-				</li>
-			{/each}
-		</ul>
-	{/if}
+<div class="form-control min-w-40 {className}">
+	<label class="label" for={inputId}>
+		<span class="label-text text-sm">{label}</span>
+	</label>
+	<select id={inputId} class="select select-bordered select-sm" value={value} onchange={handleChange}>
+		<option value="">{allLabel}</option>
+		{#each options as option (option.value)}
+			<option value={option.value}>{option.label}</option>
+		{/each}
+	</select>
 </div>

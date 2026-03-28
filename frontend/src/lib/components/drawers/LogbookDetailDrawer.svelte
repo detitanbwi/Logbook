@@ -91,15 +91,15 @@
 			</div>
 		</div>
 
-		{#if logbook.rating}
+		{#if logbook.rating != null}
 			<div class="mb-4 flex items-center gap-2 rounded-lg border border-base-300 bg-base-200/50 p-3">
 				<span class="text-sm font-medium">Rating:</span>
 				<span class="text-warning">
 					{#each Array(5) as _, i}
-						<span class={i < (logbook.rating ?? 0) ? '' : 'opacity-20'}>⭐</span>
+						<span class={i < Math.round(Number(logbook.rating ?? 0)) ? '' : 'opacity-20'}>⭐</span>
 					{/each}
 				</span>
-				<span class="text-sm text-base-content/60">({logbook.rating}/5)</span>
+				<span class="text-sm text-base-content/60">({Number(logbook.rating).toFixed(1)}/5)</span>
 			</div>
 		{/if}
 

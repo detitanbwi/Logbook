@@ -19,18 +19,30 @@
 	}: Props = $props();
 
 	let timeout: ReturnType<typeof setTimeout>;
+	let internalValue = $state(value);
+	let isFocused = $state(false);
+
+	$effect(() => {
+		if (!isFocused && value !== internalValue) {
+			internalValue = value;
+		}
+	});
 
 	function handleInput(e: Event) {
 		const target = e.target as HTMLInputElement;
-		value = target.value;
+		const nextValue = target.value;
+		internalValue = nextValue;
+		value = nextValue;
 
 		clearTimeout(timeout);
 		timeout = setTimeout(() => {
-			onSearch?.(value);
+			onSearch?.(nextValue);
 		}, debounce);
 	}
 
 	function clear() {
+		clearTimeout(timeout);
+		internalValue = '';
 		value = '';
 		onSearch?.('');
 	}
@@ -49,11 +61,13 @@
 		<input
 			type="text"
 			{placeholder}
-			{value}
+			value={internalValue}
 			oninput={handleInput}
+			onfocus={() => (isFocused = true)}
+			onblur={() => (isFocused = false)}
 			class="input-bordered input join-item w-full"
 		/>
-		{#if value}
+		{#if internalValue}
 			<button
 				type="button"
 				class="btn join-item btn-ghost"

@@ -23,10 +23,10 @@
 			error = null;
 			try {
 				if (mode === 'daily') {
-					const res = await summaryService.teamDaily({ date });
+					const res = await summaryService.teamDaily({ date, per_page: 100 });
 					members = res.data ?? [];
 				} else {
-					const res = await summaryService.teamDaily({ date_from: dateFrom, date_to: dateTo });
+					const res = await summaryService.teamDaily({ date_from: dateFrom, date_to: dateTo, per_page: 100 });
 					members = res.data ?? [];
 				}
 			} catch (err: any) {
@@ -89,7 +89,7 @@
 		<div class="divider my-0">Team Members</div>
 		
 		<div class="flex flex-col gap-3">
-			{#each members as member (member.id || member.user_id)}
+			{#each members as member (member.user?.id || member.user_id)}
 				<TeamMemberCard 
 					{member} 
 					onclick={() => onMemberClick?.(member)} 

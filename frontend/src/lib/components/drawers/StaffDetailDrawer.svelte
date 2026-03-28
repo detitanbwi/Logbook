@@ -417,8 +417,8 @@
 									<div>
 										<div class="text-sm font-medium">{logbook.start_kerja.slice(0, 5)} - {logbook.end_kerja?.slice(0, 5) || '--:--'}</div>
 										<div class="text-xs text-base-content/60">{logbook.lokasi || 'Lokasi tidak diisi'}</div>
-										{#if logbook.rating}
-											<div class="text-xs text-warning">⭐ {logbook.rating}/5</div>
+										{#if logbook.rating != null}
+											<div class="text-xs text-warning">⭐ {Number(logbook.rating).toFixed(1)}/5</div>
 										{/if}
 									</div>
 									<div class="flex items-center gap-2">

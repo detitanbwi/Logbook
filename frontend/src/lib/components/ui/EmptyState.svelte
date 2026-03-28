@@ -15,7 +15,7 @@
 </script>
 
 <div
-	class="flex flex-col items-center justify-center rounded-box border border-base-300 bg-base-100/50 p-8 text-center"
+	class="flex flex-col items-center justify-center rounded-2xl border border-base-300 bg-base-100 p-8 text-center shadow-sm"
 >
 	{#if icon}
 		<div class="mb-4 flex h-16 w-16 items-center justify-center text-base-content/30">
@@ -40,7 +40,7 @@
 		</div>
 	{/if}
 
-	<h3 class="text-lg font-bold text-base-content">{title}</h3>
+	<h3 class="text-lg font-bold tracking-tight text-base-content">{title}</h3>
 
 	{#if description}
 		<p class="mt-2 max-w-sm text-base-content/70">{description}</p>

@@ -12,6 +12,12 @@
 		pendingReviews?: number;
 		class?: string;
 	} = $props();
+
+	const normalizedAvgRating = $derived.by(() => {
+		if (avgRating == null) return null;
+		const parsed = Number(avgRating);
+		return Number.isFinite(parsed) ? parsed : null;
+	});
 </script>
 
 <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 {className}">
@@ -28,8 +34,8 @@
 	<div class="rounded-lg border border-base-300 bg-base-100 p-3 text-center">
 		<div class="text-xs text-base-content/60">Avg Rating</div>
 		<div class="text-xl font-bold">
-			{#if avgRating != null}
-				⭐ {avgRating.toFixed(1)}
+			{#if normalizedAvgRating != null}
+				⭐ {normalizedAvgRating.toFixed(1)}
 			{:else}
 				-
 			{/if}

@@ -20,6 +20,12 @@
 		const mins = totalWorkMinutes % 60;
 		return `${hours}h ${mins}m`;
 	});
+
+	const normalizedAverageRating = $derived.by(() => {
+		if (averageRating == null) return null;
+		const parsed = Number(averageRating);
+		return Number.isFinite(parsed) ? parsed : null;
+	});
 </script>
 
 <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 {className}">
@@ -42,8 +48,8 @@
 	<div class="rounded-lg border border-base-300 bg-base-100 p-3 text-center">
 		<div class="text-xs text-base-content/60">Rata-rata Bintang</div>
 		<div class="text-xl font-bold">
-			{#if averageRating != null}
-				⭐ {averageRating.toFixed(1)}
+			{#if normalizedAverageRating != null}
+				⭐ {normalizedAverageRating.toFixed(1)}
 			{:else}
 				-
 			{/if}

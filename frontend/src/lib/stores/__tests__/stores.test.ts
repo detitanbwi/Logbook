@@ -17,6 +17,27 @@ import { AuthStore } from '$lib/stores/auth.svelte';
 import { LogbookStore } from '$lib/stores/logbook.svelte';
 import { api } from '$lib/api';
 
+const localStorageMock = (() => {
+	let store: Record<string, string> = {};
+	return {
+		getItem: (key: string) => store[key] || null,
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
+		},
+		removeItem: (key: string) => {
+			delete store[key];
+		},
+		clear: () => {
+			store = {};
+		}
+	};
+})();
+
+Object.defineProperty(global, 'window', {
+	value: { localStorage: localStorageMock, location: { href: '' } }
+});
+Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+
 describe('Store State Flow', () => {
 	let auth: AuthStore;
 	let logbookStore: LogbookStore;
@@ -40,7 +61,8 @@ describe('Store State Flow', () => {
 				id: '1',
 				nama: 'Admin',
 				npp: '12345',
-				role: 'Staff'
+				role: 'Staff',
+				manager: null
 			} as unknown as User;
 			const mockToken = 'new.jwt.token';
 
@@ -124,7 +146,8 @@ describe('Store State Flow', () => {
 				id: '1',
 				nama: 'Staff',
 				npp: '222',
-				role: 'Staff'
+				role: 'Staff',
+				manager: null
 			} as unknown as User;
 			auth.token.current = 'valid.token';
 			api.setToken('valid.token');

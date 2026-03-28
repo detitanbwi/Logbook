@@ -22,13 +22,9 @@
 	} = $props();
 </script>
 
-<div
-	class="overflow-x-auto rounded-box border border-base-300 bg-base-100 shadow-sm"
-	role="region"
-	aria-label="Tabel Data"
->
+<div class="overflow-x-auto rounded-2xl border border-base-300 bg-base-100 shadow-sm" role="region" aria-label="Tabel Data">
 	<table class="table w-full table-zebra">
-		<thead class="bg-base-200 text-base-content">
+		<thead class="bg-base-200/85 text-base-content">
 			{@render head()}
 		</thead>
 		<tbody>

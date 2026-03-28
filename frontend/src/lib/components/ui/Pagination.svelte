@@ -15,9 +15,9 @@
 		onPageSizeChange?: (size: number) => void;
 	} = $props();
 
-	let current_page = $derived(meta?.current_page || 1);
-	let last_page = $derived(meta?.last_page || 1);
-	let per_page = $derived(meta?.per_page || 15);
+	let current_page = $derived.by(() => meta?.current_page || 1);
+	let last_page = $derived.by(() => meta?.last_page || 1);
+	let per_page = $derived.by(() => meta?.per_page || 15);
 
 	function getPageUrl(pageNum: number) {
 		const url = new URL($page.url);
@@ -64,31 +64,31 @@
   </div>
 
 		{#if meta.last_page > 1}
-			<div class="join">
+			<div class="join rounded-xl border border-base-300/75 bg-base-100/90 p-1 shadow-sm">
 				{#if current_page > 1}
 					<a
 						href={getPageUrl(current_page - 1)}
-						class="btn join-item btn-sm"
+						class="btn join-item btn-sm rounded-lg"
 						aria-label="Halaman Sebelumnya">«</a
 					>
 				{:else}
-					<button class="btn btn-disabled join-item btn-sm" aria-label="Halaman Sebelumnya"
+					<button class="btn btn-disabled join-item btn-sm rounded-lg" aria-label="Halaman Sebelumnya"
 						>«</button
 					>
 				{/if}
 
-				<span class="no-animation btn pointer-events-none join-item btn-sm" aria-current="page">
+				<span class="no-animation btn pointer-events-none join-item btn-sm rounded-lg" aria-current="page">
 					Halaman {current_page} dari {last_page}
 				</span>
 
 				{#if current_page < last_page}
 					<a
 						href={getPageUrl(current_page + 1)}
-						class="btn join-item btn-sm"
+						class="btn join-item btn-sm rounded-lg"
 						aria-label="Halaman Berikutnya">»</a
 					>
 				{:else}
-					<button class="btn btn-disabled join-item btn-sm" aria-label="Halaman Berikutnya"
+					<button class="btn btn-disabled join-item btn-sm rounded-lg" aria-label="Halaman Berikutnya"
 						>»</button
 					>
 				{/if}

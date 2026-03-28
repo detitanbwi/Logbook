@@ -9,6 +9,9 @@
 <div class="toast toast-end toast-top z-[1000]">
 	{#each toasts as toast (toast.id)}
 		<div
+			role={toast.type === 'error' ? 'alert' : 'status'}
+			aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
+			aria-atomic="true"
 			animate:flip={{ duration: 300 }}
 			in:fly={{ y: -20, duration: 300 }}
 			out:fade={{ duration: 200 }}
