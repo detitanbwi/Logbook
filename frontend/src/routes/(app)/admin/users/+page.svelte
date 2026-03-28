@@ -25,12 +25,12 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
-	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
-	let perPage = $derived(Number($page.url.searchParams.get('per_page')) || 15);
-	let search = $derived($page.url.searchParams.get('search') || '');
-	let role = $derived($page.url.searchParams.get('role') || '');
-	let sortBy = $derived($page.url.searchParams.get('sort_by') || 'created_at');
-	let sortDir = $derived(($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc');
+	let currentPage = $derived.by(() => Number($page.url.searchParams.get('page')) || 1);
+	let perPage = $derived.by(() => Number($page.url.searchParams.get('per_page')) || 15);
+	let search = $derived.by(() => $page.url.searchParams.get('search') || '');
+	let role = $derived.by(() => $page.url.searchParams.get('role') || '');
+	let sortBy = $derived.by(() => $page.url.searchParams.get('sort_by') || 'created_at');
+	let sortDir = $derived.by(() => ($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc');
 	let currentRole = $derived(auth.user.current?.role ?? null);
 
 	let roleOptions = $derived(
@@ -185,7 +185,7 @@
 			}
 		});
 		url.searchParams.set('page', '1');
-		goto(url.toString(), { replaceState: true, noScroll: true });
+		goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
 	}
 
 	function handleSearch(value: string) {
@@ -205,7 +205,7 @@
 		const url = new URL($page.url);
 		url.searchParams.set('per_page', size.toString());
 		url.searchParams.set('page', '1');
-		goto(url.toString(), { replaceState: true, noScroll: true });
+		goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
 	}
 
 	function openCreate() {

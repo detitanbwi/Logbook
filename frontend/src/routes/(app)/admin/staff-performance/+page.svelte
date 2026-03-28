@@ -2,28 +2,16 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import DataTable from '$lib/components/ui/DataTable.svelte';
-	import StaffDetailDrawer from '$lib/components/drawers/StaffDetailDrawer.svelte';
 	import { analyticsService } from '$lib/api/services/analyticsService';
 	import type { StaffPerformanceSummaryItem } from '$lib/types';
 
-	let drawerOpen = $state(false);
-	let selectedStaff = $state<{
-		user_id: string;
-		nama: string;
-		npp: string;
-		date_from?: string;
-		date_to?: string;
-	} | null>(null);
+	function openStaffDetail(item: StaffPerformanceSummaryItem) {
+		const query = new URLSearchParams();
+		if (dateFrom) query.set('date_from', dateFrom);
+		if (dateTo) query.set('date_to', dateTo);
 
-	function openStaffDrawer(item: StaffPerformanceSummaryItem) {
-		selectedStaff = {
-			user_id: String(item.user_id),
-			nama: item.nama,
-			npp: item.npp,
-			date_from: dateFrom || undefined,
-			date_to: dateTo || undefined
-		};
-		drawerOpen = true;
+		const suffix = query.toString();
+		goto(`/admin/staff-performance/${item.user_id}${suffix ? `?${suffix}` : ''}`);
 	}
 
 	let items = $state<StaffPerformanceSummaryItem[]>([]);
@@ -32,8 +20,8 @@
 	let fetchRequestId = 0;
 	let refreshNonce = $state(0);
 
-	let dateFrom = $derived($page.url.searchParams.get('date_from') || '');
-	let dateTo = $derived($page.url.searchParams.get('date_to') || '');
+	let dateFrom = $derived.by(() => $page.url.searchParams.get('date_from') || '');
+	let dateTo = $derived.by(() => $page.url.searchParams.get('date_to') || '');
 
 	let dateFromDraft = $state('');
 	let dateToDraft = $state('');
@@ -101,7 +89,7 @@
 			}
 		});
 
-		goto(url.toString(), { replaceState: true, noScroll: true });
+		goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
 	}
 
 	function applyDateFilters() {
@@ -183,7 +171,7 @@
 	</div>
 {/if}
 
-<DataTable loading={loading} empty={items.length === 0} columnsCount={7}>
+<DataTable loading={loading} empty={items.length === 0} columnsCount={8}>
 	{#snippet head()}
 		<tr>
 			<th>Nama</th>
@@ -193,11 +181,12 @@
 			<th>Jam Kerja</th>
 			<th>Rata-rata Rating</th>
 			<th>Progress</th>
+			<th>Aksi</th>
 		</tr>
 	{/snippet}
 
 	{#each items as item (item.user_id)}
-		<tr class="cursor-pointer hover:bg-base-200" onclick={() => openStaffDrawer(item)}>
+		<tr class="cursor-pointer hover:bg-base-200" onclick={() => openStaffDetail(item)}>
 			<td class="font-medium">{item.nama || '-'}</td>
 			<td>{item.npp || '-'}</td>
 			<td>
@@ -207,8 +196,8 @@
 			<td>{formatNumber(item.total_days_worked)}</td>
 			<td>{item.total_work_hours != null ? `${item.total_work_hours.toFixed(1)}h` : '-'}</td>
 			<td>
-				{#if item.average_rating != null}
-					<span class="badge badge-warning gap-1">⭐ {item.average_rating.toFixed(1)}</span>
+				{#if item.average_rating != null && Number.isFinite(Number(item.average_rating))}
+					<span class="badge badge-warning gap-1">⭐ {Number(item.average_rating).toFixed(1)}</span>
 				{:else}
 					<span class="text-base-content/50">-</span>
 				{/if}
@@ -216,8 +205,17 @@
 			<td>
 				<span class="badge badge-info">{formatPercent(item.progress_percent)}</span>
 			</td>
+			<td>
+				<button
+					class="btn btn-outline btn-sm"
+					onclick={(event) => {
+						event.stopPropagation();
+						openStaffDetail(item);
+					}}
+				>
+					Lihat Detail
+				</button>
+			</td>
 		</tr>
 	{/each}
 </DataTable>
-
-<StaffDetailDrawer bind:isOpen={drawerOpen} staff={selectedStaff} />

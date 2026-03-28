@@ -86,13 +86,16 @@
 	<title>Dashboard | SuperAdmin</title>
 </svelte:head>
 
-<div class="p-6">
-	<div class="mb-6 flex items-center justify-between">
-		<h1 class="text-2xl font-bold">Dashboard SuperAdmin</h1>
+<div>
+	<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+		<div>
+			<p class="text-sm text-base-content/70">Kontrol penuh aktivitas sistem</p>
+			<h1 class="text-2xl font-bold tracking-tight">Dashboard SuperAdmin</h1>
+		</div>
 	</div>
 
 	{#if error}
-		<div class="alert alert-error mb-6">
+		<div class="alert alert-error mb-6 rounded-2xl border border-error/30 bg-error/10 text-error-content shadow-sm">
 			<span>{error}</span>
 			<button class="btn btn-ghost btn-sm" onclick={retry}>Coba Lagi</button>
 		</div>

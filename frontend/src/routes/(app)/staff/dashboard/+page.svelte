@@ -25,16 +25,25 @@
 	let error = $state<string | null>(null);
 	let data = $state<any>(null);
 	let recentLogbooks = $state<Logbook[]>([]);
+	let fetchTriggered = $state(0);
+
+	function retry() {
+		fetchTriggered += 1;
+	}
 
 	$effect(() => {
+		fetchTriggered;
+
 		async function load() {
 			try {
+				loading = true;
+				error = null;
 				const [dashboardRes, logbooksRes] = await Promise.all([
 					analyticsService.getStaffDashboard(),
 					staffLogbookService.getLogbooks({ per_page: 5, sort_by: 'created_at', sort_dir: 'desc' })
 				]);
 
-			data = (dashboardRes as any).data || dashboardRes;
+				data = dashboardRes;
 				recentLogbooks = logbooksRes.data || [];
 			} catch (e: any) {
 				error = e.message || 'Failed to load dashboard data';
@@ -58,6 +67,21 @@
 			}
 		]
 	});
+
+	let averageRatingDisplay = $derived.by(() => {
+		const apiValue = typeof data?.average_rating === 'number' ? data.average_rating : null;
+		if (apiValue != null && apiValue > 0) {
+			return apiValue;
+		}
+
+		const ratedRecent = recentLogbooks.filter((logbook) => logbook.rating != null);
+		if (ratedRecent.length === 0) {
+			return null;
+		}
+
+		const total = ratedRecent.reduce((sum, logbook) => sum + (logbook.rating ?? 0), 0);
+		return total / ratedRecent.length;
+	});
 </script>
 
 <svelte:head>
@@ -65,16 +89,19 @@
 </svelte:head>
 
 {#if error}
-	<div class="alert alert-error mb-6">
+	<div class="alert alert-error mb-6 rounded-2xl border border-error/30 bg-error/10 text-error-content shadow-sm">
 		<span>{error}</span>
-		<button class="btn btn-ghost btn-sm" onclick={() => loading = true}>Coba Lagi</button>
+		<button class="btn btn-ghost btn-sm" onclick={retry}>Coba Lagi</button>
 	</div>
 {:else}
-	<div class="mb-6 flex items-center justify-between">
-		<h1 class="text-2xl font-bold">Dashboard Staff</h1>
+	<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+		<div>
+			<p class="text-sm text-base-content/70">Pantau progres harian dan kualitas kerja Anda</p>
+			<h1 class="text-2xl font-bold tracking-tight">Dashboard Staff</h1>
+		</div>
 	</div>
 
-	<div class="tabs tabs-bordered mb-6">
+	<div class="tabs tabs-boxed mb-6 gap-1 rounded-2xl border border-base-300/70 bg-base-100/85 p-1">
 		<button
 			class="tab {activeTab === 'overview' ? 'tab-active' : ''}"
 			onclick={() => (activeTab = 'overview')}
@@ -85,14 +112,14 @@
 			class="tab {activeTab === 'performance' ? 'tab-active' : ''}"
 			onclick={() => (activeTab = 'performance')}
 		>
-			My Performance
+			Performa Saya
 		</button>
 		{#if hasSubordinates}
 			<button
 				class="tab {activeTab === 'team' ? 'tab-active' : ''}"
 				onclick={() => (activeTab = 'team')}
 			>
-				Team Performance
+				Performa Tim
 			</button>
 		{/if}
 	</div>
@@ -145,8 +172,8 @@
 
 			<StatCard
 				title="Rata-rata Rating"
-				value={data.average_rating ?? 0}
-				description="Dari review manager"
+				value={averageRatingDisplay != null ? `⭐ ${averageRatingDisplay.toFixed(1)}` : '-'}
+				description={averageRatingDisplay != null ? 'Dari review manager' : 'Belum ada rating'}
 			>
 				{#snippet icon()}
 					<svg
@@ -162,7 +189,7 @@
 				{/snippet}
 			</StatCard>
 
-			<div class="stats border border-base-300 bg-base-100 shadow-sm">
+			<div class="stats rounded-2xl border border-base-300 bg-base-100 shadow-sm">
 				<div class="stat">
 					<div class="stat-title">Capaian KPI</div>
 					<div class="stat-value flex items-center gap-3 text-primary">
@@ -182,7 +209,7 @@
 	</div>
 
 	<div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-		<div class="card border border-base-200 bg-base-100 shadow-sm">
+		<div class="card rounded-2xl border border-base-300 bg-base-100 shadow-sm">
 			<div class="card-body">
 				<h2 class="card-title text-lg">Progres per KPI</h2>
 				{#if loading}
@@ -217,7 +244,7 @@
 			</div>
 		</div>
 
-		<div class="card border border-base-200 bg-base-100 shadow-sm">
+		<div class="card rounded-2xl border border-base-300 bg-base-100 shadow-sm">
 			<div class="card-body p-0">
 				<div class="flex items-center justify-between border-b border-base-200 p-6 pb-2">
 					<h2 class="card-title text-lg">Logbook Terakhir</h2>
@@ -252,14 +279,14 @@
 									<tr class="hover:bg-base-50">
 										<td>
 											<div class="font-medium">{formatDate(logbook.created_at)}</div>
-											{#if logbook.rating}
-												<div class="mt-1 flex text-xs text-warning">
-													{#each Array(5) as _, i}
-														<svg
-															xmlns="http://www.w3.org/2000/svg"
-															class="h-3 w-3 {i < logbook.rating
-																? 'fill-current'
-																: 'text-base-300'}"
+										{#if logbook.rating != null}
+											<div class="mt-1 flex text-xs text-warning">
+												{#each Array(5) as _, i}
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														class="h-3 w-3 {i < (logbook.rating ?? 0)
+															? 'fill-current'
+															: 'text-base-300'}"
 															viewBox="0 0 20 20"
 														>
 															<path

@@ -7,10 +7,19 @@
 	let error = $state<string | null>(null);
 	let data = $state<any>(null);
 	let teamLocations = $state<{ lat: number; lng: number; title: string }[]>([]);
+	let fetchTriggered = $state(0);
+
+	function retry() {
+		fetchTriggered += 1;
+	}
 
 	$effect(() => {
+		fetchTriggered;
+
 		async function load() {
 			try {
+				loading = true;
+				error = null;
 				const [dashboardData, locationsData] = await Promise.all([
 					analyticsService.getManagerDashboard(),
 					analyticsService.getTeamLocations()
@@ -59,11 +68,16 @@
 </svelte:head>
 
 {#if error}
-	<div class="alert alert-error mb-6">
+	<div class="alert alert-error mb-6 rounded-2xl border border-error/30 bg-error/10 text-error-content shadow-sm">
 		<span>{error}</span>
-		<button class="btn btn-ghost btn-sm" onclick={() => loading = true}>Coba Lagi</button>
+		<button class="btn btn-ghost btn-sm" onclick={retry}>Coba Lagi</button>
 	</div>
 {:else}
+	<div class="mb-6">
+		<p class="text-sm text-base-content/70">Pantau progres tim dan review dengan cepat</p>
+		<h1 class="text-2xl font-bold tracking-tight">Dashboard Manager</h1>
+	</div>
+
 	<!-- Stats Row with Skeleton -->
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 		{#if loading}
@@ -93,7 +107,7 @@
 				value={data.pending_reviews ?? 0}
 				description="Logbooks waiting for your review"
 			/>
-			<div class="stats border border-base-300 bg-base-100 shadow-sm">
+			<div class="stats rounded-2xl border border-base-300 bg-base-100 shadow-sm">
 				<div class="stat">
 					<div class="stat-title">Team Completion Rate</div>
 					<div class="stat-value flex items-center gap-3 text-primary">
@@ -113,7 +127,7 @@
 	<!-- Team Overview Table -->
 	<div class="mt-8">
 		<h2 class="mb-4 text-xl font-bold">Team Overview</h2>
-		<div class="card border border-base-300 bg-base-100 shadow-sm">
+		<div class="card rounded-2xl border border-base-300 bg-base-100 shadow-sm">
 			<div class="card-body p-0">
 				<div class="overflow-x-auto">
 					<table class="table">
@@ -212,7 +226,7 @@
 	<!-- Staff Locations Map -->
 	<div class="mt-8">
 		<h2 class="mb-4 text-xl font-bold">Recent Staff Locations</h2>
-		<div class="h-[400px] w-full overflow-hidden rounded-xl border border-base-300 shadow-sm">
+		<div class="h-[400px] w-full overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm">
 			{#if loading}
 				<div class="flex h-full items-center justify-center">
 					<div class="size-32 animate-pulse rounded-full bg-base-300"></div>

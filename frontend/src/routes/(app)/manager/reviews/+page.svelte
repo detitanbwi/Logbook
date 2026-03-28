@@ -21,13 +21,13 @@
 	let isSubmitting = $state(false);
 
 	// URL params
-	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
-	let perPage = $derived(Number($page.url.searchParams.get('per_page')) || 15);
-	let search = $derived($page.url.searchParams.get('search') || '');
-	let dateFrom = $derived($page.url.searchParams.get('date_from') || '');
-	let dateTo = $derived($page.url.searchParams.get('date_to') || '');
-	let sortBy = $derived($page.url.searchParams.get('sort_by') || 'created_at');
-	let sortDir = $derived(($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc');
+	let currentPage = $derived.by(() => Number($page.url.searchParams.get('page')) || 1);
+	let perPage = $derived.by(() => Number($page.url.searchParams.get('per_page')) || 15);
+	let search = $derived.by(() => $page.url.searchParams.get('search') || '');
+	let dateFrom = $derived.by(() => $page.url.searchParams.get('date_from') || '');
+	let dateTo = $derived.by(() => $page.url.searchParams.get('date_to') || '');
+	let sortBy = $derived.by(() => $page.url.searchParams.get('sort_by') || 'created_at');
+	let sortDir = $derived.by(() => ($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc');
 
 	function updateUrl(params: Record<string, string>) {
 		const url = new URL($page.url);
@@ -36,14 +36,14 @@
 			else url.searchParams.delete(key);
 		});
 		url.searchParams.set('page', '1');
-		goto(url.toString(), { replaceState: true, noScroll: true });
+		goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
 	}
 
 	function handlePageSizeChange(size: number) {
 		const url = new URL($page.url);
 		url.searchParams.set('per_page', size.toString());
 		url.searchParams.set('page', '1');
-		goto(url.toString(), { replaceState: true, noScroll: true });
+		goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
 	}
 
 	async function fetchPendingReviews() {

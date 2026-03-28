@@ -21,12 +21,12 @@
 	let refreshNonce = $state(0);
 
 	// URL-based state
-	let currentPage = $derived(Number($page.url.searchParams.get('page')) || 1);
-	let perPage = $derived(Number($page.url.searchParams.get('per_page')) || 15);
-	let search = $derived($page.url.searchParams.get('search') || '');
-	let statusAktif = $derived($page.url.searchParams.get('status_aktif') || '');
-	let sortBy = $derived($page.url.searchParams.get('sort_by') || 'created_at');
-	let sortDir = $derived(($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc');
+	let currentPage = $derived.by(() => Number($page.url.searchParams.get('page')) || 1);
+	let perPage = $derived.by(() => Number($page.url.searchParams.get('per_page')) || 15);
+	let search = $derived.by(() => $page.url.searchParams.get('search') || '');
+	let statusAktif = $derived.by(() => $page.url.searchParams.get('status_aktif') || '');
+	let sortBy = $derived.by(() => $page.url.searchParams.get('sort_by') || 'created_at');
+	let sortDir = $derived.by(() => ($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc');
 
 	const statusOptions = [
 		{ label: 'Semua', value: '' },
@@ -91,14 +91,14 @@
 			}
 		});
 		url.searchParams.set('page', '1');
-		goto(url.toString(), { replaceState: true, noScroll: true });
+		goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
 	}
 
 	function handlePageSizeChange(size: number) {
 		const url = new URL($page.url);
 		url.searchParams.set('per_page', size.toString());
 		url.searchParams.set('page', '1');
-		goto(url.toString(), { replaceState: true, noScroll: true });
+		goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
 	}
 
 	function handleSearch(value: string) {
@@ -215,7 +215,7 @@
 			if (shouldMoveToPreviousPage) {
 				const url = new URL($page.url);
 				url.searchParams.set('page', String(currentPage - 1));
-				await goto(url.toString(), { replaceState: true, noScroll: true });
+				await goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
 				return;
 			}
 

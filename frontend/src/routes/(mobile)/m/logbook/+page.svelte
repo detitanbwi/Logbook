@@ -472,11 +472,11 @@
                 <div class="text-base-content/80">
                   {currentLogbook.reviewer_comment || 'Tidak ada komentar'}
                 </div>
-                {#if currentLogbook.rating}
-                  <div class="mt-2 text-warning font-medium">
-                    Rating: {'⭐'.repeat(currentLogbook.rating)}
-                  </div>
-                {/if}
+					{#if currentLogbook.rating != null}
+						<div class="mt-2 text-warning font-medium">
+							Rating: {'⭐'.repeat(Math.max(0, Math.round(Number(currentLogbook.rating))))}
+						</div>
+					{/if}
               </div>
             {/if}
           </div>
