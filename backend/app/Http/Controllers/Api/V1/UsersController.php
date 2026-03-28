@@ -10,6 +10,7 @@ use App\Http\Resources\V1\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @group User Management
@@ -112,6 +113,14 @@ class UsersController extends Controller
         }
 
         $validated = $request->validated();
+
+        if ($request->hasFile('foto')) {
+            if ($user->foto) {
+                Storage::disk('public')->delete($user->foto);
+            }
+
+            $validated['foto'] = $request->file('foto')->store('profile-photos', 'public');
+        }
 
         if (($validated['role'] ?? null) === 'ADMIN') {
             $validated['role'] = 'Admin';

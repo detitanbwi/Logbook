@@ -21,6 +21,8 @@ class LogbookResource extends JsonResource
             'start_kerja' => (string) ($this->start_kerja ?? ''),
             'end_kerja' => $this->end_kerja,
             'lokasi' => $this->lokasi,
+            'lokasi_lat' => $this->lokasi_lat ? (float) $this->lokasi_lat : null,
+            'lokasi_lng' => $this->lokasi_lng ? (float) $this->lokasi_lng : null,
             'status' => (string) ($this->status ?? ''),
             'rating' => $this->rating,
             'reviewed_by' => $this->reviewed_by,

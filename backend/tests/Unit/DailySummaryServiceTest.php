@@ -27,7 +27,7 @@ describe('rebuildStaffSummary', function () {
             'tanggal' => $tanggal,
             'start_kerja' => '08:00:00',
             'end_kerja' => '17:00:00',
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         LogbookKpiDetail::factory()->create([
@@ -47,7 +47,7 @@ describe('rebuildStaffSummary', function () {
 
         expect($summary)->not->toBeNull()
             ->and((int) $summary->total_logbooks)->toBe(1)
-            ->and((int) $summary->submitted_logbooks)->toBe(0)
+            ->and((int) $summary->submitted_logbooks)->toBe(1)
             ->and((int) $summary->accepted_logbooks)->toBe(0)
             ->and((int) $summary->rejected_logbooks)->toBe(0)
             ->and((int) $summary->total_kpi)->toBe(1)
@@ -65,7 +65,7 @@ describe('rebuildStaffSummary', function () {
             'tanggal' => $tanggal,
             'start_kerja' => '08:00:00',
             'end_kerja' => '17:00:00', // 9 hours gross, 8 hours net (1 hour break)
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         LogbookKpiDetail::factory()->create([
@@ -93,7 +93,7 @@ describe('rebuildStaffSummary', function () {
             'tanggal' => $tanggal,
             'start_kerja' => '07:00:00',
             'end_kerja' => '11:00:00', // 4 hours, no break overlap
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         LogbookKpiDetail::factory()->create([
@@ -121,7 +121,7 @@ describe('rebuildStaffSummary', function () {
             'tanggal' => $tanggal,
             'start_kerja' => '10:00:00',
             'end_kerja' => '12:30:00', // 2.5 hours, 30 min break overlap
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         LogbookKpiDetail::factory()->create([
@@ -228,7 +228,7 @@ describe('rebuildStaffSummary', function () {
             'tanggal' => $tanggal,
             'start_kerja' => '08:00:00',
             'end_kerja' => '17:00:00',
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         LogbookKpiDetail::factory()->create([
@@ -256,7 +256,7 @@ describe('rebuildStaffSummary', function () {
             'tanggal' => $tanggal,
             'start_kerja' => '08:00:00',
             'end_kerja' => null, // Work in progress
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         LogbookKpiDetail::factory()->create([
@@ -285,7 +285,7 @@ describe('rebuildKpiSummaries', function () {
         $logbook = Logbook::factory()->create([
             'user_id' => $staff->id,
             'tanggal' => $tanggal,
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         LogbookKpiDetail::factory()->create([
@@ -321,7 +321,7 @@ describe('rebuildKpiSummaries', function () {
         $logbook1 = Logbook::factory()->create([
             'user_id' => $staff->id,
             'tanggal' => $tanggal,
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         LogbookKpiDetail::factory()->create([
@@ -372,7 +372,7 @@ describe('rebuildKpiSummaries', function () {
         $logbook = Logbook::factory()->create([
             'user_id' => $staff->id,
             'tanggal' => $tanggal,
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         LogbookKpiDetail::factory()->create([
@@ -443,7 +443,7 @@ describe('rebuildKpiSummaries', function () {
         $logbook = Logbook::factory()->create([
             'user_id' => $staff->id,
             'tanggal' => $tanggal,
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         // Detail with attachment
@@ -513,7 +513,7 @@ describe('rebuildKpiSummaries', function () {
         $logbook = Logbook::factory()->create([
             'user_id' => $staff->id,
             'tanggal' => $tanggal,
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         LogbookKpiDetail::factory()->create([
@@ -545,7 +545,7 @@ describe('syncForLogbook', function () {
             'tanggal' => $tanggal,
             'start_kerja' => '08:00:00',
             'end_kerja' => '17:00:00',
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         LogbookKpiDetail::factory()->create([
@@ -575,7 +575,7 @@ describe('syncForLogbook', function () {
 
         $logbook = Logbook::factory()->create([
             'user_id' => $staff->id,
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         // Clear any summaries created by the observer during factory create
@@ -602,7 +602,7 @@ describe('syncForDetail', function () {
         $logbook = Logbook::factory()->create([
             'user_id' => $staff->id,
             'tanggal' => $tanggal,
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         $detail = LogbookKpiDetail::factory()->create([
@@ -630,7 +630,7 @@ describe('syncForDetail', function () {
         $logbook = Logbook::factory()->create([
             'user_id' => $staff->id,
             'tanggal' => $tanggal,
-            'status' => 'DRAFT',
+            'status' => 'SUBMITTED',
         ]);
 
         $detail = LogbookKpiDetail::factory()->create([

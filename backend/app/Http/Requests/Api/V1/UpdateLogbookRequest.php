@@ -18,6 +18,8 @@ class UpdateLogbookRequest extends FormRequest
             'start_kerja' => ['sometimes', 'date_format:H:i'],
             'end_kerja' => ['sometimes', 'nullable', 'date_format:H:i'],
             'lokasi' => ['sometimes', 'string', 'max:1000'],
+            'lokasi_lat' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
+            'lokasi_lng' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
         ];
     }
 
@@ -28,6 +30,10 @@ class UpdateLogbookRequest extends FormRequest
             'start_kerja.date_format' => 'Jam mulai harus berformat HH:MM.',
             'end_kerja.date_format' => 'Jam selesai harus berformat HH:MM.',
             'lokasi.max' => 'Lokasi maksimal 1000 karakter.',
+            'lokasi_lat.numeric' => 'Latitude harus berupa angka.',
+            'lokasi_lat.between' => 'Latitude harus antara -90 dan 90.',
+            'lokasi_lng.numeric' => 'Longitude harus berupa angka.',
+            'lokasi_lng.between' => 'Longitude harus antara -180 dan 180.',
         ];
     }
 }

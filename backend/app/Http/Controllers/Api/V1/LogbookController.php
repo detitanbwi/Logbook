@@ -41,6 +41,10 @@ class LogbookController extends Controller
             });
         }
 
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+
         if ($search = $request->input('search')) {
             $query->whereHas('user', function ($relation) use ($search): void {
                 $relation->where('nama', 'LIKE', "%{$search}%")
@@ -49,7 +53,7 @@ class LogbookController extends Controller
         }
 
         if ($status = $request->input('status')) {
-            if (in_array($status, ['DRAFT', 'SUBMITTED', 'ACCEPTED', 'REJECTED'], true)) {
+            if (in_array($status, ['SUBMITTED', 'ACCEPTED', 'REJECTED'], true)) {
                 $query->where('status', $status);
             }
         }
@@ -125,7 +129,9 @@ class LogbookController extends Controller
             'start_kerja' => $validated['start_kerja'],
             'end_kerja' => $validated['end_kerja'] ?? null,
             'lokasi' => $validated['lokasi'],
-            'status' => 'DRAFT',
+            'lokasi_lat' => $validated['lokasi_lat'] ?? null,
+            'lokasi_lng' => $validated['lokasi_lng'] ?? null,
+            'status' => 'SUBMITTED',
         ]);
 
         $seenKpiIds = [];
@@ -161,10 +167,10 @@ class LogbookController extends Controller
     }
 
     /**
-     * Update logbook time fields (DRAFT status only)
+     * Update logbook time fields (SUBMITTED or REJECTED status only)
      *
      * Per plan spec section 9.2: PATCH /logbooks/{id}
-     * Allows updating tanggal, start_kerja, end_kerja for DRAFT logbooks.
+     * Allows updating tanggal, start_kerja, end_kerja. Not allowed on ACCEPTED logbooks.
      */
     public function update(UpdateLogbookRequest $request, Logbook $logbook)
     {
@@ -175,8 +181,8 @@ class LogbookController extends Controller
             abort(403);
         }
 
-        if ($logbook->status !== 'DRAFT') {
-            return response()->json(['message' => 'Hanya logbook DRAFT yang dapat diupdate'], 400);
+        if ($logbook->status === 'ACCEPTED') {
+            return response()->json(['message' => 'Logbook yang sudah diterima tidak dapat diupdate'], 400);
         }
 
         $validated = $request->validated();
@@ -225,8 +231,8 @@ class LogbookController extends Controller
             return response()->json(['message' => 'Detail mismatch'], 400);
         }
 
-        if ($logbook->status !== 'DRAFT') {
-            return response()->json(['message' => 'Hanya logbook DRAFT yang dapat diupdate'], 400);
+        if ($logbook->status === 'ACCEPTED') {
+            return response()->json(['message' => 'Logbook yang sudah diterima tidak dapat diupdate'], 400);
         }
 
         $validated = $request->validated();
@@ -260,8 +266,8 @@ class LogbookController extends Controller
             return response()->json(['message' => 'Detail mismatch'], 400);
         }
 
-        if ($logbook->status !== 'DRAFT') {
-            return response()->json(['message' => 'Lampiran hanya bisa diubah pada DRAFT'], 400);
+        if ($logbook->status === 'ACCEPTED') {
+            return response()->json(['message' => 'Lampiran tidak bisa diubah pada logbook yang sudah diterima'], 400);
         }
 
         $validated = $request->validated();
@@ -298,8 +304,8 @@ class LogbookController extends Controller
             return response()->json(['message' => 'Detail mismatch'], 400);
         }
 
-        if ($logbook->status !== 'DRAFT') {
-            return response()->json(['message' => 'Lampiran hanya bisa diubah pada DRAFT'], 400);
+        if ($logbook->status === 'ACCEPTED') {
+            return response()->json(['message' => 'Lampiran tidak bisa diubah pada logbook yang sudah diterima'], 400);
         }
 
         if ($detail->lampiran_file) {
@@ -328,8 +334,8 @@ class LogbookController extends Controller
             abort(403);
         }
 
-        if ($logbook->status !== 'DRAFT') {
-            return response()->json(['message' => 'Hanya logbook DRAFT yang dapat disubmit'], 400);
+        if ($logbook->status === 'ACCEPTED') {
+            return response()->json(['message' => 'Logbook yang sudah diterima tidak dapat disubmit ulang'], 400);
         }
 
         if (! $logbook->end_kerja) {
@@ -383,10 +389,10 @@ class LogbookController extends Controller
     }
 
     /**
-     * Delete a DRAFT logbook.
+     * Delete a logbook (SUBMITTED or REJECTED status only).
      *
      * Per plan spec section 9.3: DELETE /logbooks/{id}
-     * Only owner can delete, and only DRAFT status allowed.
+     * Only owner can delete, not allowed on ACCEPTED logbooks.
      */
     public function destroy(Logbook $logbook)
     {
@@ -397,8 +403,8 @@ class LogbookController extends Controller
             abort(403);
         }
 
-        if ($logbook->status !== 'DRAFT') {
-            return response()->json(['message' => 'Hanya logbook DRAFT yang dapat dihapus'], 400);
+        if ($logbook->status === 'ACCEPTED') {
+            return response()->json(['message' => 'Logbook yang sudah diterima tidak dapat dihapus'], 400);
         }
 
         $logbook->delete();
