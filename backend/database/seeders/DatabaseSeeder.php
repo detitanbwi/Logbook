@@ -16,6 +16,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Password = password
+        // List User
+        // Super Admin 198001012000011001
+        // Admin 198502022005011002
+        // StaffLead 199003032010012003
+        // StaffNormal 199204142012012004
+
         $superAdmin = User::factory()->create([
             "nama" => "Super Admin Sistem",
             "email" => "superadmin@logbook.com",
