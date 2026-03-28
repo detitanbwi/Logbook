@@ -8,6 +8,9 @@ use App\Models\KpiMaster;
 use App\Models\Logbook;
 use App\Models\User;
 use App\Services\DailySummaryService;
+use Laravel\Sanctum\Sanctum;
+
+use function Pest\Laravel\getJson;
 
 it('summary endpoints enforce access and return basic payloads', function () {
     $admin = User::factory()->create(['role' => 'ADMIN']);
@@ -43,30 +46,36 @@ it('summary endpoints enforce access and return basic payloads', function () {
         'total_lampiran' => 1,
     ]);
 
-    $staffDaily = $this->actingAs($staff)->getJson('/api/v1/summaries/daily');
+    Sanctum::actingAs($staff);
+    $staffDaily = getJson('/api/v1/summaries/daily');
     $staffDaily->assertOk()
         ->assertJsonPath('data.0.user_id', $staff->id);
     expect((float) $staffDaily->json('data.0.progress_percent'))->toBe(50.0);
 
-    $managerDaily = $this->actingAs($manager)->getJson('/api/v1/summaries/daily');
+    Sanctum::actingAs($manager);
+    $managerDaily = getJson('/api/v1/summaries/daily');
     $managerDaily->assertOk()->assertJsonPath('data.0.user_id', $staff->id);
 
-    $managerOtherUser = $this->actingAs($manager)->getJson("/api/v1/summaries/daily/{$otherStaff->id}");
+    Sanctum::actingAs($manager);
+    $managerOtherUser = getJson("/api/v1/summaries/daily/{$otherStaff->id}");
     $managerOtherUser->assertForbidden();
 
-    $adminPeriod = $this->actingAs($admin)->getJson('/api/v1/summaries/period?date_from=2026-03-01&date_to=2026-03-31');
+    Sanctum::actingAs($admin);
+    $adminPeriod = getJson('/api/v1/summaries/period?date_from=2026-03-01&date_to=2026-03-31');
     $adminPeriod->assertOk()
         ->assertJsonPath('total_logbooks', 2)
         ->assertJsonPath('target_angka_total', 20)
         ->assertJsonPath('capaian_angka_total', 10)
         ->assertJsonPath('progress_percent', 50);
 
-    $kpiDaily = $this->actingAs($staff)->getJson('/api/v1/summaries/kpi/daily?tanggal=2026-03-19');
+    Sanctum::actingAs($staff);
+    $kpiDaily = getJson('/api/v1/summaries/kpi/daily?tanggal=2026-03-19');
     $kpiDaily->assertOk()
         ->assertJsonPath('data.0.kpi_id', $kpi->id)
         ->assertJsonPath('data.0.total_lampiran', 1);
 
-    $kpiPeriod = $this->actingAs($admin)->getJson('/api/v1/summaries/kpi/period?date_from=2026-03-01&date_to=2026-03-31');
+    Sanctum::actingAs($admin);
+    $kpiPeriod = getJson('/api/v1/summaries/kpi/period?date_from=2026-03-01&date_to=2026-03-31');
     $kpiPeriod->assertOk()
         ->assertJsonPath('items.0.kpi_id', $kpi->id);
     expect((float) $kpiPeriod->json('items.0.progress_percent'))->toBe(50.0);
@@ -104,13 +113,15 @@ it('summary endpoints support date filters and zero-target period fallback', fun
         'progress_percent' => 50,
     ]);
 
-    $filtered = $this->actingAs($manager)->getJson('/api/v1/summaries/daily?date_from=2026-03-15&date_to=2026-03-31');
+    Sanctum::actingAs($manager);
+    $filtered = getJson('/api/v1/summaries/daily?date_from=2026-03-15&date_to=2026-03-31');
     $filtered->assertOk()
         ->assertJsonCount(1, 'data');
 
     expect((string) $filtered->json('data.0.tanggal'))->toStartWith('2026-03-20');
 
-    $period = $this->actingAs($manager)->getJson('/api/v1/summaries/period?date_from=2026-03-10&date_to=2026-03-10');
+    Sanctum::actingAs($manager);
+    $period = getJson('/api/v1/summaries/period?date_from=2026-03-10&date_to=2026-03-10');
     $period->assertOk()
         ->assertJsonPath('target_angka_total', 0)
         ->assertJsonPath('capaian_angka_total', 0)
@@ -121,11 +132,12 @@ it('team daily returns empty data for admin and forbidden for non-manager staff'
     $admin = User::factory()->create(['role' => 'ADMIN']);
     $staff = User::factory()->create(['role' => 'STAFF']);
 
-    $adminResponse = $this->actingAs($admin)->getJson('/api/v1/summaries/team/daily');
+    Sanctum::actingAs($admin);
+    $adminResponse = getJson('/api/v1/summaries/team/daily');
     $adminResponse->assertOk()->assertJsonCount(0, 'data');
 
-    $this->actingAs($staff)
-        ->getJson('/api/v1/summaries/team/daily')
+    Sanctum::actingAs($staff);
+    getJson('/api/v1/summaries/team/daily')
         ->assertForbidden();
 });
 
@@ -327,7 +339,8 @@ it('staff-performance returns total_days_worked, total_work_hours, average_ratin
     });
 
     // Admin can view all staff
-    $response = $this->actingAs($admin)->getJson('/api/v1/summaries/staff-performance?date_from=2026-03-10&date_to=2026-03-12');
+    Sanctum::actingAs($admin);
+    $response = getJson('/api/v1/summaries/staff-performance?date_from=2026-03-10&date_to=2026-03-12');
     $response->assertOk();
 
     $items = $response->json('items');
@@ -389,7 +402,8 @@ it('staff-performance returns null average_rating when no rated logbooks exist',
         'lokasi' => 'office',
     ]);
 
-    $response = $this->actingAs($admin)->getJson('/api/v1/summaries/staff-performance?date_from=2026-03-10&date_to=2026-03-10');
+    Sanctum::actingAs($admin);
+    $response = getJson('/api/v1/summaries/staff-performance?date_from=2026-03-10&date_to=2026-03-10');
     $response->assertOk();
 
     $items = $response->json('items');
@@ -400,8 +414,8 @@ it('staff-performance returns null average_rating when no rated logbooks exist',
 it('staff-performance is forbidden for non-manager staff', function () {
     $staff = User::factory()->create(['role' => 'STAFF']);
 
-    $this->actingAs($staff)
-        ->getJson('/api/v1/summaries/staff-performance')
+    Sanctum::actingAs($staff);
+    getJson('/api/v1/summaries/staff-performance')
         ->assertForbidden();
 });
 
@@ -438,10 +452,58 @@ it('manager can only see their subordinates in staff-performance', function () {
         'progress_percent' => 75,
     ]);
 
-    $response = $this->actingAs($manager)->getJson('/api/v1/summaries/staff-performance?date_from=2026-03-10&date_to=2026-03-10');
+    Sanctum::actingAs($manager);
+    $response = getJson('/api/v1/summaries/staff-performance?date_from=2026-03-10&date_to=2026-03-10');
     $response->assertOk();
 
     $items = $response->json('items');
     expect($items)->toHaveCount(1);
     expect($items[0]['user_id'])->toBe($subordinate->id);
+});
+
+it('kpi-daily honors user_id filter and authorization for manager staff detail flow', function () {
+    $manager = User::factory()->create(['role' => 'STAFF']);
+    $subordinate = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+    $otherStaff = User::factory()->create(['role' => 'STAFF']);
+
+    $kpi = KpiMaster::factory()->create([
+        'nama' => 'KPI Harian Detail',
+        'target_angka' => 10,
+        'satuan' => 'unit',
+    ]);
+
+    DailyKpiSummary::create([
+        'user_id' => $subordinate->id,
+        'kpi_id' => $kpi->id,
+        'tanggal' => '2026-03-28',
+        'kpi_nama' => 'KPI Harian Detail',
+        'satuan' => 'unit',
+        'target_angka_total' => 10,
+        'capaian_angka_total' => 7,
+        'progress_percent' => 70,
+        'total_lampiran' => 1,
+    ]);
+
+    DailyKpiSummary::create([
+        'user_id' => $otherStaff->id,
+        'kpi_id' => $kpi->id,
+        'tanggal' => '2026-03-28',
+        'kpi_nama' => 'KPI Harian Detail',
+        'satuan' => 'unit',
+        'target_angka_total' => 10,
+        'capaian_angka_total' => 9,
+        'progress_percent' => 90,
+        'total_lampiran' => 0,
+    ]);
+
+    Sanctum::actingAs($manager);
+    $managerResponse = getJson("/api/v1/summaries/kpi/daily?user_id={$subordinate->id}&date_from=2026-03-28&date_to=2026-03-28");
+
+    $managerResponse->assertOk();
+    $managerResponse->assertJsonCount(1, 'data');
+    expect($managerResponse->json('data.0.user_id'))->toBe($subordinate->id);
+
+    Sanctum::actingAs($manager);
+    $forbiddenResponse = getJson("/api/v1/summaries/kpi/daily?user_id={$otherStaff->id}&date_from=2026-03-28&date_to=2026-03-28");
+    $forbiddenResponse->assertForbidden();
 });

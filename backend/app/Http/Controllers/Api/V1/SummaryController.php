@@ -130,6 +130,16 @@ class SummaryController extends Controller
 
         $query = DailyKpiSummary::query()->with(['user:id,nama,npp,manager_id', 'kpi:id,nama']);
 
+        if ($request->filled('user_id')) {
+            $targetUser = User::query()->findOrFail($request->input('user_id'));
+
+            if (! $actor->canManageUser($targetUser) && $actor->id !== $targetUser->id) {
+                abort(403);
+            }
+
+            $query->where('user_id', $targetUser->id);
+        }
+
         if ($actor->isStaff() && ! $actor->hasSubordinates()) {
             $query->where('user_id', $actor->id);
         } elseif (! $actor->isPrivileged()) {
