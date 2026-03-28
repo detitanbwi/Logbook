@@ -54,9 +54,18 @@ export const analyticsService = {
 			params
 		});
 
+		const normalizeAverageRating = (value: unknown): number | null => {
+			if (value === null || value === undefined || value === '') return null;
+			const numeric = typeof value === 'number' ? value : Number(value);
+			return Number.isFinite(numeric) ? numeric : null;
+		};
+
 		return {
 			...response,
-			items: response.items.map((item) => normalizeUserIdentity(item))
+			items: response.items.map((item) => ({
+				...normalizeUserIdentity(item),
+				average_rating: normalizeAverageRating(item.average_rating)
+			}))
 		};
 	},
 	getUserKpiAchievements: (userId: string) => api.get<any>(`/users/${userId}/kpi-achievements`),

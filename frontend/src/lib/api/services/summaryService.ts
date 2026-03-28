@@ -52,9 +52,18 @@ export const summaryService = {
 			params: params as Record<string, unknown>
 		});
 
+		const normalizeAverageRating = (value: unknown): number | null => {
+			if (value === null || value === undefined || value === '') return null;
+			const numeric = typeof value === 'number' ? value : Number(value);
+			return Number.isFinite(numeric) ? numeric : null;
+		};
+
 		return {
 			...response,
-			items: response.items.map((item) => normalizeUserIdentity(item))
+			items: response.items.map((item) => ({
+				...normalizeUserIdentity(item),
+				average_rating: normalizeAverageRating(item.average_rating)
+			}))
 		};
 	}
 };

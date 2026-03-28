@@ -1,6 +1,16 @@
 import * as v from 'valibot';
 
 export const AnalyticsDashboardSchema = v.object({
+	total_active_users: v.optional(v.number()),
+	total_logbooks_this_month: v.optional(v.number()),
+	total_logbooks_last_month: v.optional(v.number()),
+	pending_logbooks_count: v.optional(v.number()),
+	logbook_trend: v.optional(v.number()),
+	logbooks_by_day: v.optional(v.array(v.object({ date: v.string(), count: v.number() }))),
+	logbooks_by_status: v.optional(v.array(v.object({ status: v.string(), count: v.number() }))),
+	users_by_role: v.optional(v.array(v.object({ role: v.string(), count: v.number() }))),
+	personal_kpi_completion_rate: v.optional(v.number()),
+	missed_logbooks_count: v.optional(v.number()),
 	total_users: v.optional(v.number()),
 	total_logbooks: v.optional(v.number()),
 	active_kpis: v.optional(v.number()),

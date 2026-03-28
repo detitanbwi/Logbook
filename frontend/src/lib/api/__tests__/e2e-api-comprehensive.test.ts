@@ -35,11 +35,11 @@ describe('Comprehensive E2E API Tests', () => {
 		localStorageMock.clear();
 	});
 
-	describe('1. Admin Tests', () => {
+		describe('1. Admin Tests', () => {
 		beforeAll(async () => {
 			await authService.login({
 				npp: '198001012000011001',
-				password: 'password'
+				password: 'password123'
 			});
 		});
 
@@ -50,9 +50,8 @@ describe('Comprehensive E2E API Tests', () => {
 		it('should get analytics dashboard for admin', async () => {
 			const res = await analyticsService.getAdminDashboard();
 			expect(res).toBeDefined();
-			// Type definition just has total_users, total_logbooks
-			if (res && 'total_users' in res) {
-				expect(res).toHaveProperty('total_users');
+			if (res && 'total_active_users' in res) {
+				expect(res).toHaveProperty('total_active_users');
 			}
 		});
 
@@ -91,11 +90,11 @@ describe('Comprehensive E2E API Tests', () => {
 		});
 	});
 
-	describe('2. Manager Tests', () => {
+		describe('2. Manager Tests', () => {
 		beforeAll(async () => {
 			await authService.login({
 				npp: '198502022005011002', // Typically a manager
-				password: 'password'
+				password: 'password123'
 			});
 		});
 
@@ -115,22 +114,12 @@ describe('Comprehensive E2E API Tests', () => {
 		});
 
 		it('should read notifications', async () => {
-			try {
-				const res = (await notificationService.getNotifications()) as any;
-				const notifications = Array.isArray(res) ? res : res.data;
-				expect(Array.isArray(notifications)).toBe(true);
+			const res = (await notificationService.getNotifications()) as any;
+			const notifications = Array.isArray(res) ? res : res.data;
+			expect(Array.isArray(notifications)).toBe(true);
 
-				// Try reading all notifications
-				const readRes = await notificationService.readAll();
-				expect(readRes).toBeDefined();
-			} catch (err: any) {
-				// Backend is throwing SQL error about deleted_at, ignore for now
-				if (err?.message?.includes('SQLSTATE') || err?.message?.includes('deleted_at')) {
-					console.warn('Backend issue with notifications.deleted_at skipped');
-					return;
-				}
-				throw err;
-			}
+			const readRes = await notificationService.readAll();
+			expect(readRes).toBeDefined();
 		});
 	});
 
@@ -142,7 +131,7 @@ describe('Comprehensive E2E API Tests', () => {
 		beforeAll(async () => {
 			await authService.login({
 				npp: '199003032010012003', // Typically a staff
-				password: 'password'
+				password: 'password123'
 			});
 		});
 

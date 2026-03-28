@@ -36,7 +36,7 @@ describe('E2E API Tests', () => {
 			// Login
 			const loginRes = await authService.login({
 				npp: '198001012000011001',
-				password: 'password'
+				password: 'password123'
 			});
 			const token = loginRes.token || (loginRes as any).access_token;
 			expect(token).toBeDefined();
@@ -62,7 +62,7 @@ describe('E2E API Tests', () => {
 			// Login Staff
 			await authService.login({
 				npp: '199003032010012003',
-				password: 'password'
+				password: 'password123'
 			});
 
 			// Cleanup existing logbook for today if needed (Optional: E2E might be fresh or we might reuse)
@@ -100,7 +100,7 @@ describe('E2E API Tests', () => {
 		}
 
 			// Submit Logbook
-		if (logbook.status === 'SUBMITTED') {
+		if (logbook.status !== 'SUBMITTED') {
 			const submitRes = await staffLogbookService.submitLogbook(logbookId);
 			expect(submitRes).toBeDefined();
 		}
@@ -112,7 +112,7 @@ describe('E2E API Tests', () => {
 			// Login Manager
 			await authService.login({
 				npp: '198502022005011002',
-				password: 'password'
+				password: 'password123'
 			});
 
 		if (!logbookId) {

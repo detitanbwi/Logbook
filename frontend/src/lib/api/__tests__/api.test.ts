@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('$env/dynamic/public', () => ({ env: { PUBLIC_API_URL: 'http://localhost:8000/api' } }));
+vi.mock('$env/dynamic/public', () => ({ env: { PUBLIC_API_URL: 'http://localhost:8000/api/v1' } }));
 
 import {
 	authService,
@@ -14,10 +14,30 @@ import {
 	kpiService
 } from '../index';
 
+const localStorageMock = (() => {
+	let store: Record<string, string> = {};
+	return {
+		getItem: (key: string) => store[key] || null,
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
+		},
+		removeItem: (key: string) => {
+			delete store[key];
+		},
+		clear: () => {
+			store = {};
+		}
+	};
+})();
+
+Object.defineProperty(global, 'window', { value: { localStorage: localStorageMock } });
+Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+
 describe('API Services Integration', () => {
 	beforeEach(() => {
 		// Mock global fetch
 		global.fetch = vi.fn();
+		localStorageMock.clear();
 		api.clearToken();
 	});
 
@@ -91,7 +111,10 @@ describe('API Services Integration', () => {
 		});
 
 		it('should call updateProfile JSON path with canonical nama and email', async () => {
-			const mockResponse = { id: 'user-1', name: 'Updated User', nip: '198001', email: 'updated@example.com' };
+			const mockResponse = {
+				message: 'Profile updated',
+				data: { id: 'user-1', name: 'Updated User', nip: '198001', email: 'updated@example.com' }
+			};
 			(global.fetch as any).mockResolvedValueOnce({
 				ok: true,
 				status: 200,
@@ -124,7 +147,10 @@ describe('API Services Integration', () => {
 		});
 
 		it('should call updateProfile FormData path without forcing JSON content-type', async () => {
-			const mockResponse = { id: 'user-1', name: 'Updated User', nip: '198001', foto: '/uploads/foto.jpg' };
+			const mockResponse = {
+				message: 'Profile updated',
+				data: { id: 'user-1', name: 'Updated User', nip: '198001', foto: '/uploads/foto.jpg' }
+			};
 			(global.fetch as any).mockResolvedValueOnce({
 				ok: true,
 				status: 200,
@@ -141,10 +167,11 @@ describe('API Services Integration', () => {
 			expect(call[0] as string).toContain('/auth/profile');
 			expect(call[1]).toEqual(
 				expect.objectContaining({
-					method: 'PUT',
+					method: 'POST',
 					body: formData
 				})
 			);
+			expect(formData.get('_method')).toBe('PUT');
 
 			const headers = new Headers((call[1] as any)?.headers);
 			expect(headers.has('Content-Type')).toBe(false);
@@ -162,7 +189,19 @@ describe('API Services Integration', () => {
 
 	describe('staffLogbookService', () => {
 		it('should call getLogbooks endpoint', async () => {
-			const mockResponse = [{ id: '1' }, { id: '2' }];
+			const mockResponse = {
+				data: [{ id: '1' }, { id: '2' }],
+				meta: {
+					current_page: 1,
+					from: 1,
+					last_page: 1,
+					per_page: 15,
+					to: 2,
+					total: 2,
+					links: [],
+					path: 'http://localhost:8000/api/v1/logbooks'
+				}
+			};
 			(global.fetch as any).mockResolvedValueOnce({
 				ok: true,
 				status: 200,
@@ -470,7 +509,11 @@ describe('API Services Integration', () => {
 		});
 
 		it('should call create endpoint with Admin role payload', async () => {
-			(global.fetch as any).mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ id: 'admin-1' }) });
+			(global.fetch as any).mockResolvedValueOnce({
+				ok: true,
+				status: 201,
+				json: async () => ({ data: { id: 'admin-1', nama: 'Admin Satu', npp: '198001010001' } })
+			});
 
 			await usersService.create({
 				nama: 'Admin Satu',
@@ -491,7 +534,11 @@ describe('API Services Integration', () => {
 		});
 
 		it('should call update endpoint with Admin role payload', async () => {
-			(global.fetch as any).mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 'admin-1' }) });
+			(global.fetch as any).mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				json: async () => ({ data: { id: 'admin-1', nama: 'Admin Updated', npp: '198001010002' } })
+			});
 
 			await usersService.update('admin-1', {
 				nama: 'Admin Updated',
