@@ -6,6 +6,11 @@
 	import { staffLogbookService } from '$lib/api/services/staffLogbookService';
 	import type { DailyKpiSummary, DailyStaffSummary, Logbook } from '$lib/types';
 
+	function normalizeDateKey(dateString: string | null | undefined): string {
+		if (!dateString) return '';
+		return dateString.split('T')[0];
+	}
+
 	interface StaffInfo {
 		user_id: string;
 		nama: string;
@@ -37,7 +42,9 @@
 	let detailRequestId = 0;
 
 	const selectedSummary = $derived(
-		selectedDate ? dailySummaries.find((summary) => summary.tanggal === selectedDate) ?? null : null
+		selectedDate
+			? dailySummaries.find((summary) => normalizeDateKey(summary.tanggal) === selectedDate) ?? null
+			: null
 	);
 
 	const selectedDayKpis = $derived(selectedDate ? dailyKpisMap[selectedDate] ?? [] : []);
@@ -119,7 +126,9 @@
 				return;
 			}
 
-			dailySummaries = [...dailySummaryData].sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+			dailySummaries = [...dailySummaryData].sort((a, b) =>
+				normalizeDateKey(b.tanggal).localeCompare(normalizeDateKey(a.tanggal))
+			);
 			dailyKpisMap = groupKpisByDate(dailyKpiData);
 			dailyLogbooksMap = groupLogbooksByDate(dailyLogbookData);
 		} catch (e: unknown) {
@@ -153,22 +162,30 @@
 
 	function groupKpisByDate(items: DailyKpiSummary[]) {
 		return items.reduce<Record<string, DailyKpiSummary[]>>((acc, item) => {
-			if (!acc[item.tanggal]) acc[item.tanggal] = [];
-			acc[item.tanggal].push(item);
+			const dateKey = normalizeDateKey(item.tanggal);
+			if (!dateKey) {
+				return acc;
+			}
+			if (!acc[dateKey]) acc[dateKey] = [];
+			acc[dateKey].push(item);
 			return acc;
 		}, {});
 	}
 
 	function groupLogbooksByDate(items: Logbook[]) {
 		return items.reduce<Record<string, Logbook[]>>((acc, item) => {
-			if (!acc[item.tanggal]) acc[item.tanggal] = [];
-			acc[item.tanggal].push(item);
+			const dateKey = normalizeDateKey(item.tanggal);
+			if (!dateKey) {
+				return acc;
+			}
+			if (!acc[dateKey]) acc[dateKey] = [];
+			acc[dateKey].push(item);
 			return acc;
 		}, {});
 	}
 
 	function openDailyDetail(dateKey: string) {
-		selectedDate = dateKey;
+		selectedDate = normalizeDateKey(dateKey);
 		view = 'detail';
 		expandedLogbookId = null;
 		expandedLogbook = null;
@@ -211,7 +228,7 @@
 
 	function formatDate(dateString: string): string {
 		if (!dateString) return '-';
-		return new Date(dateString).toLocaleDateString('id-ID', {
+		return new Date(normalizeDateKey(dateString)).toLocaleDateString('id-ID', {
 			day: 'numeric',
 			month: 'short',
 			year: 'numeric'
@@ -235,7 +252,7 @@
 	function getAverageKpiPercentForDate(dateKey: string): number {
 		const validKpis = (dailyKpisMap[dateKey] ?? []).filter((kpi) => kpi.target_angka_total > 0);
 		if (validKpis.length === 0) {
-			return dailySummaries.find((summary) => summary.tanggal === dateKey)?.progress_percent ?? 0;
+			return dailySummaries.find((summary) => normalizeDateKey(summary.tanggal) === dateKey)?.progress_percent ?? 0;
 		}
 
 		const totalPercent = validKpis.reduce((sum, kpi) => {

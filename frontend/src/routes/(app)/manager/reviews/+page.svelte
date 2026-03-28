@@ -27,7 +27,9 @@
 	let dateFrom = $derived.by(() => $page.url.searchParams.get('date_from') || '');
 	let dateTo = $derived.by(() => $page.url.searchParams.get('date_to') || '');
 	let sortBy = $derived.by(() => $page.url.searchParams.get('sort_by') || 'created_at');
-	let sortDir = $derived.by(() => ($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc');
+	let sortDir = $derived.by(
+		() => ($page.url.searchParams.get('sort_dir') as 'asc' | 'desc') || 'desc'
+	);
 
 	function updateUrl(params: Record<string, string>) {
 		const url = new URL($page.url);
@@ -87,10 +89,10 @@
 		if (!selectedLogbook || !reviewerComment.trim()) return;
 		isSubmitting = true;
 		try {
-			await managerLogbookService.reviewLogbook(selectedLogbook.id, { 
-				decision, 
-				rating, 
-				reviewer_comment: reviewerComment 
+			await managerLogbookService.reviewLogbook(selectedLogbook.id, {
+				decision,
+				rating,
+				reviewer_comment: reviewerComment
 			});
 			isModalOpen = false;
 			await fetchPendingReviews();
@@ -100,7 +102,6 @@
 			isSubmitting = false;
 		}
 	}
-
 </script>
 
 <svelte:head>
@@ -163,7 +164,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each Array(5) as _}
+							{#each Array(5) as _ (_)}
 								<tr>
 									<td>
 										<div class="h-4 w-24 animate-pulse rounded bg-base-300"></div>
@@ -221,12 +222,22 @@
 											})}
 										</td>
 										<td>
-										<div class="font-medium">{log.user?.nama ?? log.user?.name ?? 'Unknown User'}</div>
+											<div class="font-medium">
+												{log.user?.nama ?? log.user?.name ?? 'Unknown User'}
+											</div>
 											<div class="text-xs opacity-70">{log.user?.role || 'Staff'}</div>
 										</td>
 										<td>
 											{#if Array.isArray(log.details) && log.details.length > 0}
-												{log.details.reduce((acc: number, d: Record<string, unknown>) => acc + (Number(d.capaian_angka) || 0), 0)} / {log.details.reduce((acc: number, d: Record<string, unknown>) => acc + (Number(d.target_angka) || 0), 0)}
+												{log.details.reduce(
+													(acc: number, d: Record<string, unknown>) =>
+														acc + (Number(d.capaian_angka) || 0),
+													0
+												)} / {log.details.reduce(
+													(acc: number, d: Record<string, unknown>) =>
+														acc + (Number(d.target_angka) || 0),
+													0
+												)}
 											{:else}
 												-
 											{/if}
@@ -261,7 +272,9 @@
 		<div class="flex flex-col gap-4">
 			<div class="flex items-center justify-between">
 				<div>
-					<div class="font-semibold">{selectedLogbook.user?.nama ?? selectedLogbook.user?.name ?? 'Staff'}</div>
+					<div class="font-semibold">
+						{selectedLogbook.user?.nama ?? selectedLogbook.user?.name ?? 'Staff'}
+					</div>
 					<div class="text-sm text-base-content/70">
 						{new Date(selectedLogbook.created_at || selectedLogbook.tanggal).toLocaleDateString(
 							'id-ID',
@@ -284,11 +297,18 @@
 				{#if Array.isArray(selectedLogbook.details) && selectedLogbook.details.length > 0}
 					<ul class="list-none space-y-3">
 						{#each selectedLogbook.details as kpi}
-							<li class="flex flex-col gap-1 rounded-lg border border-base-200 bg-base-50 p-3">
+							<li class="bg-base-50 flex flex-col gap-1 rounded-lg border border-base-200 p-3">
 								<div class="font-medium">{kpi.kpi?.nama || 'Tugas tanpa nama'}</div>
 								<div class="flex items-center gap-2 text-sm text-base-content/70">
-									<progress class="progress progress-primary w-24" value={kpi.capaian_angka || 0} max={kpi.target_angka || 1}></progress>
-									<span>{kpi.capaian_angka || 0} / {kpi.target_angka || 0} {kpi.kpi?.satuan || ''}</span>
+									<progress
+										class="progress w-24 progress-primary"
+										value={kpi.capaian_angka || 0}
+										max={kpi.target_angka || 1}
+									></progress>
+									<span
+										>{kpi.capaian_angka || 0} / {kpi.target_angka || 0}
+										{kpi.kpi?.satuan || ''}</span
+									>
 								</div>
 							</li>
 						{/each}
@@ -309,60 +329,90 @@
 
 			<div class="divider my-0"></div>
 
-				<div>
-					<h4 class="mb-2 font-semibold">Beri Penilaian</h4>
-					
-					<div class="form-control w-full mb-4">
-						<label class="label">
-							<span class="label-text font-medium">Keputusan</span>
-						</label>
-						<div class="flex gap-4">
-							<label class="label cursor-pointer gap-2">
-								<input type="radio" name="decision" class="radio radio-success" value="ACCEPTED" bind:group={decision} />
-								<span class="label-text">Terima (Accept)</span>
-							</label>
-							<label class="label cursor-pointer gap-2">
-								<input type="radio" name="decision" class="radio radio-error" value="REJECTED" bind:group={decision} />
-								<span class="label-text">Tolak (Reject)</span>
-							</label>
-						</div>
-					</div>
+			<div>
+				<h4 class="mb-2 font-semibold">Beri Penilaian</h4>
 
-					<div class="form-control w-full mb-4">
-						<label class="label">
-							<span class="label-text font-medium">Rating</span>
+				<div class="form-control mb-4 w-full">
+					<label class="label" for="review-decision-group">
+						<span class="label-text font-medium">Keputusan</span>
+					</label>
+					<div
+						id="review-decision-group"
+						class="flex gap-4"
+						role="group"
+						aria-label="Keputusan review"
+					>
+						<label class="label cursor-pointer gap-2">
+							<input
+								type="radio"
+								name="decision"
+								class="radio radio-success"
+								value="ACCEPTED"
+								bind:group={decision}
+							/>
+							<span class="label-text">Terima (Accept)</span>
 						</label>
-						<div class="rating-lg rating">
-							{#each [1, 2, 3, 4, 5] as r}
-								<input
-									type="radio"
-									name="rating-2"
-									class="mask mask-star-2 {r <= 2 ? 'bg-error' : r === 3 ? 'bg-warning' : 'bg-success'}"
-									value={r}
-									bind:group={rating}
-								/>
-							{/each}
-						</div>
-						<p class="mt-1 text-sm text-base-content/70">{rating} Bintang</p>
-					</div>
-
-					<div class="form-control w-full">
-						<label class="label" for="reviewerComment">
-							<span class="label-text font-medium">Komentar <span class="text-error">*</span></span>
+						<label class="label cursor-pointer gap-2">
+							<input
+								type="radio"
+								name="decision"
+								class="radio radio-error"
+								value="REJECTED"
+								bind:group={decision}
+							/>
+							<span class="label-text">Tolak (Reject)</span>
 						</label>
-						<textarea
-							id="reviewerComment"
-							class="textarea textarea-bordered h-24"
-							placeholder="Berikan komentar penilaian..."
-							bind:value={reviewerComment}
-						></textarea>
 					</div>
 				</div>
+
+				<div class="form-control mb-4 w-full">
+					<label class="label" for="review-rating-group">
+						<span class="label-text font-medium">Rating</span>
+					</label>
+					<div
+						id="review-rating-group"
+						class="rating-lg rating"
+						role="group"
+						aria-label="Rating review"
+					>
+						{#each [1, 2, 3, 4, 5] as r}
+							<input
+								type="radio"
+								name="rating-2"
+								class="mask mask-star-2 {r <= 2
+									? 'bg-error'
+									: r === 3
+										? 'bg-warning'
+										: 'bg-success'}"
+								value={r}
+								bind:group={rating}
+							/>
+						{/each}
+					</div>
+					<p class="mt-1 text-sm text-base-content/70">{rating} Bintang</p>
+				</div>
+
+				<div class="form-control w-full">
+					<label class="label" for="reviewerComment">
+						<span class="label-text font-medium">Komentar <span class="text-error">*</span></span>
+					</label>
+					<textarea
+						id="reviewerComment"
+						class="textarea-bordered textarea h-24"
+						placeholder="Berikan komentar penilaian..."
+						bind:value={reviewerComment}
+					></textarea>
+				</div>
+			</div>
 		</div>
 	{/if}
 
 	{#snippet actions()}
-		<button class="btn btn-success" onclick={submitReview} disabled={isSubmitting || !reviewerComment.trim()}>
+		<button
+			class="btn btn-success"
+			onclick={submitReview}
+			disabled={isSubmitting || !reviewerComment.trim()}
+		>
 			Simpan Penilaian
 		</button>
 	{/snippet}

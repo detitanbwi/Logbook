@@ -7,10 +7,20 @@
 	import KpiProgressBar from '$lib/components/mobile/KpiProgressBar.svelte';
 	import type { DailyKpiSummary, DailyStaffSummary, Logbook } from '$lib/types';
 
+	function toLocalDateInputValue(date: Date): string {
+		const timezoneOffsetMs = date.getTimezoneOffset() * 60_000;
+		return new Date(date.getTime() - timezoneOffsetMs).toISOString().split('T')[0];
+	}
+
+	function normalizeDateKey(dateString: string | null | undefined): string {
+		if (!dateString) return '';
+		return dateString.split('T')[0];
+	}
+
 	const today = new Date();
-	const defaultDateTo = today.toISOString().slice(0, 10);
+	const defaultDateTo = toLocalDateInputValue(today);
 	const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-	const defaultDateFrom = startOfMonth.toISOString().slice(0, 10);
+	const defaultDateFrom = toLocalDateInputValue(startOfMonth);
 
 	let userId = $derived.by(() => {
 		const params = $page.params as Record<string, string>;
@@ -36,7 +46,9 @@
 	let detailRequestId = 0;
 
 	const selectedSummary = $derived.by(() =>
-		selectedDate ? dailySummaries.find((summary) => summary.tanggal === selectedDate) ?? null : null
+		selectedDate
+			? dailySummaries.find((summary) => normalizeDateKey(summary.tanggal) === selectedDate) ?? null
+			: null
 	);
 	const selectedDayKpis = $derived.by(() => (selectedDate ? dailyKpisMap[selectedDate] ?? [] : []));
 	const selectedDayLogbooks = $derived.by(() =>
@@ -99,16 +111,24 @@
 
 	function groupKpisByDate(items: DailyKpiSummary[]) {
 		return items.reduce<Record<string, DailyKpiSummary[]>>((acc, item) => {
-			if (!acc[item.tanggal]) acc[item.tanggal] = [];
-			acc[item.tanggal].push(item);
+			const dateKey = normalizeDateKey(item.tanggal);
+			if (!dateKey) {
+				return acc;
+			}
+			if (!acc[dateKey]) acc[dateKey] = [];
+			acc[dateKey].push(item);
 			return acc;
 		}, {});
 	}
 
 	function groupLogbooksByDate(items: Logbook[]) {
 		return items.reduce<Record<string, Logbook[]>>((acc, item) => {
-			if (!acc[item.tanggal]) acc[item.tanggal] = [];
-			acc[item.tanggal].push(item);
+			const dateKey = normalizeDateKey(item.tanggal);
+			if (!dateKey) {
+				return acc;
+			}
+			if (!acc[dateKey]) acc[dateKey] = [];
+			acc[dateKey].push(item);
 			return acc;
 		}, {});
 	}
@@ -153,14 +173,16 @@
 				)
 			]);
 
-			dailySummaries = [...dailySummaryData].sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+			dailySummaries = [...dailySummaryData].sort((a, b) =>
+				normalizeDateKey(b.tanggal).localeCompare(normalizeDateKey(a.tanggal))
+			);
 			dailyKpisMap = groupKpisByDate(dailyKpiData);
 			dailyLogbooksMap = groupLogbooksByDate(dailyLogbookData);
 
 			if (dailySummaries.length === 0) {
 				selectedDate = null;
-			} else if (!selectedDate || !dailySummaries.some((summary) => summary.tanggal === selectedDate)) {
-				selectedDate = dailySummaries[0].tanggal;
+			} else if (!selectedDate || !dailySummaries.some((summary) => normalizeDateKey(summary.tanggal) === selectedDate)) {
+				selectedDate = normalizeDateKey(dailySummaries[0].tanggal);
 			}
 		} catch (e: unknown) {
 			error = e instanceof Error ? e.message : 'Gagal memuat data detail staff';
@@ -200,7 +222,7 @@
 
 	function formatDate(dateString: string): string {
 		if (!dateString) return '-';
-		return new Date(dateString).toLocaleDateString('id-ID', {
+		return new Date(normalizeDateKey(dateString)).toLocaleDateString('id-ID', {
 			day: 'numeric',
 			month: 'short',
 			year: 'numeric'
@@ -315,9 +337,9 @@
 		{#each dailySummaries as summary (summary.id)}
 			<button
 				type="button"
-				class="btn btn-sm {selectedDate === summary.tanggal ? 'btn-primary' : 'btn-outline'}"
+				class="btn btn-sm {selectedDate === normalizeDateKey(summary.tanggal) ? 'btn-primary' : 'btn-outline'}"
 				onclick={() => {
-					selectedDate = summary.tanggal;
+					selectedDate = normalizeDateKey(summary.tanggal);
 					expandedLogbookId = null;
 					expandedLogbook = null;
 				}}

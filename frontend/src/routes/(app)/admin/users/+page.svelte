@@ -144,6 +144,14 @@
 		}
 	}
 
+	function pendidikanFieldId(index: number, field: 'institusi' | 'jurusan' | 'tahun_lulus'): string {
+		return `pendidikan-${index}-${field}`;
+	}
+
+	function karirFieldId(index: number, field: 'perusahaan' | 'posisi' | 'tahun_mulai' | 'tahun_selesai'): string {
+		return `karir-${index}-${field}`;
+	}
+
 	$effect(() => {
 		loading = true;
 		error = null;
@@ -629,16 +637,16 @@
 									<button type="button" class="btn btn-circle btn-xs btn-error absolute top-2 right-2" onclick={() => removePendidikan(idx)}>✕</button>
 									<div class="grid grid-cols-1 md:grid-cols-3 gap-2">
 										<div class="form-control">
-											<label class="label py-1"><span class="label-text text-xs">Institusi</span></label>
-											<input type="text" class="input input-sm input-bordered w-full" bind:value={pend.institusi} />
+											<label class="label py-1" for={pendidikanFieldId(idx, 'institusi')}><span class="label-text text-xs">Institusi</span></label>
+											<input id={pendidikanFieldId(idx, 'institusi')} type="text" class="input input-sm input-bordered w-full" bind:value={pend.institusi} />
 										</div>
 										<div class="form-control">
-											<label class="label py-1"><span class="label-text text-xs">Jurusan</span></label>
-											<input type="text" class="input input-sm input-bordered w-full" bind:value={pend.jurusan} />
+											<label class="label py-1" for={pendidikanFieldId(idx, 'jurusan')}><span class="label-text text-xs">Jurusan</span></label>
+											<input id={pendidikanFieldId(idx, 'jurusan')} type="text" class="input input-sm input-bordered w-full" bind:value={pend.jurusan} />
 										</div>
 										<div class="form-control">
-											<label class="label py-1"><span class="label-text text-xs">Tahun Lulus</span></label>
-											<input type="text" class="input input-sm input-bordered w-full" bind:value={pend.tahun_lulus} />
+											<label class="label py-1" for={pendidikanFieldId(idx, 'tahun_lulus')}><span class="label-text text-xs">Tahun Lulus</span></label>
+											<input id={pendidikanFieldId(idx, 'tahun_lulus')} type="text" class="input input-sm input-bordered w-full" bind:value={pend.tahun_lulus} />
 										</div>
 									</div>
 								</div>
@@ -664,20 +672,20 @@
 									<button type="button" class="btn btn-circle btn-xs btn-error absolute top-2 right-2" onclick={() => removeKarir(idx)}>✕</button>
 									<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
 										<div class="form-control">
-											<label class="label py-1"><span class="label-text text-xs">Perusahaan</span></label>
-											<input type="text" class="input input-sm input-bordered w-full" bind:value={karir.perusahaan} />
+											<label class="label py-1" for={karirFieldId(idx, 'perusahaan')}><span class="label-text text-xs">Perusahaan</span></label>
+											<input id={karirFieldId(idx, 'perusahaan')} type="text" class="input input-sm input-bordered w-full" bind:value={karir.perusahaan} />
 										</div>
 										<div class="form-control">
-											<label class="label py-1"><span class="label-text text-xs">Posisi</span></label>
-											<input type="text" class="input input-sm input-bordered w-full" bind:value={karir.posisi} />
+											<label class="label py-1" for={karirFieldId(idx, 'posisi')}><span class="label-text text-xs">Posisi</span></label>
+											<input id={karirFieldId(idx, 'posisi')} type="text" class="input input-sm input-bordered w-full" bind:value={karir.posisi} />
 										</div>
 										<div class="form-control">
-											<label class="label py-1"><span class="label-text text-xs">Mulai</span></label>
-											<input type="text" class="input input-sm input-bordered w-full" bind:value={karir.tahun_mulai} placeholder="YYYY" />
+											<label class="label py-1" for={karirFieldId(idx, 'tahun_mulai')}><span class="label-text text-xs">Mulai</span></label>
+											<input id={karirFieldId(idx, 'tahun_mulai')} type="text" class="input input-sm input-bordered w-full" bind:value={karir.tahun_mulai} placeholder="YYYY" />
 										</div>
 										<div class="form-control">
-											<label class="label py-1"><span class="label-text text-xs">Selesai</span></label>
-											<input type="text" class="input input-sm input-bordered w-full" bind:value={karir.tahun_selesai} placeholder="YYYY / Sekarang" />
+											<label class="label py-1" for={karirFieldId(idx, 'tahun_selesai')}><span class="label-text text-xs">Selesai</span></label>
+											<input id={karirFieldId(idx, 'tahun_selesai')} type="text" class="input input-sm input-bordered w-full" bind:value={karir.tahun_selesai} placeholder="YYYY / Sekarang" />
 										</div>
 									</div>
 								</div>
@@ -703,9 +711,9 @@
 				</div>
 				
 				<div class="form-control w-full max-w-xs mt-4">
-					<label class="label"><span class="label-text">Upload Foto Baru (WebP/JPG/PNG)</span></label>
-					<input type="file" class="file-input file-input-bordered w-full" accept="image/jpeg,image/png,image/webp" onchange={handlePhotoChange} />
-					<label class="label"><span class="label-text-alt text-base-content/60">Foto akan otomatis dikompres ke WebP.</span></label>
+					<label class="label" for="user-photo-upload"><span class="label-text">Upload Foto Baru (WebP/JPG/PNG)</span></label>
+					<input id="user-photo-upload" type="file" class="file-input file-input-bordered w-full" accept="image/jpeg,image/png,image/webp" onchange={handlePhotoChange} />
+					<p class="label-text-alt text-base-content/60 mt-1">Foto akan otomatis dikompres ke WebP.</p>
 				</div>
 			</div>
 		{/if}
