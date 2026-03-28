@@ -13,17 +13,28 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name');
+            $table->string('nama');
             $table->string('email')->unique();
-            $table->string('nip')->unique()->nullable();
+            $table->string('npp')->unique()->nullable();
             $table->string('role')->default('Staff');
             $table->uuid('manager_id')->nullable();
             $table->timestamp('last_password_change')->nullable();
+            $table->string('foto')->nullable();
+            $table->string('tempat_lahir')->nullable();
+            $table->date('tanggal_lahir')->nullable();
+            $table->string('nik')->nullable();
+            $table->string('npwp')->nullable();
+            $table->text('alamat')->nullable();
+            $table->string('status_kawin')->nullable();
+            $table->json('riwayat_pendidikan')->nullable();
+            $table->json('riwayat_karir')->nullable();
             $table->softDeletes();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
+
+            $table->index(['role', 'manager_id'], 'users_role_manager_idx');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

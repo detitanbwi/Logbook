@@ -15,8 +15,8 @@
 	const statusOptions = [
 		{ label: 'Draft', value: 'DRAFT' },
 		{ label: 'Submitted', value: 'SUBMITTED' },
-		{ label: 'Reviewed', value: 'REVIEWED' },
-		{ label: 'Reverted', value: 'REVERTED' }
+		{ label: 'Accepted', value: 'ACCEPTED' },
+		{ label: 'Rejected', value: 'REJECTED' }
 	];
 
 	let logbooks = $state<any[]>([]);
@@ -41,6 +41,8 @@
 	let reviewModalOpen = $state(false);
 	let selectedLogbook = $state<any | null>(null);
 	let selectedRating = $state(5);
+	let selectedDecision = $state<'ACCEPTED' | 'REJECTED'>('ACCEPTED');
+	let reviewerComment = $state('');
 	let reviewing = $state(false);
 
 	let revertDialogOpen = $state(false);
@@ -177,9 +179,9 @@
 		switch (logbookStatus) {
 			case 'SUBMITTED':
 				return 'badge-warning';
-			case 'REVIEWED':
+			case 'ACCEPTED':
 				return 'badge-success';
-			case 'REVERTED':
+			case 'REJECTED':
 				return 'badge-error';
 			default:
 				return 'badge-ghost';
@@ -189,19 +191,31 @@
 	function openReview(logbook: any) {
 		selectedLogbook = logbook;
 		selectedRating = getRating(logbook) ?? 5;
+		selectedDecision = 'ACCEPTED';
+		reviewerComment = '';
 		reviewModalOpen = true;
 	}
 
 	async function submitReview() {
 		if (!selectedLogbook?.id) return;
+		if (!reviewerComment.trim()) {
+			toastStore.error('Komentar reviewer wajib diisi.');
+			return;
+		}
 
 		reviewing = true;
 		try {
 			await managerLogbookService.reviewLogbook(String(selectedLogbook.id), {
-				rating: Number(selectedRating)
+				decision: selectedDecision,
+				rating: Number(selectedRating),
+				reviewer_comment: reviewerComment.trim()
 			});
 
-			toastStore.success('Review logbook berhasil disimpan.');
+			toastStore.success(
+				selectedDecision === 'ACCEPTED'
+					? 'Logbook berhasil disetujui.'
+					: 'Logbook berhasil ditolak.'
+			);
 			reviewModalOpen = false;
 			selectedLogbook = null;
 			refreshData();
@@ -223,7 +237,7 @@
 
 		reverting = true;
 		try {
-			await managerLogbookService.revertLogbook(revertingLogbookId);
+			await managerLogbookService.revertLogbook(revertingLogbookId, { reason: 'Reverted by admin' });
 			toastStore.success('Logbook berhasil direvert.');
 			refreshData();
 		} catch (revertError) {
@@ -370,6 +384,16 @@
 			</div>
 
 			<div class="form-control">
+				<label class="label" for="decision-select">
+					<span class="label-text font-medium">Keputusan</span>
+				</label>
+				<select id="decision-select" class="select-bordered select w-full" bind:value={selectedDecision}>
+					<option value="ACCEPTED">Setujui (Accepted)</option>
+					<option value="REJECTED">Tolak (Rejected)</option>
+				</select>
+			</div>
+
+			<div class="form-control">
 				<label class="label" for="rating-select">
 					<span class="label-text font-medium">Rating</span>
 				</label>
@@ -379,12 +403,28 @@
 					{/each}
 				</select>
 			</div>
+
+			<div class="form-control">
+				<label class="label" for="reviewer-comment">
+					<span class="label-text font-medium">Komentar / Catatan <span class="text-error">*</span></span>
+				</label>
+				<textarea
+					id="reviewer-comment"
+					class="textarea textarea-bordered h-24 w-full"
+					placeholder="Berikan catatan atas capaian logbook ini..."
+					bind:value={reviewerComment}
+				></textarea>
+			</div>
 		{/if}
 	</div>
 
 	{#snippet actions()}
-		<button class="btn btn-primary" onclick={submitReview} disabled={reviewing}>
-			{reviewing ? 'Menyimpan...' : 'Simpan Review'}
+		<button
+			class="btn {selectedDecision === 'REJECTED' ? 'btn-error' : 'btn-primary'}"
+			onclick={submitReview}
+			disabled={reviewing}
+		>
+			{reviewing ? 'Menyimpan...' : selectedDecision === 'REJECTED' ? 'Tolak Logbook' : 'Setujui Logbook'}
 		</button>
 	{/snippet}
 </Modal>

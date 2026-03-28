@@ -11,13 +11,23 @@
 	let isSidebarOpen = $state(false);
 
 	$effect(() => {
-		if (!auth.isAuthenticated) {
+		if (!auth.isInitialized && auth.isAuthenticated) {
+			auth.fetchMe().catch(() => {});
+		}
+	});
+
+	$effect(() => {
+		if (auth.isInitialized && !auth.isAuthenticated) {
 			goto('/login');
 		}
 	});
 </script>
 
-{#if auth.isAuthenticated}
+{#if !auth.isInitialized}
+	<div class="flex min-h-screen items-center justify-center bg-base-200">
+		<span class="loading loading-spinner loading-lg text-primary"></span>
+	</div>
+{:else if auth.isAuthenticated}
 	<div class="drawer min-h-screen bg-base-200 lg:drawer-open">
 		<input id="app-drawer" type="checkbox" class="drawer-toggle" bind:checked={isSidebarOpen} />
 

@@ -165,7 +165,7 @@ class SummaryController extends Controller
 
         $data = $query
             ->whereBetween('tanggal', [$dateFrom, $dateTo])
-            ->selectRaw('kpi_id, MAX(kpi_nama) as kpi_nama, SUM(target_angka_total) as target_angka_total, SUM(capaian_angka_total) as capaian_angka_total, SUM(total_lampiran) as total_lampiran')
+            ->selectRaw('kpi_id, MAX(kpi_nama) as kpi_nama, MAX(satuan) as satuan, SUM(target_angka_total) as target_angka_total, SUM(capaian_angka_total) as capaian_angka_total, SUM(total_lampiran) as total_lampiran')
             ->groupBy('kpi_id')
             ->orderBy('kpi_nama')
             ->get()
@@ -176,6 +176,7 @@ class SummaryController extends Controller
                 return [
                     'kpi_id' => $item->kpi_id,
                     'kpi_nama' => $item->kpi_nama,
+                    'satuan' => $item->satuan ?? '',
                     'target_angka_total' => $target,
                     'capaian_angka_total' => $capaian,
                     'progress_percent' => $target > 0 ? round(($capaian / $target) * 100, 2) : 0,

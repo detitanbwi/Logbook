@@ -2,13 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\DailyKpiSummary;
-use App\Models\DailyStaffSummary;
 use App\Models\KpiMaster;
 use App\Models\Logbook;
 use App\Models\LogbookKpiDetail;
 use App\Models\User;
-use Database\Seeders\MigrateExistingDataSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -44,60 +41,6 @@ it('migration canonical columns and status behavior are coherent', function () {
 
     expect(Schema::hasColumn('logbook_kpi_details', 'is_finished'))->toBeFalse();
     expect($detail->finished_at)->toBeNull();
-});
-
-it('migrate existing data seeder produces coherent summary rows', function () {
-    $manager = User::factory()->create(['role' => 'MANAGER']);
-    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
-
-    $kpiA = KpiMaster::factory()->create(['nama' => 'KPI A', 'target_angka' => 10, 'satuan' => 'unit']);
-    $kpiB = KpiMaster::factory()->create(['nama' => 'KPI B', 'target_angka' => 5, 'satuan' => 'jam']);
-
-    $logbook = Logbook::create([
-        'user_id' => $staff->id,
-        'tanggal' => '2026-03-19',
-        'start_kerja' => '08:00:00',
-        'end_kerja' => '17:00:00',
-        'status' => 'ACCEPTED',
-        'lokasi' => 'lokasi',
-    ]);
-
-    LogbookKpiDetail::create([
-        'logbook_id' => $logbook->id,
-        'kpi_id' => $kpiA->id,
-        'kpi_nama' => 'KPI A',
-        'target_angka' => 10,
-        'satuan' => 'unit',
-        'capaian_angka' => 10,
-        'lampiran_file' => 'logbook-kpi-attachments/a.pdf',
-    ]);
-
-    LogbookKpiDetail::create([
-        'logbook_id' => $logbook->id,
-        'kpi_id' => $kpiB->id,
-        'kpi_nama' => 'KPI B',
-        'target_angka' => 5,
-        'satuan' => 'jam',
-        'capaian_angka' => 3,
-    ]);
-
-    DailyStaffSummary::query()->delete();
-    DailyKpiSummary::query()->delete();
-
-    app(MigrateExistingDataSeeder::class)->run();
-
-    $staffSummary = DailyStaffSummary::where('user_id', $staff->id)->whereDate('tanggal', '2026-03-19')->first();
-    expect($staffSummary)->not->toBeNull();
-    expect((int) $staffSummary->total_logbooks)->toBe(1);
-    expect((int) $staffSummary->accepted_logbooks)->toBe(1);
-    expect((int) $staffSummary->total_kpi)->toBe(2);
-    expect((float) $staffSummary->target_angka_total)->toBe(15.0);
-    expect((float) $staffSummary->capaian_angka_total)->toBe(13.0);
-    expect((float) $staffSummary->progress_percent)->toBe(86.67);
-
-    $kpiRows = DailyKpiSummary::where('user_id', $staff->id)->whereDate('tanggal', '2026-03-19')->orderBy('kpi_nama')->get();
-    expect($kpiRows)->toHaveCount(2);
-    expect((int) $kpiRows[0]->total_lampiran + (int) $kpiRows[1]->total_lampiran)->toBe(1);
 });
 
 it('database seeder and migration seeder create summary rows coherently', function () {

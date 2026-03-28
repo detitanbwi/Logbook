@@ -575,11 +575,17 @@ describe('syncForLogbook', function () {
 
         $logbook = Logbook::factory()->create([
             'user_id' => $staff->id,
-            'tanggal' => null,
             'status' => 'DRAFT',
         ]);
 
-        // Should not throw an error
+        // Clear any summaries created by the observer during factory create
+        DailyStaffSummary::where('user_id', $staff->id)->delete();
+
+        // Simulate a logbook with null tanggal in-memory (DB column is NOT NULL,
+        // but the service should still handle this edge case gracefully)
+        $logbook->tanggal = null;
+
+        // Should not throw an error and should not create any summaries
         $this->service->syncForLogbook($logbook);
 
         $summaryCount = DailyStaffSummary::where('user_id', $staff->id)->count();

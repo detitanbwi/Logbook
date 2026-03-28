@@ -71,7 +71,7 @@ export function canAccessPath(role: UserRole | string | null | undefined, path: 
 	const normalizedRole = normalizeRole(role);
 
 	if (!path.startsWith('/')) return false;
-	if (path.startsWith('/profile') || path.startsWith('/notifications')) return normalizedRole !== 'guest';
+	if (path.startsWith('/profile') || path.startsWith('/notifications') || path.startsWith('/m/')) return normalizedRole !== 'guest';
 
 	if (path.startsWith('/superadmin')) return normalizedRole === 'superadmin';
 

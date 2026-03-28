@@ -178,64 +178,64 @@ describe('API Services Integration', () => {
 			expect(result).toEqual(mockResponse);
 		});
 
-		it('should parse and submit startLogbook correctly', async () => {
-			(global.fetch as any).mockResolvedValueOnce({
-				ok: true,
-				status: 200,
-				json: async () => ({ success: true })
-			});
-
-			const payload = { gps_location_start: '-6.2088,106.8456' };
-			await staffLogbookService.startLogbook(payload);
-
-			expect(global.fetch).toHaveBeenCalledWith(
-				expect.stringContaining('/logbooks/start'),
-				expect.objectContaining({
-					method: 'POST',
-					body: JSON.stringify(payload)
-				})
-			);
+	it('should parse and submit startLogbook correctly', async () => {
+		(global.fetch as any).mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: async () => ({ success: true })
 		});
 
-		it('should throw validation error if startLogbook payload is invalid', async () => {
-			const invalidPayload = { gps_location_start: 123 } as any; // Invalid type
-			await expect(staffLogbookService.startLogbook(invalidPayload)).rejects.toThrow();
-		});
+		const payload = { tanggal: '2026-03-21', start_kerja: '08:00', lokasi: '-6.2088,106.8456' };
+		await staffLogbookService.startLogbook(payload);
+
+		expect(global.fetch).toHaveBeenCalledWith(
+			expect.stringContaining('/logbooks/start'),
+			expect.objectContaining({
+				method: 'POST',
+				body: JSON.stringify(payload)
+			})
+		);
+	});
+
+	it('should throw validation error if startLogbook payload is invalid', async () => {
+		const invalidPayload = { tanggal: 123 } as any; // Invalid type
+		await expect(staffLogbookService.startLogbook(invalidPayload)).rejects.toThrow();
+	});
 	});
 
 	describe('managerLogbookService', () => {
-		it('should call canonical review endpoint', async () => {
-			(global.fetch as any).mockResolvedValueOnce({
-				ok: true,
-				status: 200,
-				json: async () => ({ success: true })
-			});
-
-			await managerLogbookService.reviewLogbook('logbook-1', { rating: 4 });
-
-			expect(global.fetch).toHaveBeenCalledWith(
-				expect.stringContaining('/logbooks/logbook-1/review'),
-				expect.objectContaining({
-					method: 'PUT',
-					body: JSON.stringify({ rating: 4 })
-				})
-			);
+	it('should call canonical review endpoint', async () => {
+		(global.fetch as any).mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: async () => ({ success: true })
 		});
 
-		it('should call revert endpoint', async () => {
-			(global.fetch as any).mockResolvedValueOnce({
-				ok: true,
-				status: 200,
-				json: async () => ({ success: true })
-			});
+		await managerLogbookService.reviewLogbook('logbook-1', { decision: 'ACCEPTED', rating: 4, reviewer_comment: 'Good work' });
 
-			await managerLogbookService.revertLogbook('logbook-2');
+		expect(global.fetch).toHaveBeenCalledWith(
+			expect.stringContaining('/logbooks/logbook-1/review'),
+			expect.objectContaining({
+				method: 'PUT',
+				body: JSON.stringify({ decision: 'ACCEPTED', rating: 4, reviewer_comment: 'Good work' })
+			})
+		);
+	});
 
-			expect(global.fetch).toHaveBeenCalledWith(
-				expect.stringContaining('/logbooks/logbook-2/revert'),
-				expect.objectContaining({ method: 'POST' })
-			);
+	it('should call revert endpoint', async () => {
+		(global.fetch as any).mockResolvedValueOnce({
+			ok: true,
+			status: 200,
+			json: async () => ({ success: true })
 		});
+
+		await managerLogbookService.revertLogbook('logbook-2', { reason: 'Needs corrections' });
+
+		expect(global.fetch).toHaveBeenCalledWith(
+			expect.stringContaining('/logbooks/logbook-2/revert'),
+			expect.objectContaining({ method: 'POST' })
+		);
+	});
 	});
 
 		describe('analyticsService', () => {
@@ -565,23 +565,23 @@ describe('API Services Integration', () => {
 			expect(call[1]).toEqual(expect.objectContaining({ method: 'GET' }));
 		});
 
-		it('should call createMaster endpoint', async () => {
-			(global.fetch as any).mockResolvedValueOnce({
-				ok: true,
-				status: 201,
-				json: async () => ({ id: 'kpi-1' })
-			});
-
-			await kpiService.createMaster({ nama: 'KPI Baru', status_aktif: true });
-
-			expect(global.fetch).toHaveBeenCalledWith(
-				expect.stringContaining('/kpi/master'),
-				expect.objectContaining({
-					method: 'POST',
-					body: expect.stringContaining('"nama":"KPI Baru"')
-				})
-			);
+	it('should call createMaster endpoint', async () => {
+		(global.fetch as any).mockResolvedValueOnce({
+			ok: true,
+			status: 201,
+			json: async () => ({ id: 'kpi-1' })
 		});
+
+		await kpiService.createMaster({ nama: 'KPI Baru', target_angka: 100, satuan: 'unit', status_aktif: true });
+
+		expect(global.fetch).toHaveBeenCalledWith(
+			expect.stringContaining('/kpi/master'),
+			expect.objectContaining({
+				method: 'POST',
+				body: expect.stringContaining('"nama":"KPI Baru"')
+			})
+		);
+	});
 
 		it('should call updateMaster endpoint', async () => {
 			(global.fetch as any).mockResolvedValueOnce({

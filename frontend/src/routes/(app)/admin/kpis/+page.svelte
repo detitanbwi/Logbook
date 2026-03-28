@@ -119,6 +119,9 @@
 
 	let formData = $state<MasterKpiCreateDto>({
 		nama: '',
+		target_angka: 0,
+		satuan: '',
+		deskripsi: '',
 		status_aktif: true
 	});
 
@@ -130,7 +133,7 @@
 	function openCreate() {
 		isEditMode = false;
 		currentKpiId = null;
-		formData = { nama: '', status_aktif: true };
+		formData = { nama: '', target_angka: 0, satuan: '', deskripsi: '', status_aktif: true };
 		isModalOpen = true;
 	}
 
@@ -139,6 +142,9 @@
 		currentKpiId = kpi.id;
 		formData = {
 			nama: kpi.nama,
+			target_angka: kpi.target_angka ?? 0,
+			satuan: kpi.satuan ?? '',
+			deskripsi: kpi.deskripsi ?? '',
 			status_aktif: kpi.status_aktif
 		};
 		isModalOpen = true;
@@ -155,11 +161,19 @@
 			return;
 		}
 
+		if (!formData.satuan || !formData.satuan.trim()) {
+			toastStore.error('Satuan wajib diisi.');
+			return;
+		}
+
 		isSubmitting = true;
 		try {
 			if (isEditMode && currentKpiId) {
 				const updateData: MasterKpiUpdateDto = {
 					nama,
+					target_angka: formData.target_angka,
+					satuan: formData.satuan,
+					deskripsi: formData.deskripsi || null,
 					status_aktif: formData.status_aktif
 				};
 				await kpiService.updateMaster(currentKpiId, updateData);
@@ -167,6 +181,9 @@
 			} else {
 				await kpiService.createMaster({
 					nama,
+					target_angka: formData.target_angka,
+					satuan: formData.satuan,
+					deskripsi: formData.deskripsi || null,
 					status_aktif: formData.status_aktif
 				});
 				toastStore.success('KPI berhasil ditambahkan.');
@@ -255,6 +272,8 @@
 				currentDir={sortDir}
 				onSort={handleSort}
 			/>
+			<th>Target</th>
+			<th>Satuan</th>
 			<th>Status</th>
 			<SortableHeader
 				column="created_at"
@@ -277,6 +296,12 @@
 					<div class="h-4 w-48 animate-pulse rounded bg-base-300"></div>
 				</td>
 				<td>
+					<div class="h-4 w-16 animate-pulse rounded bg-base-300"></div>
+				</td>
+				<td>
+					<div class="h-4 w-24 animate-pulse rounded bg-base-300"></div>
+				</td>
+				<td>
 					<div class="h-5 w-16 animate-pulse rounded bg-base-300"></div>
 				</td>
 				<td>
@@ -292,13 +317,15 @@
 		{/each}
 	{:else if kpis.length === 0}
 		<tr>
-			<td colspan="5" class="py-4 text-center text-base-content/50"> Belum ada data KPI. </td>
+			<td colspan="7" class="py-4 text-center text-base-content/50"> Belum ada data KPI. </td>
 		</tr>
 	{:else}
 		{#each kpis as kpi (kpi.id)}
 			<tr>
 				<td>{kpi.id}</td>
 				<td class="font-medium">{kpi.nama}</td>
+				<td>{kpi.target_angka}</td>
+				<td>{kpi.satuan}</td>
 				<td>
 					<span class="badge {kpi.status_aktif ? 'badge-success' : 'badge-error'}">
 						{kpi.status_aktif ? 'Aktif' : 'Nonaktif'}
@@ -340,6 +367,27 @@
 				placeholder="Misal: Penyusunan Laporan"
 				required
 			/>
+		</div>
+
+		<div class="form-control">
+			<label class="label" for="target_angka">
+				<span class="label-text">Target Angka</span>
+			</label>
+			<input id="target_angka" type="number" class="input-bordered input w-full" bind:value={formData.target_angka} min="0" step="1" required />
+		</div>
+
+		<div class="form-control">
+			<label class="label" for="satuan">
+				<span class="label-text">Satuan</span>
+			</label>
+			<input id="satuan" type="text" class="input-bordered input w-full" bind:value={formData.satuan} placeholder="Misal: laporan, persen, unit" required />
+		</div>
+
+		<div class="form-control">
+			<label class="label" for="deskripsi">
+				<span class="label-text">Deskripsi (Opsional)</span>
+			</label>
+			<textarea id="deskripsi" class="textarea-bordered textarea w-full" bind:value={formData.deskripsi} placeholder="Deskripsi KPI..." rows="3"></textarea>
 		</div>
 
 		<div class="form-control">

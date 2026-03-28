@@ -1,5 +1,5 @@
 import { staffLogbookService } from '$lib/api';
-import type { StartLogbookRequest, ToggleKpiRequest, SubmitLogbookRequest } from '$lib/api';
+import type { StartLogbookRequest, UpdateKpiProgressRequest } from '$lib/api';
 import type { LogbookFilters } from '$lib/api/services/staffLogbookService';
 import type { PaginatedResponse } from '$lib/api/core/types';
 import type { Logbook, LogbookKpiDetail } from '$lib/types';
@@ -70,11 +70,15 @@ export class LogbookStore {
 		}
 	}
 
-	async toggleKpi(logbookId: string, detailId: string, data: ToggleKpiRequest): Promise<unknown> {
+	async updateKpiProgress(
+		logbookId: string,
+		detailId: string,
+		data: UpdateKpiProgressRequest
+	): Promise<unknown> {
 		this.isLoading = true;
 		this.error = null;
 		try {
-			const res = await staffLogbookService.toggleKpi(logbookId, detailId, data);
+			const res = await staffLogbookService.updateKpiProgress(logbookId, detailId, data);
 
 			// Optimistically update the specific KPI in the nested array
 			if (this.currentLogbook?.id === logbookId && this.currentLogbook.details) {
@@ -82,10 +86,9 @@ export class LogbookStore {
 					(d: LogbookKpiDetail) => d.id === detailId
 				);
 				if (detailIndex !== -1) {
-					// Apply the toggled value directly from data
 					this.currentLogbook.details[detailIndex] = {
 						...this.currentLogbook.details[detailIndex],
-						is_finished: data.is_finished
+						capaian_angka: data.capaian_angka
 					};
 				}
 			}
@@ -93,18 +96,18 @@ export class LogbookStore {
 			return res;
 		} catch (err: unknown) {
 			const apiError = err as ApiError;
-			this.error = apiError.message || 'Failed to toggle KPI';
+			this.error = apiError.message || 'Failed to update KPI progress';
 			throw err;
 		} finally {
 			this.isLoading = false;
 		}
 	}
 
-	async submitLogbook(logbookId: string, data: SubmitLogbookRequest | FormData): Promise<Logbook> {
+	async submitLogbook(logbookId: string): Promise<Logbook> {
 		this.isLoading = true;
 		this.error = null;
 		try {
-			const res = await staffLogbookService.submitLogbook(logbookId, data);
+			const res = await staffLogbookService.submitLogbook(logbookId);
 
 			// Update current logbook status if viewed
 			if (this.currentLogbook?.id === logbookId) {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StoreAssignmentRequest;
 use App\Http\Resources\V1\KpiAssignmentResource;
 use App\Models\Notification;
 use App\Models\User;
@@ -36,12 +37,9 @@ class KpiAssignmentController extends Controller
         return KpiAssignmentResource::collection($query->paginate($perPage));
     }
 
-    public function store(Request $request)
+    public function store(StoreAssignmentRequest $request)
     {
-        $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'kpi_id' => 'required|exists:kpi_masters,id',
-        ]);
+        $validated = $request->validated();
 
         /** @var User $actor */
         $actor = Auth::user();

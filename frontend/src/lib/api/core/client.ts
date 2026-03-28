@@ -12,6 +12,12 @@ interface FetchOptions extends RequestInit {
 }
 
 class ApiClient {
+	private onUnauthorizedCallback: (() => void) | null = null;
+
+	public setOnUnauthorized(callback: () => void): void {
+		this.onUnauthorizedCallback = callback;
+	}
+
 	private getToken(): string | null {
 		if (typeof window === 'undefined') return null;
 		const val = localStorage.getItem(TOKEN_KEY);
@@ -92,7 +98,7 @@ class ApiClient {
 				// Handle 401 Unauthorized secara global jika diperlukan
 				if (response.status === 401 && typeof window !== 'undefined') {
 					this.clearToken();
-					// window.location.href = '/login'; // opsional: redirect ke login
+					this.onUnauthorizedCallback?.();
 				}
 
 				return Promise.reject({

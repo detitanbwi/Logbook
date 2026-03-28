@@ -1,5 +1,5 @@
-export type UserRole = 'SuperAdmin' | 'Admin' | 'Manager' | 'Staff';
-export type LogbookStatus = 'DRAFT' | 'SUBMITTED' | 'REVIEWED' | 'REVERTED';
+export type UserRole = 'SuperAdmin' | 'Admin' | 'Staff';
+export type LogbookStatus = 'DRAFT' | 'SUBMITTED' | 'ACCEPTED' | 'REJECTED';
 
 export interface User {
 	id: string;
@@ -16,6 +16,14 @@ export interface User {
 	foto?: string | null;
 	manager?: User;
 	last_password_change?: string;
+	tempat_lahir?: string | null;
+	tanggal_lahir?: string | null;
+	nik?: string | null;
+	npwp?: string | null;
+	alamat?: string | null;
+	status_kawin?: string | null;
+	riwayat_pendidikan?: Record<string, unknown>[] | null;
+	riwayat_karir?: Record<string, unknown>[] | null;
 	created_at: string;
 	updated_at: string;
 	deleted_at?: string | null;
@@ -24,6 +32,9 @@ export interface User {
 export interface KpiMaster {
 	id: string;
 	nama: string;
+	target_angka: number;
+	satuan: string;
+	deskripsi?: string | null;
 	status_aktif: boolean;
 	created_at: string;
 	updated_at: string;
@@ -36,7 +47,6 @@ export interface UserKpiAssignment {
 	assigned_by: string;
 	created_at: string;
 	updated_at: string;
-	// Untuk kemudahan di frontend
 	kpi?: KpiMaster;
 }
 
@@ -45,9 +55,12 @@ export interface LogbookKpiDetail {
 	logbook_id: string;
 	kpi_id: string;
 	kpi_nama: string;
+	target_angka: number;
+	satuan: string;
+	capaian_angka: number;
+	lampiran_file?: string | null;
 	kpi?: KpiMaster;
-	is_finished: boolean;
-	finished_at?: string;
+	finished_at?: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -55,27 +68,31 @@ export interface LogbookKpiDetail {
 export interface Logbook {
 	id: string;
 	user_id: string;
+	tanggal: string;
 	start_kerja: string;
-	end_kerja?: string;
-	lokasi_start?: string;
-	lokasi_end?: string;
-	gambar_bukti?: string[];
+	end_kerja?: string | null;
+	lokasi?: string | null;
 	status: LogbookStatus;
-	rating?: number;
-	reviewed_by?: string;
-	reviewed_at?: string;
+	rating?: number | null;
+	reviewer_comment?: string | null;
+	reviewed_by?: string | null;
+	reviewed_at?: string | null;
 	created_at: string;
 	updated_at: string;
-	// Relasi
+	gross_work_minutes?: number;
+	break_overlap_minutes?: number;
+	net_work_minutes?: number;
 	details?: LogbookKpiDetail[];
 	user?: User;
+	reviewer?: User;
 }
 
 export type NotificationType =
 	| 'KPI_ASSIGNMENT'
 	| 'LOGBOOK_SUBMITTED'
-	| 'LOGBOOK_REVERTED'
-	| 'LOGBOOK_REVIEWED';
+	| 'LOGBOOK_ACCEPTED'
+	| 'LOGBOOK_REJECTED'
+	| 'LOGBOOK_REVERTED';
 
 export interface Notification {
 	id: string;
@@ -90,7 +107,6 @@ export interface Notification {
 	target_path?: string | null;
 	target_params?: Record<string, unknown> | null;
 	created_at: string;
-	read_at?: string | null;
 }
 
 export interface AuditLog {
@@ -165,4 +181,91 @@ export interface StaffDashboard {
 	personal_kpi_completion_rate: number;
 	missed_logbooks_count: number;
 	average_rating: number;
+}
+
+export interface DailyStaffSummary {
+	id: string;
+	user_id: string;
+	tanggal: string;
+	total_logbooks: number;
+	submitted_logbooks: number;
+	accepted_logbooks: number;
+	rejected_logbooks: number;
+	total_work_minutes: number;
+	total_kpi: number;
+	target_angka_total: number;
+	capaian_angka_total: number;
+	progress_percent: number;
+	user?: User;
+}
+
+export interface DailyKpiSummary {
+	id: string;
+	user_id: string;
+	kpi_id: string;
+	tanggal: string;
+	kpi_nama: string;
+	satuan: string;
+	target_angka_total: number;
+	capaian_angka_total: number;
+	progress_percent: number;
+	total_lampiran: number;
+}
+
+export interface StaffPerformanceSummaryItem {
+	user_id: string;
+	nama: string;
+	npp: string;
+	total_logbooks: number;
+	accepted_logbooks: number;
+	rejected_logbooks: number;
+	target_angka_total: number;
+	capaian_angka_total: number;
+	progress_percent: number;
+}
+
+export interface StaffPerformanceSummaryResponse {
+	date_from: string;
+	date_to: string;
+	items: StaffPerformanceSummaryItem[];
+}
+
+export interface LogbookDuration {
+	logbook_id: string;
+	tanggal: string;
+	start_kerja: string;
+	end_kerja: string | null;
+	gross_work_minutes: number;
+	break_overlap_minutes: number;
+	net_work_minutes: number;
+}
+
+export interface PeriodSummary {
+	date_from: string;
+	date_to: string;
+	total_logbooks: number;
+	submitted_logbooks: number;
+	accepted_logbooks: number;
+	rejected_logbooks: number;
+	total_work_minutes: number;
+	total_kpi: number;
+	target_angka_total: number;
+	capaian_angka_total: number;
+	progress_percent: number;
+}
+
+export interface KpiPeriodItem {
+	kpi_id: string;
+	kpi_nama: string;
+	satuan: string;
+	target_angka_total: number;
+	capaian_angka_total: number;
+	progress_percent: number;
+	total_lampiran: number;
+}
+
+export interface KpiPeriodSummary {
+	date_from: string;
+	date_to: string;
+	items: KpiPeriodItem[];
 }

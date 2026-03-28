@@ -16,6 +16,10 @@
 	let isModalOpen = $state(false);
 	let selectedLogbook = $state<any>(null);
 	let rating = $state<number>(5);
+	let decision = $state('ACCEPTED');
+	let reviewerComment = $state('');
+	let revertReason = $state('');
+	let isReverting = $state(false);
 	let isSubmitting = $state(false);
 
 	// URL params
@@ -76,14 +80,22 @@
 	function openReviewModal(logbook: any) {
 		selectedLogbook = logbook;
 		rating = 5;
+		decision = 'ACCEPTED';
+		reviewerComment = '';
+		revertReason = '';
+		isReverting = false;
 		isModalOpen = true;
 	}
 
-	async function submitRating() {
-		if (!selectedLogbook) return;
+	async function submitReview() {
+		if (!selectedLogbook || !reviewerComment.trim()) return;
 		isSubmitting = true;
 		try {
-			await managerLogbookService.rateLogbook(selectedLogbook.id, { rating });
+			await managerLogbookService.reviewLogbook(selectedLogbook.id, { 
+				decision, 
+				rating, 
+				reviewer_comment: reviewerComment 
+			});
 			isModalOpen = false;
 			await fetchPendingReviews();
 		} catch (err: any) {
@@ -94,10 +106,10 @@
 	}
 
 	async function revertToDraft() {
-		if (!selectedLogbook) return;
+		if (!selectedLogbook || !revertReason.trim()) return;
 		isSubmitting = true;
 		try {
-			await managerLogbookService.revertLogbook(selectedLogbook.id);
+			await managerLogbookService.revertLogbook(selectedLogbook.id, { reason: revertReason });
 			isModalOpen = false;
 			await fetchPendingReviews();
 		} catch (err: any) {
@@ -162,7 +174,7 @@
 							<tr>
 								<th>Tanggal</th>
 								<th>Pegawai</th>
-								<th>Tugas Selesai</th>
+								<th>Progress KPI</th>
 								<th>Status</th>
 								<th>Aksi</th>
 							</tr>
@@ -203,7 +215,7 @@
 									onSort={(c, d) => updateUrl({ sort_by: c, sort_dir: d })}
 								/>
 								<th>Pegawai</th>
-								<th>Tugas Selesai</th>
+								<th>Progress KPI</th>
 								<th>Status</th>
 								<th>Aksi</th>
 							</tr>
@@ -231,8 +243,7 @@
 										</td>
 										<td>
 											{#if Array.isArray(log.details) && log.details.length > 0}
-												{log.details.filter((d: any) => d.is_finished).length} / {log.details
-													.length}
+												{log.details.reduce((acc: number, d: Record<string, unknown>) => acc + (Number(d.capaian_angka) || 0), 0)} / {log.details.reduce((acc: number, d: Record<string, unknown>) => acc + (Number(d.target_angka) || 0), 0)}
 											{:else}
 												-
 											{/if}
@@ -288,18 +299,14 @@
 			<div>
 				<h4 class="mb-2 font-semibold">Daftar Tugas (KPI)</h4>
 				{#if Array.isArray(selectedLogbook.details) && selectedLogbook.details.length > 0}
-					<ul class="list-none space-y-2">
+					<ul class="list-none space-y-3">
 						{#each selectedLogbook.details as kpi}
-							<li class="flex items-start gap-3">
-								<input
-									type="checkbox"
-									checked={kpi.is_finished}
-									class="checkbox mt-1 checkbox-sm checkbox-primary"
-									disabled
-								/>
-								<span class={kpi.is_finished ? '' : 'text-base-content/50'}>
-									{kpi.kpi?.nama || 'Tugas tanpa nama'}
-								</span>
+							<li class="flex flex-col gap-1 rounded-lg border border-base-200 bg-base-50 p-3">
+								<div class="font-medium">{kpi.kpi?.nama || 'Tugas tanpa nama'}</div>
+								<div class="flex items-center gap-2 text-sm text-base-content/70">
+									<progress class="progress progress-primary w-24" value={kpi.capaian_angka || 0} max={kpi.target_angka || 1}></progress>
+									<span>{kpi.capaian_angka || 0} / {kpi.target_angka || 0} {kpi.kpi?.satuan || ''}</span>
+								</div>
 							</li>
 						{/each}
 					</ul>
@@ -310,47 +317,99 @@
 
 			<div class="divider my-0"></div>
 
-			<div class="grid grid-cols-2 gap-4">
-				<div>
-					<h4 class="mb-1 text-sm font-semibold">Lokasi Mulai</h4>
-					<p class="rounded bg-base-200 p-2 font-mono text-sm">
-						{selectedLogbook.gps_location_start || '-'}
-					</p>
-				</div>
-				<div>
-					<h4 class="mb-1 text-sm font-semibold">Lokasi Selesai</h4>
-					<p class="rounded bg-base-200 p-2 font-mono text-sm">
-						{selectedLogbook.gps_location_end || '-'}
-					</p>
-				</div>
+			<div>
+				<h4 class="mb-1 text-sm font-semibold">Lokasi</h4>
+				<p class="rounded bg-base-200 p-2 font-mono text-sm">
+					{selectedLogbook.lokasi || '-'}
+				</p>
 			</div>
 
 			<div class="divider my-0"></div>
 
-			<div>
-				<h4 class="mb-2 font-semibold">Beri Penilaian</h4>
-				<div class="rating-lg rating">
-					{#each [1, 2, 3, 4, 5] as r}
-						<input
-							type="radio"
-							name="rating-2"
-							class="mask mask-star-2 {r <= 2 ? 'bg-error' : r === 3 ? 'bg-warning' : 'bg-success'}"
-							value={r}
-							bind:group={rating}
-						/>
-					{/each}
+			{#if isReverting}
+				<div>
+					<h4 class="mb-2 font-semibold text-error">Revert ke Draft</h4>
+					<div class="form-control w-full">
+						<label class="label" for="revertReason">
+							<span class="label-text">Alasan Revert <span class="text-error">*</span></span>
+						</label>
+						<textarea
+							id="revertReason"
+							class="textarea textarea-bordered h-24"
+							placeholder="Masukkan alasan mengapa logbook dikembalikan ke draft..."
+							bind:value={revertReason}
+						></textarea>
+					</div>
 				</div>
-				<p class="mt-1 text-sm">Rating: {rating} Bintang</p>
-			</div>
+			{:else}
+				<div>
+					<h4 class="mb-2 font-semibold">Beri Penilaian</h4>
+					
+					<div class="form-control w-full mb-4">
+						<label class="label">
+							<span class="label-text font-medium">Keputusan</span>
+						</label>
+						<div class="flex gap-4">
+							<label class="label cursor-pointer gap-2">
+								<input type="radio" name="decision" class="radio radio-success" value="ACCEPTED" bind:group={decision} />
+								<span class="label-text">Terima (Accept)</span>
+							</label>
+							<label class="label cursor-pointer gap-2">
+								<input type="radio" name="decision" class="radio radio-error" value="REJECTED" bind:group={decision} />
+								<span class="label-text">Tolak (Reject)</span>
+							</label>
+						</div>
+					</div>
+
+					<div class="form-control w-full mb-4">
+						<label class="label">
+							<span class="label-text font-medium">Rating</span>
+						</label>
+						<div class="rating-lg rating">
+							{#each [1, 2, 3, 4, 5] as r}
+								<input
+									type="radio"
+									name="rating-2"
+									class="mask mask-star-2 {r <= 2 ? 'bg-error' : r === 3 ? 'bg-warning' : 'bg-success'}"
+									value={r}
+									bind:group={rating}
+								/>
+							{/each}
+						</div>
+						<p class="mt-1 text-sm text-base-content/70">{rating} Bintang</p>
+					</div>
+
+					<div class="form-control w-full">
+						<label class="label" for="reviewerComment">
+							<span class="label-text font-medium">Komentar <span class="text-error">*</span></span>
+						</label>
+						<textarea
+							id="reviewerComment"
+							class="textarea textarea-bordered h-24"
+							placeholder="Berikan komentar penilaian..."
+							bind:value={reviewerComment}
+						></textarea>
+					</div>
+				</div>
+			{/if}
 		</div>
 	{/if}
 
 	{#snippet actions()}
-		<button class="btn btn-outline btn-error" onclick={revertToDraft} disabled={isSubmitting}>
-			Revert ke Draft
-		</button>
-		<button class="btn btn-success" onclick={submitRating} disabled={isSubmitting}>
-			Simpan Penilaian
-		</button>
+		{#if isReverting}
+			<button class="btn btn-ghost" onclick={() => isReverting = false} disabled={isSubmitting}>
+				Batal
+			</button>
+			<button class="btn btn-error" onclick={revertToDraft} disabled={isSubmitting || !revertReason.trim()}>
+				Konfirmasi Revert
+			</button>
+		{:else}
+			<button class="btn btn-outline btn-error" onclick={() => isReverting = true} disabled={isSubmitting}>
+				Revert ke Draft
+			</button>
+			<button class="btn btn-success" onclick={submitReview} disabled={isSubmitting || !reviewerComment.trim()}>
+				Simpan Penilaian
+			</button>
+		{/if}
 	{/snippet}
 </Modal>

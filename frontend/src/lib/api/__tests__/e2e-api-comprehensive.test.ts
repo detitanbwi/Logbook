@@ -160,12 +160,14 @@ describe('Comprehensive E2E API Tests', () => {
 			const list = Array.isArray(existingRes) ? existingRes : existingRes.data || [];
 			let activeLogbook = list.find((l: any) => l.date === dateStr);
 
-			if (!activeLogbook) {
-				const startRes = await staffLogbookService.startLogbook({
-					gps_location_start: '-6.200, 106.816'
-				});
-				activeLogbook = (startRes as any).data || startRes;
-			}
+		if (!activeLogbook) {
+			const startRes = await staffLogbookService.startLogbook({
+				tanggal: '2026-03-21',
+				start_kerja: '08:00',
+				lokasi: '-6.200, 106.816'
+			});
+			activeLogbook = (startRes as any).data || startRes;
+		}
 
 			expect(activeLogbook).toBeDefined();
 			logbookId = activeLogbook.id;
@@ -178,16 +180,15 @@ describe('Comprehensive E2E API Tests', () => {
 			}
 		}, 15000);
 
-		it('should fail to toggle a KPI with invalid valibot DTO', async () => {
-			if (!kpiDetailId) return; // Skip if no KPIs to test
+	it('should fail to toggle a KPI with invalid valibot DTO', async () => {
+		if (!kpiDetailId) return; // Skip if no KPIs to test
 
-			// Passing a string instead of a boolean should be caught by valibot
-			await expect(
-				staffLogbookService.toggleKpi(logbookId, kpiDetailId, {
-					is_finished: 'not-a-boolean' as any
-				})
-			).rejects.toThrow();
-		});
+		await expect(
+			staffLogbookService.updateKpiProgress(logbookId, kpiDetailId, {
+				capaian_angka: 'not-a-number' as any
+			})
+		).rejects.toThrow();
+	});
 
 		it('should export reports', async () => {
 			try {

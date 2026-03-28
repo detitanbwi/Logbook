@@ -16,10 +16,16 @@ return new class extends Migration
             $table->foreignUuid('logbook_id')->constrained('logbooks');
             $table->foreignUuid('kpi_id')->constrained('kpi_masters');
             $table->string('kpi_nama');
-            $table->boolean('is_finished')->default(false);
+            $table->decimal('target_angka', 14, 2)->nullable();
+            $table->string('satuan', 100)->nullable();
+            $table->decimal('capaian_angka', 14, 2)->nullable();
+            $table->string('lampiran_file')->nullable();
             $table->timestamp('finished_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['logbook_id', 'kpi_id'], 'logbook_kpi_details_logbook_kpi_idx');
+            $table->index(['kpi_id', 'finished_at'], 'logbook_kpi_details_kpi_finished_idx');
         });
     }
 

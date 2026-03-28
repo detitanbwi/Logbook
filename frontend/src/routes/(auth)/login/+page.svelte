@@ -5,17 +5,28 @@
 	let npp = $state('');
 	let password = $state('');
 
+	function getRedirectPath(role: string | null): string {
+		const normalizedRole = role?.toUpperCase() ?? '';
+		if (normalizedRole === 'SUPERADMIN') {
+			return '/superadmin/dashboard';
+		}
+		if (normalizedRole === 'ADMIN') {
+			return '/admin/dashboard';
+		}
+		return '/m/overview';
+	}
+
 	$effect(() => {
 		if (auth.isAuthenticated) {
-			goto('/');
+			goto(getRedirectPath(auth.role));
 		}
 	});
 
 	async function handleSubmit(event: Event) {
 		event.preventDefault();
 		try {
-			await auth.login({ npp, password });
-			goto('/');
+			const res = await auth.login({ npp, password });
+			goto(getRedirectPath(res.user.role));
 		} catch (e) {
 			// Error state handled inside auth store
 		}

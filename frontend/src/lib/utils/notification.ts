@@ -46,7 +46,7 @@ export function isNotificationUnread(notification: Notification): boolean {
 		return !notification.is_read;
 	}
 
-	return !notification.read_at;
+	return true;
 }
 
 export function getNotificationPreviewText(notification: Notification): string {
@@ -72,7 +72,8 @@ export function resolveNotificationDestination(notification: Notification): stri
 	if (
 		notification.type === 'LOGBOOK_SUBMITTED' ||
 		notification.type === 'LOGBOOK_REVERTED' ||
-		notification.type === 'LOGBOOK_REVIEWED'
+		notification.type === 'LOGBOOK_ACCEPTED' ||
+		notification.type === 'LOGBOOK_REJECTED'
 	) {
 		if (notification.type === 'LOGBOOK_SUBMITTED') {
 			return referenceId

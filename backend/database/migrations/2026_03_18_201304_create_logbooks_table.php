@@ -14,17 +14,21 @@ return new class extends Migration
         Schema::create('logbooks', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->constrained('users');
-            $table->timestamp('start_kerja');
-            $table->timestamp('end_kerja')->nullable();
-            $table->string('lokasi_start');
-            $table->string('lokasi_end')->nullable();
-            $table->jsonb('gambar_bukti')->nullable();
-            $table->enum('status', ['DRAFT', 'SUBMITTED', 'REVIEWED'])->default('DRAFT');
+            $table->date('tanggal');
+            $table->time('start_kerja');
+            $table->time('end_kerja')->nullable();
+            $table->text('lokasi')->nullable();
+            $table->enum('status', ['DRAFT', 'SUBMITTED', 'ACCEPTED', 'REJECTED'])->default('DRAFT');
             $table->integer('rating')->nullable();
             $table->foreignUuid('reviewed_by')->nullable()->constrained('users');
             $table->timestamp('reviewed_at')->nullable();
+            $table->text('reviewer_comment')->nullable();
             $table->softDeletes();
             $table->timestamps();
+
+            $table->index(['user_id', 'tanggal'], 'logbooks_user_tanggal_idx');
+            $table->index(['status', 'tanggal'], 'logbooks_status_tanggal_idx');
+            $table->index(['reviewed_by', 'status', 'tanggal'], 'logbooks_reviewer_status_tanggal_idx');
         });
     }
 

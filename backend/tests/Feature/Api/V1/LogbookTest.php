@@ -35,7 +35,7 @@ it('staff can start logbook and it copies active kpis', function () {
         ->assertJsonPath('data.tanggal', '2026-03-19')
         ->assertJsonPath('data.start_kerja', '08:30')
         ->assertJsonPath('data.lokasi', '-6.200000,106.816666')
-        ->assertJsonCount(1, 'data.kpi_details');
+        ->assertJsonCount(1, 'data.details');
 
     $this->assertDatabaseHas('logbooks', [
         'user_id' => $staff->id,
@@ -111,7 +111,7 @@ it('staff can submit logbook', function () {
     $response = $this->actingAs($staff)->postJson("/api/v1/logbooks/{$logbook->id}/submit");
 
     $response->assertStatus(200)
-        ->assertJsonPath('status', 'SUBMITTED');
+        ->assertJsonPath('data.status', 'SUBMITTED');
 
     $this->assertDatabaseHas('logbooks', [
         'id' => $logbook->id,
@@ -208,6 +208,13 @@ it('validates manual time input and allows multiple logbooks in one day', functi
 
     $manager = User::factory()->create(['role' => 'MANAGER']);
     $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+
+    $kpi = KpiMaster::factory()->create();
+    UserKpiAssignment::create([
+        'user_id' => $staff->id,
+        'kpi_id' => $kpi->id,
+        'assigned_by' => $manager->id,
+    ]);
 
     $tooEarly = $this->actingAs($staff)->postJson('/api/v1/logbooks/start', [
         'tanggal' => '2026-03-19',
@@ -461,6 +468,13 @@ it('staff with subordinates can still create their own logbook', function () {
     $managerStaff = User::factory()->create(['role' => 'STAFF']);
     User::factory()->create(['role' => 'STAFF', 'manager_id' => $managerStaff->id]);
 
+    $kpi = KpiMaster::factory()->create();
+    UserKpiAssignment::create([
+        'user_id' => $managerStaff->id,
+        'kpi_id' => $kpi->id,
+        'assigned_by' => $managerStaff->id,
+    ]);
+
     $response = $this->actingAs($managerStaff)->postJson('/api/v1/logbooks/start', [
         'tanggal' => '2026-03-20',
         'start_kerja' => '08:00',
@@ -521,7 +535,7 @@ it('submit notifies manager when subordinate submits', function () {
     $this->actingAs($staff)
         ->postJson("/api/v1/logbooks/{$logbook->id}/submit")
         ->assertOk()
-        ->assertJsonPath('status', 'SUBMITTED');
+        ->assertJsonPath('data.status', 'SUBMITTED');
 
     $this->assertDatabaseHas('notifications', [
         'user_id' => $manager->id,
@@ -590,6 +604,13 @@ it('allows start time exactly at 07:00 boundary', function () {
     Carbon::setTestNow('2026-03-19 08:00:00');
 
     $staff = User::factory()->create(['role' => 'STAFF']);
+
+    $kpi = KpiMaster::factory()->create();
+    UserKpiAssignment::create([
+        'user_id' => $staff->id,
+        'kpi_id' => $kpi->id,
+        'assigned_by' => $staff->id,
+    ]);
 
     $response = $this->actingAs($staff)->postJson('/api/v1/logbooks/start', [
         'tanggal' => '2026-03-19',
@@ -977,4 +998,96 @@ it('cannot review already rejected logbook', function () {
         ])
         ->assertStatus(400)
         ->assertJsonPath('message', 'Only SUBMITTED logbooks can be reviewed.');
+});
+
+it('manager can list subordinate logbooks via GET /logbooks', function () {
+    $manager = User::factory()->create(['role' => 'Staff']);
+    $subordinate = User::factory()->create(['role' => 'Staff', 'manager_id' => $manager->id]);
+    $otherStaff = User::factory()->create(['role' => 'Staff']);
+
+    $subLogbook = Logbook::create([
+        'user_id' => $subordinate->id,
+        'status' => 'SUBMITTED',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'Office',
+    ]);
+
+    $otherLogbook = Logbook::create([
+        'user_id' => $otherStaff->id,
+        'status' => 'SUBMITTED',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'Remote',
+    ]);
+
+    $managerLogbook = Logbook::create([
+        'user_id' => $manager->id,
+        'status' => 'DRAFT',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'HQ',
+    ]);
+
+    $response = $this->actingAs($manager)->getJson('/api/v1/logbooks');
+
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->all();
+
+    expect($ids)->toContain($subLogbook->id)
+        ->toContain($managerLogbook->id);
+
+    expect($ids)->not->toContain($otherLogbook->id);
+});
+
+it('staff without subordinates only sees own logbooks', function () {
+    $manager = User::factory()->create(['role' => 'Staff']);
+    $staff = User::factory()->create(['role' => 'Staff', 'manager_id' => $manager->id]);
+
+    Logbook::create([
+        'user_id' => $staff->id,
+        'status' => 'DRAFT',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'Office',
+    ]);
+
+    Logbook::create([
+        'user_id' => $manager->id,
+        'status' => 'DRAFT',
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'HQ',
+    ]);
+
+    $response = $this->actingAs($staff)->getJson('/api/v1/logbooks');
+
+    $response->assertOk();
+
+    $ids = collect($response->json('data'))->pluck('id')->all();
+
+    expect($ids)->toHaveCount(1);
+});
+
+it('rejects logbook start when staff has no KPI assignments', function () {
+    Carbon::setTestNow('2026-03-19 09:00:00');
+
+    $staff = User::factory()->create(['role' => 'STAFF']);
+
+    $response = $this->actingAs($staff)->postJson('/api/v1/logbooks/start', [
+        'tanggal' => '2026-03-19',
+        'start_kerja' => '08:30',
+        'lokasi' => '-6.2,106.8',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('message', 'Anda belum memiliki KPI yang ditugaskan. Hubungi manager Anda.');
+
+    Carbon::setTestNow();
 });

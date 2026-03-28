@@ -54,6 +54,67 @@ it('manager cannot assign kpi to non-subordinate', function () {
     $response->assertStatus(403);
 });
 
+it('manager can delete kpi assignment for subordinate', function () {
+    $manager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+    $kpi = KpiMaster::factory()->create();
+
+    $assignment = UserKpiAssignment::create([
+        'user_id' => $staff->id,
+        'kpi_id' => $kpi->id,
+        'assigned_by' => $manager->id,
+    ]);
+
+    $response = $this->actingAs($manager)->deleteJson("/api/v1/kpi/assignments/{$assignment->id}");
+
+    $response->assertNoContent();
+
+    $this->assertSoftDeleted('user_kpi_assignments', [
+        'id' => $assignment->id,
+    ]);
+});
+
+it('manager cannot delete kpi assignment for non-subordinate', function () {
+    $manager = User::factory()->create(['role' => 'MANAGER']);
+    $otherManager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $otherManager->id]);
+    $kpi = KpiMaster::factory()->create();
+
+    $assignment = UserKpiAssignment::create([
+        'user_id' => $staff->id,
+        'kpi_id' => $kpi->id,
+        'assigned_by' => $otherManager->id,
+    ]);
+
+    $response = $this->actingAs($manager)->deleteJson("/api/v1/kpi/assignments/{$assignment->id}");
+
+    $response->assertForbidden();
+
+    $this->assertDatabaseHas('user_kpi_assignments', [
+        'id' => $assignment->id,
+    ]);
+});
+
+it('staff cannot delete kpi assignment', function () {
+    $manager = User::factory()->create(['role' => 'MANAGER']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+    $kpi = KpiMaster::factory()->create();
+
+    $assignment = UserKpiAssignment::create([
+        'user_id' => $staff->id,
+        'kpi_id' => $kpi->id,
+        'assigned_by' => $manager->id,
+    ]);
+
+    $response = $this->actingAs($staff)->deleteJson("/api/v1/kpi/assignments/{$assignment->id}");
+
+    $response->assertForbidden();
+
+    $this->assertDatabaseHas('user_kpi_assignments', [
+        'id' => $assignment->id,
+    ]);
+});
+
 it('staff can see their own kpis', function () {
     $manager = User::factory()->create(['role' => 'MANAGER']);
     $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);

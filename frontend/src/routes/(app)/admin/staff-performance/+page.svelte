@@ -2,7 +2,16 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import DataTable from '$lib/components/ui/DataTable.svelte';
+	import StaffDetailDrawer from '$lib/components/drawers/StaffDetailDrawer.svelte';
 	import { analyticsService } from '$lib/api/services/analyticsService';
+
+	let drawerOpen = $state(false);
+	let selectedStaff = $state<{ user_id: string; nama: string; npp: string } | null>(null);
+
+	function openStaffDrawer(item: StaffPerformanceSummaryItem) {
+		selectedStaff = { user_id: String(item.user_id), nama: item.nama, npp: item.npp };
+		drawerOpen = true;
+	}
 
 	interface StaffPerformanceSummaryItem {
 		user_id: string | number;
@@ -186,7 +195,7 @@
 	{/snippet}
 
 	{#each items as item (item.user_id)}
-		<tr>
+		<tr class="cursor-pointer hover:bg-base-200" onclick={() => openStaffDrawer(item)}>
 			<td class="font-medium">{item.nama || '-'}</td>
 			<td>{item.npp || '-'}</td>
 			<td>
@@ -201,3 +210,5 @@
 		</tr>
 	{/each}
 </DataTable>
+
+<StaffDetailDrawer bind:isOpen={drawerOpen} staff={selectedStaff} />

@@ -14,9 +14,14 @@ return new class extends Migration
         Schema::create('kpi_masters', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('nama');
+            $table->decimal('target_angka', 14, 2)->nullable();
+            $table->string('satuan', 100)->nullable();
+            $table->text('deskripsi')->nullable();
             $table->boolean('status_aktif')->default(true);
             $table->softDeletes();
             $table->timestamps();
+
+            $table->index(['status_aktif', 'deleted_at'], 'kpi_masters_status_deleted_idx');
         });
     }
 

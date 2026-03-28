@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StoreMasterKpiRequest;
+use App\Http\Requests\Api\V1\UpdateMasterKpiRequest;
 use App\Http\Resources\V1\MasterKpiResource;
 use App\Models\KpiMaster;
 use App\Models\User;
@@ -48,7 +50,7 @@ class MasterKpiController extends Controller
         return MasterKpiResource::collection($query->paginate($perPage));
     }
 
-    public function store(Request $request)
+    public function store(StoreMasterKpiRequest $request)
     {
         /** @var User $actor */
         $actor = $request->user();
@@ -57,13 +59,7 @@ class MasterKpiController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $validated = $request->validate([
-            'nama' => 'required|string|max:255',
-            'target_angka' => 'nullable|numeric|min:0',
-            'satuan' => 'nullable|string|max:100',
-            'deskripsi' => 'nullable|string',
-            'status_aktif' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         $kpi = KpiMaster::create($validated);
 
@@ -84,7 +80,7 @@ class MasterKpiController extends Controller
         return new MasterKpiResource($kpi);
     }
 
-    public function update(Request $request, KpiMaster $kpi)
+    public function update(UpdateMasterKpiRequest $request, KpiMaster $kpi)
     {
         /** @var User $actor */
         $actor = $request->user();
@@ -93,13 +89,7 @@ class MasterKpiController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $validated = $request->validate([
-            'nama' => 'sometimes|required|string|max:255',
-            'target_angka' => 'nullable|numeric|min:0',
-            'satuan' => 'nullable|string|max:100',
-            'deskripsi' => 'nullable|string',
-            'status_aktif' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         $kpi->update($validated);
 

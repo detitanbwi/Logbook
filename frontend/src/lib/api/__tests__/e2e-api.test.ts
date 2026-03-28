@@ -72,12 +72,14 @@ describe('E2E API Tests', () => {
 			const list = Array.isArray(existingRes) ? existingRes : existingRes.data || [];
 			let activeLogbook = list.find((l: any) => l.date === dateStr);
 
-			if (!activeLogbook) {
-				const startRes = await staffLogbookService.startLogbook({
-					gps_location_start: '-6.200, 106.816'
-				});
-				activeLogbook = (startRes as any).data || startRes;
-			}
+		if (!activeLogbook) {
+			const startRes = await staffLogbookService.startLogbook({
+				tanggal: '2026-03-21',
+				start_kerja: '08:00',
+				lokasi: '-6.200, 106.816'
+			});
+			activeLogbook = (startRes as any).data || startRes;
+		}
 
 			expect(activeLogbook).toBeDefined();
 			logbookId = activeLogbook.id;
@@ -88,24 +90,20 @@ describe('E2E API Tests', () => {
 			const logbook = (detailsRes as any).data || detailsRes;
 			const kpiDetails = logbook.kpi_details || [];
 
-			if (kpiDetails.length > 0) {
-				kpiDetailId = kpiDetails[0].id;
+		if (kpiDetails.length > 0) {
+			kpiDetailId = kpiDetails[0].id;
 
-				// Toggle KPI
-				const toggleRes = await staffLogbookService.toggleKpi(logbookId, kpiDetailId, {
-					is_finished: true
-				});
-				expect(toggleRes).toBeDefined();
-			}
+			const updateRes = await staffLogbookService.updateKpiProgress(logbookId, kpiDetailId, {
+				capaian_angka: 100
+			});
+			expect(updateRes).toBeDefined();
+		}
 
 			// Submit Logbook
-			if (logbook.status === 'DRAFT') {
-				const submitRes = await staffLogbookService.submitLogbook(logbookId, {
-					gps_location_end: '-6.200, 106.816',
-					gambar_bukti: []
-				});
-				expect(submitRes).toBeDefined();
-			}
+		if (logbook.status === 'DRAFT') {
+			const submitRes = await staffLogbookService.submitLogbook(logbookId);
+			expect(submitRes).toBeDefined();
+		}
 
 			await authService.logout();
 		}, 15000);
@@ -117,15 +115,16 @@ describe('E2E API Tests', () => {
 				password: 'password'
 			});
 
-			if (!logbookId) {
-				throw new Error('No logbookId available from Staff flow');
-			}
+		if (!logbookId) {
+			throw new Error('No logbookId available from Staff flow');
+		}
 
-			// Manager rating it
-			const rateRes = await managerLogbookService.rateLogbook(logbookId, {
-				rating: 4
-			});
-			expect(rateRes).toBeDefined();
+		const reviewRes = await managerLogbookService.reviewLogbook(logbookId, {
+			decision: 'ACCEPTED',
+			rating: 4,
+			reviewer_comment: 'Good'
+		});
+		expect(reviewRes).toBeDefined();
 
 			await authService.logout();
 		});

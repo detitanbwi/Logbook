@@ -177,3 +177,27 @@ it('allows admin and manager to initiate export', function () {
 it('prevents staff from exporting', function () {
     actingAs($this->staff)->getJson('/api/v1/reports/export')->assertForbidden();
 });
+
+it('allows manager to access team locations', function () {
+    $logbook = Logbook::factory()->create([
+        'user_id' => $this->staff->id,
+        'tanggal' => now()->toDateString(),
+        'start_kerja' => now()->format('H:i:s'),
+        'lokasi' => '-6.200000,106.816666',
+        'status' => 'DRAFT',
+        'created_at' => now(),
+    ]);
+
+    $response = actingAs($this->manager)->getJson('/api/v1/dashboard/manager/locations');
+
+    $response->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.title', $this->staff->nama)
+        ->assertJsonPath('data.0.status', 'DRAFT')
+        ->assertJsonPath('data.0.lat', -6.2)
+        ->assertJsonPath('data.0.lng', 106.816666);
+});
+
+it('prevents staff without subordinates from accessing team locations', function () {
+    actingAs($this->staff)->getJson('/api/v1/dashboard/manager/locations')->assertForbidden();
+});

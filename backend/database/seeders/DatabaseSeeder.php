@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Models\UserKpiAssignment;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Collection;
 
 class DatabaseSeeder extends Seeder
 {
@@ -133,6 +132,5 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $this->call(MigrateExistingDataSeeder::class);
     }
 }

@@ -28,7 +28,7 @@ test('staff can update end_kerja on DRAFT logbook', function () {
     ]);
 
     $response->assertStatus(200)
-        ->assertJsonPath('message', 'Logbook berhasil diperbarui');
+        ->assertJsonPath('data.id', $logbook->id);
 
     $logbook->refresh();
     expect($logbook->end_kerja)->toBe('17:00');
@@ -49,7 +49,7 @@ test('staff can update start_kerja on DRAFT logbook', function () {
     ]);
 
     $response->assertStatus(200)
-        ->assertJsonPath('message', 'Logbook berhasil diperbarui');
+        ->assertJsonPath('data.id', $logbook->id);
 
     $logbook->refresh();
     expect($logbook->start_kerja)->toBe('09:00');
@@ -186,7 +186,7 @@ test('staff can update multiple fields at once', function () {
     ]);
 
     $response->assertStatus(200)
-        ->assertJsonPath('message', 'Logbook berhasil diperbarui');
+        ->assertJsonPath('data.id', $logbook->id);
 
     $logbook->refresh();
     expect($logbook->tanggal->format('Y-m-d'))->toBe('2026-03-21');

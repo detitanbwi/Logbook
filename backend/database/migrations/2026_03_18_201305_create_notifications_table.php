@@ -19,8 +19,10 @@ return new class extends Migration
             $table->string('type');
             $table->uuid('reference_id')->nullable();
             $table->boolean('is_read')->default(false);
-            $table->timestamp('read_at')->nullable();
             $table->timestamps();
+
+            $table->index(['user_id', 'is_read', 'created_at'], 'notifications_user_read_created_idx');
+            $table->index(['type', 'created_at'], 'notifications_type_created_idx');
         });
     }
 

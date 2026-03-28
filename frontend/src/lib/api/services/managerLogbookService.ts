@@ -1,5 +1,10 @@
 import { api } from '../core/client';
-import { RateLogbookRequestSchema, type RateLogbookRequest } from '../schemas/logbook.schema';
+import {
+	ReviewLogbookRequestSchema,
+	RevertLogbookRequestSchema,
+	type ReviewLogbookRequest,
+	type RevertLogbookRequest
+} from '../schemas/logbook.schema';
 import * as v from 'valibot';
 import type { PaginatedResponse } from '../core/types';
 import type { Logbook } from '../../types';
@@ -12,18 +17,20 @@ export class ManagerLogbookService {
 		});
 	}
 
-	async revertLogbook(logbookId: string | number): Promise<any> {
-		return api.post<any>(`/logbooks/${logbookId}/revert`);
+	async reviewLogbook(
+		logbookId: string,
+		data: ReviewLogbookRequest
+	): Promise<{ message: string; data: Logbook }> {
+		const validated = v.parse(ReviewLogbookRequestSchema, data);
+		return api.put(`/logbooks/${logbookId}/review`, validated);
 	}
 
-	async reviewLogbook(logbookId: string | number, data: RateLogbookRequest): Promise<any> {
-		const validated = v.parse(RateLogbookRequestSchema, data);
-		return api.put<any>(`/logbooks/${logbookId}/review`, validated);
-	}
-
-	/** @deprecated use reviewLogbook() */
-	async rateLogbook(logbookId: string | number, data: RateLogbookRequest): Promise<any> {
-		return this.reviewLogbook(logbookId, data);
+	async revertLogbook(
+		logbookId: string,
+		data: RevertLogbookRequest
+	): Promise<{ message: string; data: { id: string; status: string } }> {
+		const validated = v.parse(RevertLogbookRequestSchema, data);
+		return api.post(`/logbooks/${logbookId}/revert`, validated);
 	}
 }
 

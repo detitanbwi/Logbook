@@ -11,8 +11,7 @@ const baseNotification: Notification = {
 	message: null,
 	type: 'LOGBOOK_SUBMITTED',
 	is_read: false,
-	created_at: '2026-03-19T10:00:00.000Z',
-	read_at: null
+	created_at: '2026-03-19T10:00:00.000Z'
 };
 
 describe('notification utils', () => {
@@ -115,7 +114,6 @@ describe('notification utils', () => {
 			{
 				...baseNotification,
 				is_read: true,
-				read_at: '2026-03-19T10:10:00.000Z',
 				target_path: '/kpi/me'
 			},
 			{ markAsRead, navigate }

@@ -34,6 +34,14 @@ export class AuthStore {
 		if (this.token.current) {
 			api.setToken(this.token.current);
 		}
+		api.setOnUnauthorized(() => this.handleUnauthorized());
+	}
+
+	private handleUnauthorized(): void {
+		this.clearLocalSession();
+		if (typeof window !== 'undefined') {
+			window.location.href = '/login';
+		}
 	}
 
 	private clearLocalSession(): void {

@@ -1,15 +1,15 @@
 import { api } from '../core/client';
 import {
 	StartLogbookRequestSchema,
-	ToggleKpiRequestSchema,
-	SubmitLogbookRequestSchema,
+	UpdateLogbookRequestSchema,
+	UpdateKpiProgressSchema,
 	type StartLogbookRequest,
-	type ToggleKpiRequest,
-	type SubmitLogbookRequest
+	type UpdateLogbookRequest,
+	type UpdateKpiProgressRequest
 } from '../schemas/logbook.schema';
 import * as v from 'valibot';
 import type { PaginatedResponse, PaginationParams, BaseResponse } from '../core/types';
-import type { Logbook } from '../../types';
+import type { Logbook, LogbookDuration } from '../../types';
 import { normalizeEntityUser } from '../schemas/user-normalization.schema';
 
 export interface LogbookFilters extends PaginationParams {
@@ -40,11 +40,9 @@ export class StaffLogbookService {
 		};
 	}
 
-	async getLogbookById(logbookId: string | number): Promise<Logbook> {
+	async getLogbookById(logbookId: string): Promise<Logbook> {
 		const response = await api.get<BaseResponse<Logbook>>(`/logbooks/${logbookId}`);
-		return this.normalizeLogbook(response.data); // Mengikuti struktur dari api.get return if wrapped in BaseResponse or directly returning it.
-		// Catatan: Jika API Laravel langsung return objek Logbook (misalnya dari resource tanpa 'data' wrapper untuk get 1 item),
-		// mungkin ini perlu disesuaikan, tapi sementara kita asumsikan menggunakan BaseResponse.
+		return this.normalizeLogbook(response.data);
 	}
 
 	async startLogbook(data: StartLogbookRequest): Promise<Logbook> {
@@ -53,32 +51,49 @@ export class StaffLogbookService {
 		return this.normalizeLogbook(response.data);
 	}
 
-	async toggleKpi(
-		logbookId: string | number,
-		detailId: string | number,
-		data: ToggleKpiRequest
-	): Promise<any> {
-		const validated = v.parse(ToggleKpiRequestSchema, data);
-		return api.patch<any>(`/logbooks/${logbookId}/kpi/${detailId}/toggle`, validated);
+	async updateLogbook(logbookId: string, data: UpdateLogbookRequest): Promise<Logbook> {
+		const validated = v.parse(UpdateLogbookRequestSchema, data);
+		const response = await api.patch<BaseResponse<Logbook>>(`/logbooks/${logbookId}`, validated);
+		return this.normalizeLogbook(response.data);
 	}
 
-	async submitLogbook(
-		logbookId: string | number,
-		data: SubmitLogbookRequest | FormData
-	): Promise<Logbook> {
-		// If FormData is passed, send it directly (for file uploads)
-		if (data instanceof FormData) {
-			const response = await api.post<BaseResponse<Logbook>>(`/logbooks/${logbookId}/submit`, data);
-			return this.normalizeLogbook(response.data);
-		}
+	async updateKpiProgress(
+		logbookId: string,
+		detailId: string,
+		data: UpdateKpiProgressRequest
+	): Promise<{ id: string; capaian_angka: number; target_angka: number; satuan: string; finished_at: string | null }> {
+		const validated = v.parse(UpdateKpiProgressSchema, data);
+		return api.patch(`/logbooks/${logbookId}/kpi/${detailId}/progress`, validated);
+	}
 
-		// Otherwise, validate and send as JSON
-		const validated = v.parse(SubmitLogbookRequestSchema, data);
-		const response = await api.post<BaseResponse<Logbook>>(
-			`/logbooks/${logbookId}/submit`,
-			validated
-		);
+	async uploadKpiAttachment(
+		logbookId: string,
+		detailId: string,
+		file: File
+	): Promise<{ message: string; data: { id: string; lampiran_file: string } }> {
+		const formData = new FormData();
+		formData.append('lampiran_file', file);
+		return api.post(`/logbooks/${logbookId}/kpi/${detailId}/attachment`, formData);
+	}
+
+	async deleteKpiAttachment(
+		logbookId: string,
+		detailId: string
+	): Promise<{ message: string; data: { id: string; lampiran_file: null } }> {
+		return api.delete(`/logbooks/${logbookId}/kpi/${detailId}/attachment`);
+	}
+
+	async submitLogbook(logbookId: string): Promise<Logbook> {
+		const response = await api.post<BaseResponse<Logbook>>(`/logbooks/${logbookId}/submit`);
 		return this.normalizeLogbook(response.data);
+	}
+
+	async deleteLogbook(logbookId: string): Promise<{ message: string }> {
+		return api.delete(`/logbooks/${logbookId}`);
+	}
+
+	async getLogbookDuration(logbookId: string): Promise<LogbookDuration> {
+		return api.get(`/logbooks/${logbookId}/duration`);
 	}
 }
 

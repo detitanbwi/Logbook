@@ -83,9 +83,9 @@ test('end-to-end system flow: from creation to logbook review', function () {
     ]);
 
     // Verify KPI is copied
-    $response->assertJsonPath('data.kpi_details.0.kpi_id', $kpiId);
-    $response->assertJsonPath('data.kpi_details.0.capaian_angka', 0);
-    $detailId = $response->json('data.kpi_details.0.id');
+    $response->assertJsonPath('data.details.0.kpi_id', $kpiId);
+    $response->assertJsonPath('data.details.0.capaian_angka', 0);
+    $detailId = $response->json('data.details.0.id');
 
     // 4. Staff updates KPI progress and submits logbook.
     $progressData = ['capaian_angka' => 100];
@@ -97,11 +97,11 @@ test('end-to-end system flow: from creation to logbook review', function () {
     // Update end_kerja before submit (per plan spec section 9.2)
     $updateData = ['end_kerja' => '17:30'];
     $response = $this->patchJson("/api/v1/logbooks/{$logbookId}", $updateData);
-    $response->assertStatus(200)->assertJsonPath('message', 'Logbook berhasil diperbarui');
+    $response->assertStatus(200)->assertJsonPath('data.id', $logbookId);
 
     // Now submit the logbook
     $response = $this->postJson("/api/v1/logbooks/{$logbookId}/submit");
-    $response->assertStatus(200)->assertJsonPath('status', 'SUBMITTED');
+    $response->assertStatus(200)->assertJsonPath('data.status', 'SUBMITTED');
 
     // 5. Manager reviews the logbook.
     Sanctum::actingAs($manager);
