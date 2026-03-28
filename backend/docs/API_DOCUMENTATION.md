@@ -657,9 +657,9 @@ Team daily summaries (for managers, shows subordinates).
 
 ### GET `/summaries/staff-performance`
 
-Staff performance ranking over period.
+Staff performance ranking over period. Returns aggregated metrics per staff member including work hours, days worked, and average rating.
 
-**Query Parameters:** `date_from`, `date_to`, `per_page`
+**Query Parameters:** `date_from`, `date_to`
 
 **Response 200:**
 ```json
@@ -674,13 +674,22 @@ Staff performance ranking over period.
       "total_logbooks": 14,
       "accepted_logbooks": 9,
       "rejected_logbooks": 1,
-      "target_angka_total": 154,
-      "capaian_angka_total": 118.25,
+      "total_days_worked": 14,
+      "total_work_hours": 111.97,
+      "average_rating": 3.33,
       "progress_percent": 76.79
     }
   ]
 }
 ```
+
+**Response Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `total_days_worked` | integer | Count of unique days with logbook activity |
+| `total_work_hours` | float | Sum of work hours across all days (lunch breaks excluded) |
+| `average_rating` | float\|null | Average rating of ACCEPTED logbooks with ratings, null if none |
+| `progress_percent` | float | Overall KPI progress percentage |
 
 ---
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\DailyKpiSummary;
 use App\Models\DailyStaffSummary;
+use App\Models\Logbook;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -235,7 +236,8 @@ class SummaryController extends Controller
 
         $query = DailyStaffSummary::query()
             ->join('users', 'users.id', '=', 'daily_staff_summaries.user_id')
-            ->whereBetween('daily_staff_summaries.tanggal', [$dateFrom, $dateTo]);
+            ->whereDate('daily_staff_summaries.tanggal', '>=', $dateFrom)
+            ->whereDate('daily_staff_summaries.tanggal', '<=', $dateTo);
 
         if (! $actor->isPrivileged()) {
             $query->where('users.manager_id', $actor->id);
@@ -248,30 +250,49 @@ class SummaryController extends Controller
             ->selectRaw('SUM(daily_staff_summaries.total_logbooks) as total_logbooks')
             ->selectRaw('SUM(daily_staff_summaries.accepted_logbooks) as accepted_logbooks')
             ->selectRaw('SUM(daily_staff_summaries.rejected_logbooks) as rejected_logbooks')
+            ->selectRaw('COUNT(DISTINCT daily_staff_summaries.tanggal) as total_days_worked')
+            ->selectRaw('SUM(daily_staff_summaries.total_work_minutes) as total_work_minutes')
             ->selectRaw('SUM(daily_staff_summaries.target_angka_total) as target_angka_total')
             ->selectRaw('SUM(daily_staff_summaries.capaian_angka_total) as capaian_angka_total')
-            ->get()
-            ->map(function ($row) {
-                $target = (float) $row->target_angka_total;
-                $capaian = (float) $row->capaian_angka_total;
+            ->get();
 
-                return [
-                    'user_id' => $row->user_id,
-                    'nama' => $row->nama,
-                    'npp' => $row->npp,
-                    'total_logbooks' => (int) $row->total_logbooks,
-                    'accepted_logbooks' => (int) $row->accepted_logbooks,
-                    'rejected_logbooks' => (int) $row->rejected_logbooks,
-                    'target_angka_total' => $target,
-                    'capaian_angka_total' => $capaian,
-                    'progress_percent' => $target > 0 ? round(($capaian / $target) * 100, 2) : 0,
-                ];
-            });
+        // Fetch average ratings from logbooks for each user
+        $userIds = $items->pluck('user_id')->toArray();
+        $ratings = Logbook::query()
+            ->whereIn('user_id', $userIds)
+            ->whereDate('tanggal', '>=', $dateFrom)
+            ->whereDate('tanggal', '<=', $dateTo)
+            ->where('status', 'ACCEPTED')
+            ->whereNotNull('rating')
+            ->groupBy('user_id')
+            ->selectRaw('user_id, AVG(rating) as average_rating, COUNT(*) as rated_count')
+            ->get()
+            ->keyBy('user_id');
+
+        $mappedItems = $items->map(function ($row) use ($ratings) {
+            $target = (float) $row->target_angka_total;
+            $capaian = (float) $row->capaian_angka_total;
+            $totalMinutes = (int) $row->total_work_minutes;
+            $userRating = $ratings->get($row->user_id);
+
+            return [
+                'user_id' => $row->user_id,
+                'nama' => $row->nama,
+                'npp' => $row->npp,
+                'total_logbooks' => (int) $row->total_logbooks,
+                'accepted_logbooks' => (int) $row->accepted_logbooks,
+                'rejected_logbooks' => (int) $row->rejected_logbooks,
+                'total_days_worked' => (int) $row->total_days_worked,
+                'total_work_hours' => round($totalMinutes / 60, 2),
+                'average_rating' => $userRating ? round((float) $userRating->average_rating, 2) : null,
+                'progress_percent' => $target > 0 ? round(($capaian / $target) * 100, 2) : 0,
+            ];
+        });
 
         return response()->json([
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
-            'items' => $items,
+            'items' => $mappedItems,
         ]);
     }
 }

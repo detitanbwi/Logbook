@@ -50,6 +50,7 @@
 	let kpiProgressValues = $state<Record<string, number>>({});
 	let kpiUpdating = $state<Record<string, boolean>>({});
 	let attachmentUploading = $state<Record<string, boolean>>({});
+	let pendingAttachments = $state<Record<string, File | null>>({});
 
 	onMount(async () => {
 		try {
@@ -125,27 +126,19 @@
 		}
 	}
 
-	async function handleAttachmentUpload(detailId: string, event: Event) {
-		if (!logbookStore.currentLogbook) return;
+	function handleAttachmentUpload(detailId: string, event: Event) {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
 		if (!file) return;
 
-		attachmentUploading = { ...attachmentUploading, [detailId]: true };
-		try {
-			await staffLogbookService.uploadKpiAttachment(
-				logbookStore.currentLogbook.id,
-				detailId,
-				file
-			);
-			await logbookStore.fetchLogbookById(logbookStore.currentLogbook.id);
-		} catch (err: unknown) {
-			const e = err as { message?: string };
-			errorMsg = e.message || 'Gagal mengunggah lampiran';
-		} finally {
-			attachmentUploading = { ...attachmentUploading, [detailId]: false };
-			input.value = '';
-		}
+		pendingAttachments = { ...pendingAttachments, [detailId]: file };
+		input.value = '';
+	}
+
+	function removePendingAttachment(detailId: string) {
+		const newPending = { ...pendingAttachments };
+		delete newPending[detailId];
+		pendingAttachments = newPending;
 	}
 
 	async function handleAttachmentDelete(detailId: string) {
@@ -170,6 +163,25 @@
 		errorMsg = null;
 		isSubmitting = true;
 		try {
+			// Upload pending attachments first
+			for (const [detailId, file] of Object.entries(pendingAttachments)) {
+				if (file) {
+					try {
+						await staffLogbookService.uploadKpiAttachment(
+							logbookStore.currentLogbook.id,
+							detailId,
+							file
+						);
+					} catch (err: unknown) {
+						console.error(`Gagal mengunggah lampiran untuk detail ${detailId}:`, err);
+						throw new Error(`Gagal mengunggah lampiran: ${file.name}`);
+					}
+				}
+			}
+
+			// Clear pending attachments after successful upload
+			pendingAttachments = {};
+
 			await logbookStore.submitLogbook(logbookStore.currentLogbook.id);
 			logbookStore.currentLogbook = null;
 			goto('/staff/history');
@@ -387,12 +399,23 @@
 													Hapus
 												</button>
 											</div>
+										{:else if pendingAttachments[kpi.id]}
+											<div class="flex items-center gap-2 text-sm">
+												<span class="truncate text-base-content/70 font-medium">
+													{pendingAttachments[kpi.id]?.name} (Pending upload)
+												</span>
+												<button
+													class="btn btn-outline btn-xs btn-error"
+													onclick={() => removePendingAttachment(kpi.id)}
+												>
+													Batal
+												</button>
+											</div>
 										{:else}
 											<input
 												type="file"
 												class="file-input file-input-bordered file-input-xs w-full max-w-xs"
 												onchange={(e) => handleAttachmentUpload(kpi.id, e)}
-												disabled={attachmentUploading[kpi.id]}
 											/>
 										{/if}
 									</div>

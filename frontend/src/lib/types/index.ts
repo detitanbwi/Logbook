@@ -221,8 +221,9 @@ export interface StaffPerformanceSummaryItem {
 	total_logbooks: number;
 	accepted_logbooks: number;
 	rejected_logbooks: number;
-	target_angka_total: number;
-	capaian_angka_total: number;
+	total_days_worked: number;
+	total_work_hours: number;
+	average_rating: number | null;
 	progress_percent: number;
 }
 

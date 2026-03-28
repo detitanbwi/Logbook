@@ -243,3 +243,205 @@ it('recalculates kpi summaries when logbook date changes', function () {
     expect($march12KpiSummary)->not->toBeNull();
     expect((float) $march12KpiSummary->capaian_angka_total)->toBe(15.0);
 });
+
+it('staff-performance returns total_days_worked, total_work_hours, average_rating instead of raw KPI values', function () {
+    $admin = User::factory()->create(['role' => 'ADMIN']);
+    $manager = User::factory()->create(['role' => 'STAFF']);
+    $staff = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+
+    // Create daily summaries for 3 days with known work minutes
+    DailyStaffSummary::create([
+        'user_id' => $staff->id,
+        'tanggal' => '2026-03-10',
+        'total_logbooks' => 1,
+        'submitted_logbooks' => 0,
+        'accepted_logbooks' => 1,
+        'rejected_logbooks' => 0,
+        'total_work_minutes' => 480, // 8 hours
+        'total_kpi' => 2,
+        'target_angka_total' => 20,
+        'capaian_angka_total' => 15,
+        'progress_percent' => 75,
+    ]);
+
+    DailyStaffSummary::create([
+        'user_id' => $staff->id,
+        'tanggal' => '2026-03-11',
+        'total_logbooks' => 1,
+        'submitted_logbooks' => 0,
+        'accepted_logbooks' => 1,
+        'rejected_logbooks' => 0,
+        'total_work_minutes' => 420, // 7 hours
+        'total_kpi' => 2,
+        'target_angka_total' => 20,
+        'capaian_angka_total' => 18,
+        'progress_percent' => 90,
+    ]);
+
+    DailyStaffSummary::create([
+        'user_id' => $staff->id,
+        'tanggal' => '2026-03-12',
+        'total_logbooks' => 1,
+        'submitted_logbooks' => 1,
+        'accepted_logbooks' => 0,
+        'rejected_logbooks' => 0,
+        'total_work_minutes' => 300, // 5 hours
+        'total_kpi' => 2,
+        'target_angka_total' => 20,
+        'capaian_angka_total' => 10,
+        'progress_percent' => 50,
+    ]);
+
+    // Create accepted logbooks with ratings (withoutEvents to prevent observer from recalculating DailyStaffSummary)
+    Logbook::withoutEvents(function () use ($staff) {
+        Logbook::create([
+            'user_id' => $staff->id,
+            'tanggal' => '2026-03-10',
+            'start_kerja' => '08:00:00',
+            'end_kerja' => '16:00:00',
+            'status' => 'ACCEPTED',
+            'rating' => 4,
+            'lokasi' => 'office',
+        ]);
+
+        Logbook::create([
+            'user_id' => $staff->id,
+            'tanggal' => '2026-03-11',
+            'start_kerja' => '08:00:00',
+            'end_kerja' => '15:00:00',
+            'status' => 'ACCEPTED',
+            'rating' => 5,
+            'lokasi' => 'office',
+        ]);
+
+        // Non-rated logbook (SUBMITTED status) shouldn't count
+        Logbook::create([
+            'user_id' => $staff->id,
+            'tanggal' => '2026-03-12',
+            'start_kerja' => '08:00:00',
+            'end_kerja' => '13:00:00',
+            'status' => 'SUBMITTED',
+            'rating' => null,
+            'lokasi' => 'office',
+        ]);
+    });
+
+    // Admin can view all staff
+    $response = $this->actingAs($admin)->getJson('/api/v1/summaries/staff-performance?date_from=2026-03-10&date_to=2026-03-12');
+    $response->assertOk();
+
+    $items = $response->json('items');
+    expect($items)->toHaveCount(1);
+
+    $staffItem = $items[0];
+
+    // Verify new fields exist
+    expect($staffItem)->toHaveKeys([
+        'user_id',
+        'nama',
+        'npp',
+        'total_logbooks',
+        'accepted_logbooks',
+        'rejected_logbooks',
+        'total_days_worked',
+        'total_work_hours',
+        'average_rating',
+        'progress_percent',
+    ]);
+
+    // Verify old fields are removed
+    expect($staffItem)->not->toHaveKey('target_angka_total');
+    expect($staffItem)->not->toHaveKey('capaian_angka_total');
+
+    // Verify calculated values
+    expect($staffItem['total_days_worked'])->toBe(3);
+    expect($staffItem['total_work_hours'])->toEqual(20); // (480 + 420 + 300) / 60 = 20 hours
+    expect($staffItem['average_rating'])->toEqual(4.5); // (4 + 5) / 2 = 4.5
+    expect($staffItem['progress_percent'])->toBeGreaterThan(0);
+});
+
+it('staff-performance returns null average_rating when no rated logbooks exist', function () {
+    $admin = User::factory()->create(['role' => 'ADMIN']);
+    $staff = User::factory()->create(['role' => 'STAFF']);
+
+    DailyStaffSummary::create([
+        'user_id' => $staff->id,
+        'tanggal' => '2026-03-10',
+        'total_logbooks' => 1,
+        'submitted_logbooks' => 1,
+        'accepted_logbooks' => 0,
+        'rejected_logbooks' => 0,
+        'total_work_minutes' => 480,
+        'total_kpi' => 2,
+        'target_angka_total' => 20,
+        'capaian_angka_total' => 15,
+        'progress_percent' => 75,
+    ]);
+
+    // Submitted logbook without rating
+    Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => '2026-03-10',
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '16:00:00',
+        'status' => 'SUBMITTED',
+        'rating' => null,
+        'lokasi' => 'office',
+    ]);
+
+    $response = $this->actingAs($admin)->getJson('/api/v1/summaries/staff-performance?date_from=2026-03-10&date_to=2026-03-10');
+    $response->assertOk();
+
+    $items = $response->json('items');
+    expect($items[0]['average_rating'])->toBeNull();
+    expect($items[0]['total_days_worked'])->toBe(1);
+});
+
+it('staff-performance is forbidden for non-manager staff', function () {
+    $staff = User::factory()->create(['role' => 'STAFF']);
+
+    $this->actingAs($staff)
+        ->getJson('/api/v1/summaries/staff-performance')
+        ->assertForbidden();
+});
+
+it('manager can only see their subordinates in staff-performance', function () {
+    $manager = User::factory()->create(['role' => 'STAFF']);
+    $subordinate = User::factory()->create(['role' => 'STAFF', 'manager_id' => $manager->id]);
+    $otherStaff = User::factory()->create(['role' => 'STAFF']);
+
+    DailyStaffSummary::create([
+        'user_id' => $subordinate->id,
+        'tanggal' => '2026-03-10',
+        'total_logbooks' => 1,
+        'submitted_logbooks' => 0,
+        'accepted_logbooks' => 1,
+        'rejected_logbooks' => 0,
+        'total_work_minutes' => 480,
+        'total_kpi' => 2,
+        'target_angka_total' => 20,
+        'capaian_angka_total' => 15,
+        'progress_percent' => 75,
+    ]);
+
+    DailyStaffSummary::create([
+        'user_id' => $otherStaff->id,
+        'tanggal' => '2026-03-10',
+        'total_logbooks' => 1,
+        'submitted_logbooks' => 0,
+        'accepted_logbooks' => 1,
+        'rejected_logbooks' => 0,
+        'total_work_minutes' => 480,
+        'total_kpi' => 2,
+        'target_angka_total' => 20,
+        'capaian_angka_total' => 15,
+        'progress_percent' => 75,
+    ]);
+
+    $response = $this->actingAs($manager)->getJson('/api/v1/summaries/staff-performance?date_from=2026-03-10&date_to=2026-03-10');
+    $response->assertOk();
+
+    $items = $response->json('items');
+    expect($items)->toHaveCount(1);
+    expect($items[0]['user_id'])->toBe($subordinate->id);
+});

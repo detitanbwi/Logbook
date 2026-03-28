@@ -133,6 +133,7 @@
   let updatingKpiId = $state<string | null>(null);
   let uploadingKpiId = $state<string | null>(null);
   let deletingAttachmentId = $state<string | null>(null);
+  let pendingAttachments = $state<Record<string, File | null>>({});
 
   // --- Confirm Modal State ---
   let confirmModalOpen = $state(false);
@@ -209,6 +210,18 @@
       async () => {
         submitLoading = true;
         try {
+          const entries = Object.entries(pendingAttachments);
+          for (const [detailId, file] of entries) {
+            if (file) {
+              try {
+                await staffLogbookService.uploadKpiAttachment(currentLogbook!.id, detailId, file);
+                delete pendingAttachments[detailId];
+              } catch (err: unknown) {
+                toastStore.error(err instanceof Error ? err.message : 'Gagal mengunggah beberapa lampiran.');
+              }
+            }
+          }
+
           await staffLogbookService.submitLogbook(currentLogbook!.id);
           toastStore.success('Logbook berhasil di-submit.');
           await loadDetail(currentLogbook!.id);
@@ -238,23 +251,16 @@
     }
   }
 
-  async function uploadAttachment(detailId: string, event: Event) {
-    if (!currentLogbook) return;
+  function uploadAttachment(detailId: string, event: Event) {
     const target = event.target as HTMLInputElement;
     if (!target.files || target.files.length === 0) return;
 
-    const file = target.files[0];
-    uploadingKpiId = detailId;
-    try {
-      await staffLogbookService.uploadKpiAttachment(currentLogbook.id, detailId, file);
-      toastStore.success('Lampiran berhasil diunggah.');
-      await loadDetail(currentLogbook.id);
-    } catch (err: unknown) {
-      toastStore.error(err instanceof Error ? err.message : 'Gagal mengunggah lampiran.');
-    } finally {
-      uploadingKpiId = null;
-      target.value = '';
-    }
+    pendingAttachments[detailId] = target.files[0];
+    target.value = '';
+  }
+
+  function removePendingAttachment(detailId: string) {
+    pendingAttachments[detailId] = null;
   }
 
   async function deleteAttachment(detailId: string) {
@@ -563,7 +569,22 @@
                       </div>
                     {:else if currentLogbook.status === 'SUBMITTED' || currentLogbook.status === 'REJECTED'}
                       <div class="form-control w-full">
-                        {#if uploadingKpiId === detail.id}
+                        {#if pendingAttachments[detail.id]}
+                          <div class="flex items-center justify-between p-2 bg-base-200 border border-base-300 rounded-lg mt-2">
+                            <div class="flex items-center gap-2 overflow-hidden">
+                              <span class="badge badge-warning badge-sm whitespace-nowrap">Pending upload</span>
+                              <span class="text-xs truncate" title={pendingAttachments[detail.id]?.name}>
+                                {pendingAttachments[detail.id]?.name}
+                              </span>
+                            </div>
+                            <button
+                              class="btn btn-xs btn-ghost text-error"
+                              onclick={() => removePendingAttachment(detail.id)}
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        {:else if uploadingKpiId === detail.id}
                           <div class="flex items-center gap-2 text-sm text-base-content/70 p-2">
                             <span class="loading loading-spinner loading-xs"></span>
                             Mengunggah...
@@ -571,7 +592,7 @@
                         {:else}
                           <input
                             type="file"
-                            class="file-input file-input-bordered file-input-sm w-full text-xs"
+                            class="file-input file-input-bordered file-input-sm w-full text-xs mt-2"
                             onchange={(e) => uploadAttachment(detail.id, e)}
                           />
                         {/if}

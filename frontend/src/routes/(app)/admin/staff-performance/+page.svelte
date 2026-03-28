@@ -4,6 +4,7 @@
 	import DataTable from '$lib/components/ui/DataTable.svelte';
 	import StaffDetailDrawer from '$lib/components/drawers/StaffDetailDrawer.svelte';
 	import { analyticsService } from '$lib/api/services/analyticsService';
+	import type { StaffPerformanceSummaryItem } from '$lib/types';
 
 	let drawerOpen = $state(false);
 	let selectedStaff = $state<{
@@ -23,18 +24,6 @@
 			date_to: dateTo || undefined
 		};
 		drawerOpen = true;
-	}
-
-	interface StaffPerformanceSummaryItem {
-		user_id: string | number;
-		nama: string;
-		npp: string;
-		total_logbooks: number;
-		accepted_logbooks: number;
-		rejected_logbooks: number;
-		target_angka_total: number;
-		capaian_angka_total: number;
-		progress_percent: number;
 	}
 
 	let items = $state<StaffPerformanceSummaryItem[]>([]);
@@ -194,14 +183,15 @@
 	</div>
 {/if}
 
-<DataTable loading={loading} empty={items.length === 0} columnsCount={6}>
+<DataTable loading={loading} empty={items.length === 0} columnsCount={7}>
 	{#snippet head()}
 		<tr>
 			<th>Nama</th>
 			<th>NPP</th>
 			<th>Total / Accepted / Rejected</th>
-			<th>Target Angka</th>
-			<th>Capaian Angka</th>
+			<th>Hari Kerja</th>
+			<th>Jam Kerja</th>
+			<th>Rata-rata Rating</th>
 			<th>Progress</th>
 		</tr>
 	{/snippet}
@@ -214,8 +204,15 @@
 				{formatNumber(item.total_logbooks)} / {formatNumber(item.accepted_logbooks)} /
 				{formatNumber(item.rejected_logbooks)}
 			</td>
-			<td>{formatNumber(item.target_angka_total)}</td>
-			<td>{formatNumber(item.capaian_angka_total)}</td>
+			<td>{formatNumber(item.total_days_worked)}</td>
+			<td>{item.total_work_hours != null ? `${item.total_work_hours.toFixed(1)}h` : '-'}</td>
+			<td>
+				{#if item.average_rating != null}
+					<span class="badge badge-warning gap-1">⭐ {item.average_rating.toFixed(1)}</span>
+				{:else}
+					<span class="text-base-content/50">-</span>
+				{/if}
+			</td>
 			<td>
 				<span class="badge badge-info">{formatPercent(item.progress_percent)}</span>
 			</td>

@@ -273,7 +273,6 @@
 										<td>
 											<span
 												class="badge badge-sm
-												{logbook.status === 'DRAFT' ? 'badge-ghost' : ''}
 												{logbook.status === 'SUBMITTED' ? 'badge-info' : ''}
 												{logbook.status === 'ACCEPTED' ? 'badge-success' : ''}
 												{logbook.status === 'REJECTED' ? 'badge-error' : ''}"
