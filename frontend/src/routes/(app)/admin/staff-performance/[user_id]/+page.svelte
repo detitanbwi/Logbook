@@ -6,6 +6,7 @@
 	import PerformanceSummaryCard from '$lib/components/mobile/PerformanceSummaryCard.svelte';
 	import KpiProgressBar from '$lib/components/mobile/KpiProgressBar.svelte';
 	import type { DailyKpiSummary, DailyStaffSummary, Logbook } from '$lib/types';
+	import { resolveStorageUrl } from '$lib/utils/asset-url';
 
 	function toLocalDateInputValue(date: Date): string {
 		const timezoneOffsetMs = date.getTimezoneOffset() * 60_000;
@@ -236,9 +237,7 @@
 	}
 
 	function getAttachmentUrl(filePath: string): string {
-		if (!filePath) return '#';
-		if (filePath.startsWith('http')) return filePath;
-		return `/storage/${filePath}`;
+		return resolveStorageUrl(filePath);
 	}
 
 	function isImageFile(filePath: string): boolean {

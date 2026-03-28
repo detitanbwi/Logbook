@@ -5,12 +5,14 @@
 		isOpen = $bindable(false),
 		title,
 		children,
-		actions
+		actions,
+		panelClass = ''
 	}: {
 		isOpen: boolean;
 		title: string;
 		children: Snippet;
 		actions?: Snippet;
+		panelClass?: string;
 	} = $props();
 
 	let dialog: HTMLDialogElement;
@@ -40,7 +42,7 @@
 	aria-labelledby="modal-title"
 	aria-modal="true"
 >
-	<div class="modal-box" role="document">
+	<div class={`modal-box ${panelClass}`.trim()} role="document">
 		<h3 id="modal-title" class="mb-4 text-lg font-bold">{title}</h3>
 
 		<div class="py-2">

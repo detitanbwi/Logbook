@@ -1116,7 +1116,7 @@ it('staff without subordinates only sees own logbooks', function () {
     expect($ids)->toHaveCount(1);
 });
 
-it('rejects logbook start when staff has no KPI assignments', function () {
+it('allows logbook start when staff has no KPI assignments', function () {
     Carbon::setTestNow('2026-03-19 09:00:00');
 
     $staff = User::factory()->create(['role' => 'STAFF']);
@@ -1127,8 +1127,43 @@ it('rejects logbook start when staff has no KPI assignments', function () {
         'lokasi' => '-6.2,106.8',
     ]);
 
-    $response->assertStatus(422)
-        ->assertJsonPath('message', 'Anda belum memiliki KPI yang ditugaskan. Hubungi manager Anda.');
+    $response->assertStatus(201)
+        ->assertJsonPath('data.status', 'SUBMITTED')
+        ->assertJsonCount(0, 'data.details');
 
     Carbon::setTestNow();
+});
+
+it('staff can add kpi to an existing submitted logbook', function () {
+    $staff = User::factory()->create(['role' => 'STAFF']);
+    $kpi = KpiMaster::factory()->create([
+        'nama' => 'KPI Tambahan',
+        'target_angka' => 8,
+        'satuan' => 'unit',
+    ]);
+
+    $logbook = Logbook::create([
+        'user_id' => $staff->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'SUBMITTED',
+        'start_kerja' => '08:00:00',
+        'end_kerja' => '17:00:00',
+        'lokasi' => 'loc',
+    ]);
+
+    $response = $this->actingAs($staff)->postJson("/api/v1/logbooks/{$logbook->id}/kpi", [
+        'kpi_id' => $kpi->id,
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.id', $logbook->id)
+        ->assertJsonCount(1, 'data.details');
+
+    $this->assertDatabaseHas('logbook_kpi_details', [
+        'logbook_id' => $logbook->id,
+        'kpi_id' => $kpi->id,
+        'kpi_nama' => 'KPI Tambahan',
+        'target_angka' => 8,
+        'capaian_angka' => 0,
+    ]);
 });

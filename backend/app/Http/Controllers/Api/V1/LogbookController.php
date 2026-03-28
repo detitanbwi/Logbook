@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\AddLogbookKpiRequest;
 use App\Http\Requests\Api\V1\StartLogbookRequest;
 use App\Http\Requests\Api\V1\UpdateLogbookRequest;
 use App\Http\Requests\Api\V1\UpdateProgressRequest;
 use App\Http\Requests\Api\V1\UploadAttachmentRequest;
 use App\Http\Resources\V1\LogbookResource;
+use App\Models\KpiMaster;
 use App\Models\Logbook;
 use App\Models\LogbookKpiDetail;
 use App\Models\Notification;
@@ -117,12 +119,6 @@ class LogbookController extends Controller
             ->where('user_id', $user->id)
             ->get();
 
-        if ($activeAssignments->isEmpty()) {
-            return response()->json([
-                'message' => 'Anda belum memiliki KPI yang ditugaskan. Hubungi manager Anda.',
-            ], 422);
-        }
-
         $logbook = Logbook::create([
             'user_id' => $user->id,
             'tanggal' => $validated['tanggal'],
@@ -153,6 +149,48 @@ class LogbookController extends Controller
                 'capaian_angka' => 0,
             ]);
         }
+
+        $logbook->load(['user', 'reviewer', 'kpiDetails.kpi']);
+
+        return (new LogbookResource($logbook))
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    public function addKpi(AddLogbookKpiRequest $request, Logbook $logbook)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($logbook->user_id !== $user->id) {
+            abort(403);
+        }
+
+        if ($logbook->status === 'ACCEPTED') {
+            return response()->json(['message' => 'Logbook yang sudah diterima tidak dapat diupdate'], 400);
+        }
+
+        $validated = $request->validated();
+
+        $alreadyExists = $logbook->kpiDetails()
+            ->where('kpi_id', $validated['kpi_id'])
+            ->exists();
+
+        if ($alreadyExists) {
+            return response()->json(['message' => 'KPI sudah ada di logbook ini.'], 422);
+        }
+
+        $kpi = KpiMaster::query()->findOrFail($validated['kpi_id']);
+
+        LogbookKpiDetail::create([
+            'logbook_id' => $logbook->id,
+            'kpi_id' => $kpi->id,
+            'kpi_nama' => (string) $kpi->nama,
+            'target_angka' => (float) ($kpi->target_angka ?? 0),
+            'satuan' => $kpi->satuan,
+            'capaian_angka' => 0,
+            'finished_at' => null,
+        ]);
 
         $logbook->load(['user', 'reviewer', 'kpiDetails.kpi']);
 

@@ -8,6 +8,7 @@
 	import { staffLogbookService } from '$lib/api/services/staffLogbookService';
 	import { managerLogbookService } from '$lib/api/services/managerLogbookService';
 	import { toastStore } from '$lib/stores/toast.svelte';
+	import { resolveStorageUrl } from '$lib/utils/asset-url';
 
 	type SortDir = 'asc' | 'desc';
 
@@ -43,6 +44,17 @@
 	let reviewerComment = $state('');
 	let reviewing = $state(false);
 	let loadingDetail = $state(false);
+
+	const selectedCompletedDetails = $derived.by(() => {
+		if (!selectedLogbook || !Array.isArray(selectedLogbook.details)) {
+			return [];
+		}
+
+		return selectedLogbook.details.filter((detail: Record<string, unknown>) => {
+			const capaian = Number(detail.capaian_angka || 0);
+			return capaian > 0;
+		});
+	});
 
 	$effect(() => {
 		dateFromDraft = dateFrom;
@@ -184,9 +196,7 @@
 	}
 
 	function getAttachmentUrl(filePath: string): string {
-		if (!filePath) return '#';
-		if (filePath.startsWith('http')) return filePath;
-		return `/storage/${filePath}`;
+		return resolveStorageUrl(filePath);
 	}
 
 	function isImageFile(filePath: string): boolean {
@@ -250,7 +260,6 @@
 			reviewing = false;
 		}
 	}
-
 </script>
 
 <svelte:head>
@@ -281,14 +290,24 @@
 		<label class="label" for="date_from">
 			<span class="label-text">Dari</span>
 		</label>
-		<input id="date_from" type="date" class="input-bordered input input-sm" bind:value={dateFromDraft} />
+		<input
+			id="date_from"
+			type="date"
+			class="input-bordered input input-sm"
+			bind:value={dateFromDraft}
+		/>
 	</div>
 
 	<div class="form-control">
 		<label class="label" for="date_to">
 			<span class="label-text">Sampai</span>
 		</label>
-		<input id="date_to" type="date" class="input-bordered input input-sm" bind:value={dateToDraft} />
+		<input
+			id="date_to"
+			type="date"
+			class="input-bordered input input-sm"
+			bind:value={dateToDraft}
+		/>
 	</div>
 
 	<div class="flex gap-2">
@@ -298,13 +317,13 @@
 </div>
 
 {#if error}
-	<div class="alert alert-error mb-4">
+	<div class="mb-4 alert alert-error">
 		<span>{error}</span>
 		<button class="btn btn-ghost btn-sm" onclick={refreshData}>Coba Lagi</button>
 	</div>
 {/if}
 
-<DataTable loading={loading} empty={logbooks.length === 0} columnsCount={6}>
+<DataTable {loading} empty={logbooks.length === 0} columnsCount={6}>
 	{#snippet head()}
 		<tr>
 			<SortableHeader
@@ -363,120 +382,172 @@
 
 <Pagination {meta} onPageSizeChange={handlePageSizeChange} />
 
-<Modal bind:isOpen={reviewModalOpen} title="Review Logbook">
-	<div class="space-y-4">
+<Modal
+	bind:isOpen={reviewModalOpen}
+	title="Review Logbook"
+	panelClass="w-11/12 max-w-[96rem] h-[88vh] max-h-[88vh]"
+>
+	<div class="h-full space-y-4">
 		{#if selectedLogbook}
-			<div class="text-sm text-base-content/70">
-				<div>
-					Staff:
-					<span class="font-medium text-base-content">{getStaffName(selectedLogbook)}</span>
-				</div>
-				<div>
-					Tanggal:
-					<span class="font-medium text-base-content">{getLogbookDate(selectedLogbook)}</span>
-				</div>
-			</div>
+			<div class="grid h-full min-h-0 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+				<div class="space-y-4">
+					<div class="text-sm text-base-content/70">
+						<div>
+							Staff:
+							<span class="font-medium text-base-content">{getStaffName(selectedLogbook)}</span>
+						</div>
+						<div>
+							Tanggal:
+							<span class="font-medium text-base-content">{getLogbookDate(selectedLogbook)}</span>
+						</div>
+					</div>
 
-			<div class="divider my-1"></div>
-			<h3 class="text-sm font-bold">Progress KPI</h3>
+					<div class="divider my-1"></div>
+					<h3 class="text-sm font-bold">Task Selesai</h3>
 
-			{#if loadingDetail}
-				<div class="space-y-2">
-					{#each Array(3) as _}
-						<div class="h-12 w-full animate-pulse rounded-lg bg-base-300"></div>
-					{/each}
-				</div>
-			{:else if selectedLogbook.details && selectedLogbook.details.length > 0}
-				<div class="max-h-64 space-y-3 overflow-y-auto">
-					{#each selectedLogbook.details as detail (detail.id)}
-						<div class="rounded-lg border border-base-300 p-3">
-							<div class="mb-1 flex items-center justify-between">
-								<span class="text-sm font-medium">{detail.kpi_nama}</span>
-								<span class="text-xs text-base-content/60">
-									{detail.capaian_angka}/{detail.target_angka} {detail.satuan}
-								</span>
-							</div>
-							<progress
-								class="progress progress-primary w-full"
-								value={detail.target_angka > 0 ? (detail.capaian_angka / detail.target_angka) * 100 : 0}
-								max="100"
-							></progress>
+					{#if loadingDetail}
+						<div class="space-y-2">
+							{#each Array(3) as _}
+								<div class="h-12 w-full animate-pulse rounded-lg bg-base-300"></div>
+							{/each}
+						</div>
+					{:else if selectedCompletedDetails.length > 0}
+						<div class="max-h-[52vh] space-y-3 overflow-y-auto pr-1">
+							{#each selectedCompletedDetails as detail (detail.id)}
+								<div class="rounded-lg border border-base-300 p-3">
+									<div class="mb-1 flex items-center justify-between">
+										<span class="text-sm font-medium">{detail.kpi_nama}</span>
+										<span class="badge badge-sm badge-success">Selesai</span>
+									</div>
+									<div class="mb-2 text-xs text-base-content/60">
+										{detail.capaian_angka}/{detail.target_angka}
+										{detail.satuan}
+									</div>
+									<progress
+										class="progress w-full progress-primary"
+										value={detail.target_angka > 0
+											? (detail.capaian_angka / detail.target_angka) * 100
+											: 0}
+										max="100"
+									></progress>
 
-							{#if detail.lampiran_file}
-								{@const url = getAttachmentUrl(detail.lampiran_file)}
-								<div class="mt-2 rounded-lg border border-base-200 bg-base-200/50 p-2">
-									{#if isImageFile(detail.lampiran_file)}
-										<a href={url} target="_blank" rel="noopener noreferrer">
-											<img
-												src={url}
-												alt="Lampiran {detail.kpi_nama}"
-												class="max-h-40 w-full rounded-md object-contain"
-											/>
-										</a>
-									{:else if isPdfFile(detail.lampiran_file)}
-										<a href={url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm text-primary hover:underline">
-											<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 text-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-												<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-												<polyline points="14 2 14 8 20 8"/>
-												<path d="M10 13v4"/>
-												<path d="M14 13v4"/>
-												<path d="M10 17h4"/>
-											</svg>
-											<span class="truncate">{getFileName(detail.lampiran_file)}</span>
-										</a>
-									{:else}
-										<a href={url} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm text-primary hover:underline">
-											<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-												<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-												<polyline points="14 2 14 8 20 8"/>
-											</svg>
-											<span class="truncate">{getFileName(detail.lampiran_file)}</span>
-										</a>
+									{#if detail.lampiran_file}
+										{@const url = getAttachmentUrl(detail.lampiran_file)}
+										<div class="mt-2 rounded-lg border border-base-200 bg-base-200/50 p-2">
+											{#if isImageFile(detail.lampiran_file)}
+												<a href={url} target="_blank" rel="noopener noreferrer">
+													<img
+														src={url}
+														alt="Lampiran {detail.kpi_nama}"
+														class="max-h-40 w-full rounded-md object-contain"
+													/>
+												</a>
+											{:else if isPdfFile(detail.lampiran_file)}
+												<a
+													href={url}
+													target="_blank"
+													rel="noopener noreferrer"
+													class="flex items-center gap-2 text-sm text-primary hover:underline"
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														class="h-5 w-5 shrink-0 text-error"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													>
+														<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+														<polyline points="14 2 14 8 20 8" />
+														<path d="M10 13v4" />
+														<path d="M14 13v4" />
+														<path d="M10 17h4" />
+													</svg>
+													<span class="truncate">{getFileName(detail.lampiran_file)}</span>
+												</a>
+											{:else}
+												<a
+													href={url}
+													target="_blank"
+													rel="noopener noreferrer"
+													class="flex items-center gap-2 text-sm text-primary hover:underline"
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														class="h-5 w-5 shrink-0"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													>
+														<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+														<polyline points="14 2 14 8 20 8" />
+													</svg>
+													<span class="truncate">{getFileName(detail.lampiran_file)}</span>
+												</a>
+											{/if}
+										</div>
 									{/if}
 								</div>
-							{/if}
+							{/each}
 						</div>
-					{/each}
+					{:else}
+						<div
+							class="rounded-lg border border-base-300 p-3 text-center text-sm text-base-content/50"
+						>
+							Belum ada chores/KPI yang selesai.
+						</div>
+					{/if}
 				</div>
-			{:else}
-				<div class="rounded-lg border border-base-300 p-3 text-center text-sm text-base-content/50">
-					Belum ada KPI
+
+				<div class="space-y-4 rounded-lg border border-base-300 bg-base-100 p-4">
+					<div class="form-control">
+						<label class="label" for="decision-select">
+							<span class="label-text font-medium">Keputusan</span>
+						</label>
+						<select
+							id="decision-select"
+							class="select-bordered select w-full"
+							bind:value={selectedDecision}
+						>
+							<option value="ACCEPTED">Setujui (Accepted)</option>
+							<option value="REJECTED">Tolak (Rejected)</option>
+						</select>
+					</div>
+
+					<div class="form-control">
+						<label class="label" for="rating-select">
+							<span class="label-text font-medium">Rating</span>
+						</label>
+						<select
+							id="rating-select"
+							class="select-bordered select w-full"
+							bind:value={selectedRating}
+						>
+							{#each [1, 2, 3, 4, 5] as value (value)}
+								<option {value}>{value}</option>
+							{/each}
+						</select>
+					</div>
+
+					<div class="form-control">
+						<label class="label" for="reviewer-comment">
+							<span class="label-text font-medium"
+								>Komentar / Catatan <span class="text-error">*</span></span
+							>
+						</label>
+						<textarea
+							id="reviewer-comment"
+							class="textarea-bordered textarea h-24 w-full"
+							placeholder="Berikan catatan atas capaian logbook ini..."
+							bind:value={reviewerComment}
+						></textarea>
+					</div>
 				</div>
-			{/if}
-
-			<div class="divider my-1"></div>
-
-			<div class="form-control">
-				<label class="label" for="decision-select">
-					<span class="label-text font-medium">Keputusan</span>
-				</label>
-				<select id="decision-select" class="select-bordered select w-full" bind:value={selectedDecision}>
-					<option value="ACCEPTED">Setujui (Accepted)</option>
-					<option value="REJECTED">Tolak (Rejected)</option>
-				</select>
-			</div>
-
-			<div class="form-control">
-				<label class="label" for="rating-select">
-					<span class="label-text font-medium">Rating</span>
-				</label>
-				<select id="rating-select" class="select-bordered select w-full" bind:value={selectedRating}>
-					{#each [1, 2, 3, 4, 5] as value (value)}
-						<option value={value}>{value}</option>
-					{/each}
-				</select>
-			</div>
-
-			<div class="form-control">
-				<label class="label" for="reviewer-comment">
-					<span class="label-text font-medium">Komentar / Catatan <span class="text-error">*</span></span>
-				</label>
-				<textarea
-					id="reviewer-comment"
-					class="textarea textarea-bordered h-24 w-full"
-					placeholder="Berikan catatan atas capaian logbook ini..."
-					bind:value={reviewerComment}
-				></textarea>
 			</div>
 		{/if}
 	</div>
@@ -487,8 +558,11 @@
 			onclick={submitReview}
 			disabled={reviewing}
 		>
-			{reviewing ? 'Menyimpan...' : selectedDecision === 'REJECTED' ? 'Tolak Logbook' : 'Setujui Logbook'}
+			{reviewing
+				? 'Menyimpan...'
+				: selectedDecision === 'REJECTED'
+					? 'Tolak Logbook'
+					: 'Setujui Logbook'}
 		</button>
 	{/snippet}
 </Modal>
-

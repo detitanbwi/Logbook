@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { logbookStore } from '$lib/stores/logbook.svelte';
 	import { staffLogbookService } from '$lib/api/services/staffLogbookService';
+	import { kpiService } from '$lib/api/services/kpiService';
 	import { goto } from '$app/navigation';
 	import StatusBadge from '$lib/components/ui/StatusBadge.svelte';
 	import LocationMap from '$lib/components/ui/LocationMap.svelte';
@@ -51,9 +52,14 @@
 	let kpiUpdating = $state<Record<string, boolean>>({});
 	let attachmentUploading = $state<Record<string, boolean>>({});
 	let pendingAttachments = $state<Record<string, File | null>>({});
+	let showAddKpiSelect = $state(false);
+	let selectedAdditionalKpiId = $state('');
+	let addingKpi = $state(false);
+	let allMasterKpis = $state<any[]>([]);
 
 	onMount(async () => {
 		try {
+			await fetchMasterKpis();
 			await logbookStore.fetchLogbooks();
 			const activeLogbook = logbookStore.logbooks.find(
 				(l) => l.status === 'SUBMITTED' || l.status === 'REJECTED'
@@ -68,6 +74,54 @@
 			console.error(err);
 		}
 	});
+
+	async function fetchMasterKpis() {
+		try {
+			const payload = await kpiService.getAllMaster({ per_page: 200 });
+			allMasterKpis = Array.isArray(payload) ? payload : payload?.data || [];
+		} catch (err) {
+			console.error('Failed to fetch master KPIs for selector', err);
+		}
+	}
+
+	const availableAdditionalKpis = $derived.by(() => {
+		const assignedKpiIds = new Set(
+			(logbookStore.currentLogbook?.details || []).map((detail) => String(detail.kpi_id))
+		);
+
+		return allMasterKpis.filter((kpi) => {
+			const id = String(kpi.id);
+			const isAssigned = assignedKpiIds.has(id);
+			const isActive = kpi.status_aktif !== false;
+			return !isAssigned && isActive;
+		});
+	});
+
+	async function addKpiToCurrentLogbook() {
+		if (!logbookStore.currentLogbook || !selectedAdditionalKpiId) {
+			toastStore.warning('Pilih KPI terlebih dahulu.');
+			return;
+		}
+
+		addingKpi = true;
+		errorMsg = null;
+		try {
+			await staffLogbookService.addKpiToLogbook(
+				logbookStore.currentLogbook.id,
+				selectedAdditionalKpiId
+			);
+			await logbookStore.fetchLogbookById(logbookStore.currentLogbook.id);
+			syncKpiProgressValues();
+			selectedAdditionalKpiId = '';
+			showAddKpiSelect = false;
+			toastStore.success('KPI berhasil ditambahkan ke logbook.');
+		} catch (err: unknown) {
+			const e = err as { message?: string };
+			errorMsg = e.message || 'Gagal menambahkan KPI ke logbook';
+		} finally {
+			addingKpi = false;
+		}
+	}
 
 	function syncKpiProgressValues() {
 		if (!logbookStore.currentLogbook?.details) return;
@@ -111,11 +165,9 @@
 		const value = kpiProgressValues[detailId] ?? 0;
 		kpiUpdating = { ...kpiUpdating, [detailId]: true };
 		try {
-			await staffLogbookService.updateKpiProgress(
-				logbookStore.currentLogbook.id,
-				detailId,
-				{ capaian_angka: value }
-			);
+			await staffLogbookService.updateKpiProgress(logbookStore.currentLogbook.id, detailId, {
+				capaian_angka: value
+			});
 			await logbookStore.fetchLogbookById(logbookStore.currentLogbook.id);
 			syncKpiProgressValues();
 		} catch (err: unknown) {
@@ -145,10 +197,7 @@
 		if (!logbookStore.currentLogbook) return;
 		attachmentUploading = { ...attachmentUploading, [detailId]: true };
 		try {
-			await staffLogbookService.deleteKpiAttachment(
-				logbookStore.currentLogbook.id,
-				detailId
-			);
+			await staffLogbookService.deleteKpiAttachment(logbookStore.currentLogbook.id, detailId);
 			await logbookStore.fetchLogbookById(logbookStore.currentLogbook.id);
 		} catch (err: unknown) {
 			const e = err as { message?: string };
@@ -275,20 +324,27 @@
 				</div>
 
 				<div class="mt-4 rounded-lg border border-base-300 bg-base-200/50 p-4">
-					<div class="label pt-0"><span class="label-text font-medium">Lokasi GPS (Opsional)</span></div>
-					<button type="button" class="btn btn-sm btn-outline w-full sm:w-auto" onclick={getGPS} disabled={gpsLoading}>
+					<div class="label pt-0">
+						<span class="label-text font-medium">Lokasi GPS (Opsional)</span>
+					</div>
+					<button
+						type="button"
+						class="btn w-full btn-outline btn-sm sm:w-auto"
+						onclick={getGPS}
+						disabled={gpsLoading}
+					>
 						{#if gpsLoading}
-							<span class="loading loading-spinner loading-xs"></span> Mencari lokasi...
+							<span class="loading loading-xs loading-spinner"></span> Mencari lokasi...
 						{:else}
 							Ambil Lokasi GPS
 						{/if}
 					</button>
 
 					{#if gpsLat && gpsLng}
-						<div class="mt-3 text-sm text-success font-medium">
+						<div class="mt-3 text-sm font-medium text-success">
 							Lokasi berhasil diambil: {gpsLat.toFixed(5)}, {gpsLng.toFixed(5)}
 						</div>
-						<div class="mt-2 rounded-lg overflow-hidden border border-base-300">
+						<div class="mt-2 overflow-hidden rounded-lg border border-base-300">
 							<LocationMap lat={gpsLat} lng={gpsLng} zoom={15} height="h-40" />
 						</div>
 					{/if}
@@ -323,42 +379,117 @@
 				</div>
 
 				{#if logbookStore.currentLogbook.lokasi_lat && logbookStore.currentLogbook.lokasi_lng}
-					<div class="mb-4 rounded-lg overflow-hidden border border-base-300">
-						<LocationMap lat={logbookStore.currentLogbook.lokasi_lat} lng={logbookStore.currentLogbook.lokasi_lng} zoom={15} height="h-48" />
+					<div class="mb-4 overflow-hidden rounded-lg border border-base-300">
+						<LocationMap
+							lat={logbookStore.currentLogbook.lokasi_lat}
+							lng={logbookStore.currentLogbook.lokasi_lng}
+							zoom={15}
+							height="h-48"
+						/>
 					</div>
 				{/if}
 
 				<h2 class="mb-4 card-title">Daftar KPI</h2>
 
+				{#if isEditable}
+					<div
+						class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-base-300 bg-base-200/40 p-3"
+					>
+						<div>
+							<div class="font-medium">Kategori Chores / KPI</div>
+							<div class="text-sm text-base-content/70">
+								Opsional. Tambahkan KPI hanya jika memang dikerjakan hari ini.
+							</div>
+						</div>
+
+						{#if !showAddKpiSelect}
+							<button
+								type="button"
+								class="btn btn-outline btn-sm"
+								onclick={() => {
+									showAddKpiSelect = true;
+								}}
+							>
+								+ Tambah KPI
+							</button>
+						{:else}
+							<div class="flex flex-wrap items-center gap-2">
+								<select
+									class="select-bordered select w-full max-w-xs select-sm"
+									bind:value={selectedAdditionalKpiId}
+								>
+									<option value="" disabled>Pilih KPI</option>
+									{#each availableAdditionalKpis as kpi}
+										<option value={String(kpi.id)}>{kpi.nama}</option>
+									{/each}
+								</select>
+								<button
+									type="button"
+									class="btn btn-sm btn-primary"
+									onclick={addKpiToCurrentLogbook}
+									disabled={addingKpi || !selectedAdditionalKpiId}
+								>
+									{addingKpi ? 'Menambah...' : 'Tambah'}
+								</button>
+								<button
+									type="button"
+									class="btn btn-ghost btn-sm"
+									onclick={() => {
+										showAddKpiSelect = false;
+										selectedAdditionalKpiId = '';
+									}}
+								>
+									Batal
+								</button>
+							</div>
+						{/if}
+					</div>
+				{/if}
+
 				{#if kpiList.length === 0}
-					<p class="text-base-content/70">Belum ada tugas KPI yang diberikan untuk hari ini.</p>
+					<p class="text-base-content/70">
+						Belum ada chores/KPI di logbook ini. Klik + Tambah KPI untuk menambahkan.
+					</p>
 				{:else}
 					<div class="flex flex-col gap-4">
 						{#each kpiList as kpi (kpi.id)}
 							{@const progress = getProgressPercent(kpi)}
+							{@const isCompleted = Number(kpi.capaian_angka || 0) > 0}
 							<div class="rounded-lg border border-base-200 p-4">
 								<div class="mb-2 flex items-start justify-between">
 									<div>
 										<span class="font-medium">
 											{kpi.kpi?.nama || 'Tugas Tanpa Nama'}
 										</span>
+										<div class="mt-1">
+											<span class="badge badge-sm {isCompleted ? 'badge-success' : 'badge-ghost'}">
+												{isCompleted ? 'Selesai' : 'Belum dikerjakan'}
+											</span>
+										</div>
 										<div class="mt-1 text-sm text-base-content/60">
-											Target: {kpi.target_angka} {kpi.satuan}
+											Target: {kpi.target_angka}
+											{kpi.satuan}
 										</div>
 									</div>
-									<span class="text-sm font-semibold {progress >= 100 ? 'text-success' : 'text-base-content/70'}">
+									<span
+										class="text-sm font-semibold {progress >= 100
+											? 'text-success'
+											: 'text-base-content/70'}"
+									>
 										{progress}%
 									</span>
 								</div>
 
 								<progress
-									class="progress w-full {progress >= 100 ? 'progress-success' : 'progress-primary'}"
+									class="progress w-full {progress >= 100
+										? 'progress-success'
+										: 'progress-primary'}"
 									value={progress}
 									max="100"
 								></progress>
 
-							{#if isEditable}
-								<div class="mt-3 flex items-end gap-2">
+								{#if isEditable}
+									<div class="mt-3 flex items-end gap-2">
 										<div class="form-control flex-1">
 											<label class="label" for="capaian-{kpi.id}">
 												<span class="label-text text-xs">Capaian ({kpi.satuan})</span>
@@ -401,7 +532,7 @@
 											</div>
 										{:else if pendingAttachments[kpi.id]}
 											<div class="flex items-center gap-2 text-sm">
-												<span class="truncate text-base-content/70 font-medium">
+												<span class="truncate font-medium text-base-content/70">
 													{pendingAttachments[kpi.id]?.name} (Pending upload)
 												</span>
 												<button
@@ -414,19 +545,19 @@
 										{:else}
 											<input
 												type="file"
-												class="file-input file-input-bordered file-input-xs w-full max-w-xs"
+												class="file-input-bordered file-input w-full max-w-xs file-input-xs"
 												onchange={(e) => handleAttachmentUpload(kpi.id, e)}
 											/>
 										{/if}
 									</div>
-							{/if}
-						</div>
-					{/each}
-				</div>
-			{/if}
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
 
-			{#if isEditable}
-				<div class="divider"></div>
+				{#if isEditable}
+					<div class="divider"></div>
 					<div class="card-actions justify-end">
 						<button
 							class="btn btn-primary"

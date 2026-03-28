@@ -16,6 +16,7 @@
 	import { usersService } from '$lib/api/services/usersService';
 	import type { UserCreateDto, UserUpdateDto } from '$lib/api/schemas/user.schema';
 	import { compressToWebP } from '$lib/utils/imageCompression';
+	import { resolveStorageUrl } from '$lib/utils/asset-url';
 
 	let { data } = $props();
 	let initialLoad = $derived(data?.initialLoad ?? false);
@@ -258,7 +259,7 @@
 			riwayat_karir: user.riwayat_karir ?? []
 		};
 		photoFile = null;
-		photoPreviewUrl = user.foto_url || (user.foto ? `/storage/${user.foto}` : null);
+		photoPreviewUrl = user.foto_url || (user.foto ? resolveStorageUrl(user.foto) : null);
 		activeTab = 'basic';
 		isModalOpen = true;
 	}

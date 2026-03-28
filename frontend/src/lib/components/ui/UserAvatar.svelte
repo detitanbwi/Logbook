@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { resolveStorageUrl } from '$lib/utils/asset-url';
+
 	let {
 		foto = null,
 		fotoUrl = null,
@@ -14,8 +16,7 @@
 	let avatarSrc = $derived.by(() => {
 		if (fotoUrl) return fotoUrl;
 		if (foto) {
-			if (foto.startsWith('http')) return foto;
-			return `/storage/${foto}`;
+			return resolveStorageUrl(foto);
 		}
 		return null;
 	});

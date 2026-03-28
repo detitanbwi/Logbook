@@ -4,6 +4,7 @@
   import { toastStore } from '$lib/stores/toast.svelte';
   import type { Logbook, LogbookStatus, PaginationMeta } from '$lib/types';
   import LocationMap from '$lib/components/ui/LocationMap.svelte';
+	import { resolveStorageUrl } from '$lib/utils/asset-url';
 
   let view = $state<'summary' | 'day' | 'detail' | 'create'>('summary');
   let selectedDate = $state<string | null>(null);
@@ -317,7 +318,7 @@
     return getFileExtension(filename) === 'pdf';
   }
   function getAttachmentUrl(path: string): string {
-    return path.startsWith('http') ? path : `/storage/${path}`;
+		return resolveStorageUrl(path);
   }
 </script>
 

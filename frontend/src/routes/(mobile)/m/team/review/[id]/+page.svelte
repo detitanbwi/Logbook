@@ -7,6 +7,7 @@
 	import type { Logbook, LogbookKpiDetail } from '$lib/types';
 	import UserAvatar from '$lib/components/ui/UserAvatar.svelte';
 	import LocationMap from '$lib/components/ui/LocationMap.svelte';
+	import { resolveStorageUrl } from '$lib/utils/asset-url';
 
 	let logbookId = $derived($page.params.id);
 
@@ -20,7 +21,7 @@
 		return getFileExtension(filename) === 'pdf';
 	}
 	function getAttachmentUrl(path: string): string {
-		return path.startsWith('http') ? path : `/storage/${path}`;
+		return resolveStorageUrl(path);
 	}
 
 	let logbook = $state<Logbook | null>(null);

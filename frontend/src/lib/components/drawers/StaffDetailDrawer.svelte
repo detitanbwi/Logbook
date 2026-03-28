@@ -5,6 +5,7 @@
 	import { summaryService } from '$lib/api/services/summaryService';
 	import { staffLogbookService } from '$lib/api/services/staffLogbookService';
 	import type { DailyKpiSummary, DailyStaffSummary, Logbook } from '$lib/types';
+	import { resolveStorageUrl } from '$lib/utils/asset-url';
 
 	function normalizeDateKey(dateString: string | null | undefined): string {
 		if (!dateString) return '';
@@ -279,9 +280,7 @@
 	}
 
 	function getAttachmentUrl(filePath: string): string {
-		if (!filePath) return '#';
-		if (filePath.startsWith('http')) return filePath;
-		return `/storage/${filePath}`;
+		return resolveStorageUrl(filePath);
 	}
 
 	function isImageFile(filePath: string): boolean {

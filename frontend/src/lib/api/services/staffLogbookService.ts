@@ -62,9 +62,22 @@ export class StaffLogbookService {
 		logbookId: string,
 		detailId: string,
 		data: UpdateKpiProgressRequest
-	): Promise<{ id: string; capaian_angka: number; target_angka: number; satuan: string; finished_at: string | null }> {
+	): Promise<{
+		id: string;
+		capaian_angka: number;
+		target_angka: number;
+		satuan: string;
+		finished_at: string | null;
+	}> {
 		const validated = v.parse(UpdateKpiProgressSchema, data);
 		return api.patch(`/logbooks/${logbookId}/kpi/${detailId}/progress`, validated);
+	}
+
+	async addKpiToLogbook(logbookId: string, kpiId: string): Promise<Logbook> {
+		const response = await api.post<BaseResponse<Logbook>>(`/logbooks/${logbookId}/kpi`, {
+			kpi_id: kpiId
+		});
+		return this.normalizeLogbook(response.data);
 	}
 
 	async uploadKpiAttachment(

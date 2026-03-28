@@ -50,6 +50,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('logbooks/{logbook}', [LogbookController::class, 'update']);
         Route::delete('logbooks/{logbook}', [LogbookController::class, 'destroy']);
         Route::get('logbooks/{logbook}/duration', [LogbookController::class, 'duration']);
+        Route::post('logbooks/{logbook}/kpi', [LogbookController::class, 'addKpi']);
         Route::patch('logbooks/{logbook}/kpi/{detail}/progress', [LogbookController::class, 'updateProgress']);
         Route::post('logbooks/{logbook}/kpi/{detail}/attachment', [LogbookController::class, 'uploadAttachment']);
         Route::delete('logbooks/{logbook}/kpi/{detail}/attachment', [LogbookController::class, 'deleteAttachment']);

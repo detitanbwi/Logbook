@@ -2,6 +2,7 @@
 	import SlideOutDrawer from '$lib/components/ui/SlideOutDrawer.svelte';
 	import KpiProgressBar from '$lib/components/mobile/KpiProgressBar.svelte';
 	import type { Logbook, LogbookKpiDetail } from '$lib/types';
+	import { resolveStorageUrl } from '$lib/utils/asset-url';
 
 	let {
 		isOpen = $bindable(false),
@@ -34,9 +35,7 @@
 	}
 
 	function getAttachmentUrl(filePath: string): string {
-		if (!filePath) return '#';
-		if (filePath.startsWith('http')) return filePath;
-		return `/storage/${filePath}`;
+		return resolveStorageUrl(filePath);
 	}
 
 	function isImageFile(filePath: string): boolean {
