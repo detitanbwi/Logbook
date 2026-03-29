@@ -2,7 +2,7 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import Toast from '$lib/components/ui/Toast.svelte';
-
+	import '$lib/utils/poly';
 	let { children } = $props();
 </script>
 

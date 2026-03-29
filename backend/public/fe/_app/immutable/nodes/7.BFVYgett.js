@@ -1,0 +1,1 @@
+import{r as e}from"../chunks/hp4PFHFv.js";function o(){e(307,"/admin/kpis")}const t=Object.freeze(Object.defineProperty({__proto__:null,load:o},Symbol.toStringTag,{value:"Module"}));export{t as universal};

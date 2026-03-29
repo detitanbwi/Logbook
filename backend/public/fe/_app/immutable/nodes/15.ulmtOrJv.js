@@ -1,0 +1,1 @@
+import{r as e}from"../chunks/hp4PFHFv.js";function r(){e(307,"/manager/reviews")}const t=Object.freeze(Object.defineProperty({__proto__:null,load:r},Symbol.toStringTag,{value:"Module"}));export{t as universal};
