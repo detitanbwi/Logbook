@@ -1,1 +1,1 @@
-export const env={}
+export const env={"PUBLIC_API_URL":"http://localhost:8000/api"}

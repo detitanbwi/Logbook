@@ -1,1 +1,0 @@
-import{a as e}from"./YHpYTCWs.js";import{R as s}from"./B1HEGd1F.js";import{p as t}from"./TxwbXRd8.js";class i{async getPendingReviews(o){return e.get("/logbooks",{params:{status:"SUBMITTED",...o}})}async reviewLogbook(o,a){const r=t(s,a);return e.put(`/logbooks/${o}/review`,r)}}const c=new i;export{c as m};
