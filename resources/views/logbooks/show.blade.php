@@ -1,80 +1,71 @@
-<x-layouts.app title="Detail Logbook" active="logbooks" hideNav="true" :backUrl="route('logbooks.index')">
-    <main class="space-y-8 pb-12">
+<x-layouts.app title="Detail Logbook" active="logbooks" flat="true" hideNav="true" :backUrl="route('logbooks.index')">
+    <main class="space-y-12 pb-12">
         <!-- Header & Status Section -->
-        <section class="space-y-5">
+        <section class="space-y-6 pt-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-[0.6rem] font-black text-base-content/30 uppercase tracking-[0.2em] leading-none mb-2">ENTRY DETAILS</p>
-                    <h2 class="text-3xl font-black text-primary leading-tight">Logbook</h2>
+                    <h2 class="text-3xl font-black text-primary leading-tight">Detail Logbook</h2>
+                    <p class="text-[0.6rem] font-bold text-base-content/30 uppercase tracking-[0.2em] mt-1">Status Aktivitas Terkini</p>
                 </div>
                 @php
                     $statusStyles = [
-                        'approved' => 'bg-green-100 text-green-700',
-                        'rejected' => 'bg-red-100 text-red-700',
-                        'pending' => 'bg-[#FFDBCB] text-[#341100]',
+                        'approved' => 'bg-success/10 text-success border border-success/20',
+                        'rejected' => 'bg-error/10 text-error border border-error/20',
+                        'pending' => 'bg-warning/10 text-warning border border-warning/20',
                     ];
                 @endphp
-                <span class="px-5 py-2 rounded-full {{ $statusStyles[$logbook->status] ?? 'bg-base-300' }} text-[0.6rem] font-black uppercase tracking-widest shadow-sm">
+                <span class="px-5 py-2.5 rounded-full {{ $statusStyles[$logbook->status] ?? 'bg-base-200' }} text-[0.6rem] font-black uppercase tracking-widest shadow-sm">
                     {{ $logbook->status }}
                 </span>
             </div>
 
-            <!-- Details Card -->
-            <div class="bg-base-100 p-6 rounded-3xl shadow-sm border border-base-300 space-y-6">
-                <div class="flex items-start gap-4">
-                    <div class="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
-                        <i data-lucide="map-pin" class="h-5 w-5"></i>
+            <!-- Details: Flat row of info -->
+            <div class="grid grid-cols-1 divide-y divide-base-200">
+                <div class="py-5 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
+                            <i data-lucide="clock" class="h-5 w-5"></i>
+                        </div>
+                        <div>
+                            <p class="text-[0.6rem] uppercase font-black text-base-content/30 tracking-widest mb-0.5">Waktu Aktivitas</p>
+                            <p class="text-xs font-black text-base-content leading-none">
+                                {{ $logbook->start_time->isoFormat('D MMMM Y') }} • {{ $logbook->start_time->format('H:i') }} - {{ $logbook->end_time->format('H:i') }}
+                            </p>
+                        </div>
                     </div>
-                    <div class="flex-1">
-                        <p class="text-[0.6rem] uppercase font-black text-base-content/30 tracking-widest mb-1">Koordinat Lokasi</p>
-                        <p class="text-base-content font-black text-xs leading-tight font-mono">{{ $logbook->latitude }}, {{ $logbook->longitude }}</p>
+                </div>
+                
+                @if($logbook->latitude && $logbook->latitude !== '-')
+                <div class="py-5 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
+                            <i data-lucide="map-pin" class="h-5 w-5"></i>
+                        </div>
+                        <div>
+                            <p class="text-[0.6rem] uppercase font-black text-base-content/30 tracking-widest mb-0.5">Koordinat Lokasi</p>
+                            <p class="text-xs font-black text-base-content leading-none font-mono tracking-tight">{{ $logbook->latitude }}, {{ $logbook->longitude }}</p>
+                        </div>
                     </div>
-                    @if($logbook->latitude && $logbook->latitude !== '-')
-                    <button onclick="window.HRISNative.viewLocation({{ $logbook->latitude }}, {{ $logbook->longitude }})" class="btn btn-primary btn-sm rounded-xl gap-2 font-black text-[0.6rem] uppercase tracking-widest shadow-lg shadow-primary/10">
-                        <i data-lucide="map" class="h-3 w-3"></i>
-                        LIHAT MAP
+                    <button onclick="window.HRISNative.viewLocation({{ $logbook->latitude }}, {{ $logbook->longitude }})" 
+                            class="btn btn-primary btn-sm rounded-xl gap-2 font-black text-[0.6rem] uppercase tracking-widest px-4">
+                        MAP
                     </button>
-                    @endif
                 </div>
-                <div class="flex items-start gap-4 pt-6 border-t border-base-200">
-                    <div class="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
-                        <i data-lucide="clock" class="h-5 w-5"></i>
-                    </div>
-                    <div>
-                        <p class="text-[0.6rem] uppercase font-black text-base-content/30 tracking-widest mb-1">Waktu Aktivitas</p>
-                        <p class="text-base-content font-black text-xs leading-tight">
-                            {{ $logbook->start_time->isoFormat('D MMMM Y') }} • {{ $logbook->start_time->format('H:i') }} - {{ $logbook->end_time->format('H:i') }}
-                        </p>
-                    </div>
-                </div>
+                @endif
             </div>
         </section>
 
         <!-- Documentation Photo -->
         <section class="space-y-4" x-data="{ modalOpen: false }">
-            <h3 class="text-[0.65rem] font-black text-primary/40 uppercase tracking-[0.2em] flex items-center gap-2">
-                FOTO DOKUMENTASI <span class="h-[1px] flex-1 bg-primary/10"></span>
-            </h3>
-            <div class="relative aspect-video rounded-3xl overflow-hidden bg-base-300 shadow-xl border border-base-300" id="photo-container">
+            <h3 class="text-[0.6rem] font-black text-primary/40 uppercase tracking-[0.25em]">Foto Dokumentasi</h3>
+            <div class="relative aspect-video rounded-3xl overflow-hidden bg-base-300 shadow-lg border border-base-200" id="photo-container">
                 @if($logbook->main_photo_path)
-                    @php
-                        $photoUrl = asset('storage/' . $logbook->main_photo_path);
-                    @endphp
-                    <img src="{{ $photoUrl }}" 
-                         alt="Documentation" 
-                         class="w-full h-full object-cover"
-                         id="doc-photo"
-                         onerror="this.style.display='none'; document.getElementById('photo-error').style.display='flex';">
-                    <div id="photo-error" class="w-full h-full absolute inset-0 flex flex-col items-center justify-center bg-base-200 text-base-content/30" style="display:none;">
-                        <i data-lucide="image-off" class="h-10 w-10 mb-3"></i>
-                        <p class="text-[0.6rem] font-black uppercase tracking-widest mb-1">Foto tidak dapat dimuat</p>
-                        <p class="text-[0.5rem] font-mono text-base-content/20 break-all px-4">{{ $photoUrl }}</p>
-                    </div>
-                    <!-- Expand Button -->
-                    <div class="absolute top-3 right-3 z-30">
+                    @php $photoUrl = asset('storage/' . $logbook->main_photo_path); @endphp
+                    <img src="{{ $photoUrl }}" alt="Documentation" class="w-full h-full object-cover">
+                    <div class="absolute top-4 right-4 z-20">
                         <button type="button" @click="modalOpen = true"
-                            class="btn btn-circle btn-sm btn-primary shadow-lg hover:scale-110 transition-transform bg-primary/90 backdrop-blur-sm border-none">
-                            <i data-lucide="maximize-2" class="h-4 w-4 text-white"></i>
+                            class="btn btn-circle btn-sm btn-primary shadow-lg border-none">
+                            <i data-lucide="maximize-2" class="h-4 w-4"></i>
                         </button>
                     </div>
                 @else
@@ -83,134 +74,99 @@
                         <p class="text-[0.6rem] font-black uppercase tracking-widest">Tidak ada foto</p>
                     </div>
                 @endif
-                <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
-                <div class="absolute bottom-4 left-4 flex items-center gap-2 text-white/90">
-                    <i data-lucide="camera" class="h-3 w-3"></i>
-                    <span class="text-[0.55rem] font-black uppercase tracking-widest">Entry ID #{{ $logbook->id }}</span>
-                </div>
-                <!-- Watermark -->
-                <div class="absolute bottom-4 right-4 z-20 pointer-events-none">
-                    <span class="text-[0.5rem] font-black text-white bg-black/40 border border-white/10 px-2 py-1 rounded-lg tracking-[0.2em] uppercase backdrop-blur-md">WIRODEV DEMO</span>
-                </div>
             </div>
 
             <!-- Fullscreen Photo Modal -->
             @if($logbook->main_photo_path)
             <dialog class="modal modal-middle" :class="modalOpen ? 'modal-open' : ''">
                 <div class="modal-box p-0 bg-transparent shadow-none max-w-4xl w-full">
-                    <div class="relative bg-base-100 rounded-3xl overflow-hidden shadow-2xl w-full">
-                        <div class="p-4 flex justify-between items-center bg-base-100/90 backdrop-blur-md absolute top-0 left-0 right-0 z-30 border-b border-base-200">
+                    <div class="relative bg-base-100 rounded-3xl overflow-hidden shadow-2xl">
+                        <div class="p-4 flex justify-between items-center border-b border-base-200">
                             <h3 class="font-black text-xs tracking-wider uppercase ml-2 text-base-content/70">Pratinjau Foto</h3>
-                            <button type="button" @click="modalOpen = false" class="btn btn-sm btn-circle btn-ghost bg-base-200 hover:bg-error/20 hover:text-error transition-colors">
+                            <button type="button" @click="modalOpen = false" class="btn btn-sm btn-circle btn-ghost">
                                 <i data-lucide="x" class="h-4 w-4"></i>
                             </button>
                         </div>
-                        <div class="pt-16 pb-4 px-4 bg-black/5 flex items-center justify-center min-h-[50vh] relative">
-                            <img src="{{ $photoUrl }}" alt="Full Preview" class="w-full h-auto object-contain max-h-[75vh] rounded-2xl shadow-sm z-10">
-                            <!-- Watermark overlay in modal -->
-                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-20">
-                                <span class="text-4xl sm:text-6xl font-black text-white/15 -rotate-12 select-none tracking-[0.3em] whitespace-nowrap uppercase">WIRODEV DEMO</span>
-                            </div>
+                        <div class="p-4 flex items-center justify-center min-h-[50vh]">
+                            <img src="{{ $photoUrl }}" class="w-full h-auto object-contain max-h-[75vh] rounded-2xl">
                         </div>
                     </div>
                 </div>
-                <div class="modal-backdrop" @click="modalOpen = false">
-                    <button type="button" class="cursor-default bg-black/60 backdrop-blur-sm w-full h-full">close</button>
-                </div>
+                <div class="modal-backdrop bg-black/60 backdrop-blur-md" @click="modalOpen = false"></div>
             </dialog>
             @endif
         </section>
 
-
-        <!-- KPI items -->
-        <section class="space-y-4">
-            <h3 class="text-[0.65rem] font-black text-primary/40 uppercase tracking-[0.2em] flex items-center gap-2">
-                DETAIL PEKERJAAN (KPI) <span class="h-[1px] flex-1 bg-primary/10"></span>
-            </h3>
-            <div class="grid grid-cols-1 gap-4">
+        <!-- KPI items: flat list -->
+        <section class="space-y-5">
+            <h3 class="text-[0.6rem] font-black text-primary/40 uppercase tracking-[0.25em]">Detail Pekerjaan (KPI)</h3>
+            <div class="space-y-4">
                 @foreach($logbook->items as $item)
-                <div class="bg-base-100 p-5 rounded-2xl border-l-4 {{ $loop->first ? 'border-primary' : 'border-base-300' }} border-t border-r border-b border-base-300 shadow-sm relative overflow-hidden">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="flex-1 pr-4">
-                            <p class="text-[0.65rem] font-black text-primary uppercase tracking-tight mb-0.5">{{ $item->kpi->description }}</p>
-                            <p class="text-[0.5rem] font-bold text-base-content/40 uppercase tracking-widest">Item Pekerjaan #{{ $loop->iteration }}</p>
+                <div class="bg-base-200/40 p-5 rounded-2xl border border-base-300 space-y-3">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 pr-6">
+                            <p class="text-xs font-black text-primary uppercase leading-tight">{{ $item->kpi->description }}</p>
+                            <p class="text-[0.5rem] font-bold text-base-content/20 uppercase tracking-widest mt-1">KPI Item #{{ $loop->iteration }}</p>
                         </div>
-                        <div class="bg-primary/5 px-2.5 py-1.5 rounded-xl border border-primary/10 text-center min-w-[3.5rem]">
-                            <p class="text-xs font-black text-primary leading-none mb-0.5">{{ $item->score ?? '-' }}</p>
-                            <p class="text-[0.45rem] font-bold text-primary/40 uppercase">Skor</p>
+                        <div class="text-right shrink-0">
+                            <p class="text-xl font-black text-primary leading-none">{{ $item->score ?? '-' }}</p>
+                            <p class="text-[0.45rem] font-bold text-base-content/30 uppercase">Skor</p>
                         </div>
                     </div>
-                    <div class="bg-base-200/50 p-3 rounded-xl">
-                        <p class="text-[0.7rem] font-bold text-base-content/70 italic leading-relaxed">
-                            "{{ $item->work_description }}"
-                        </p>
+                    <div class="bg-base-100 p-4 rounded-xl border border-base-200 italic">
+                        <p class="text-[0.7rem] font-bold text-base-content/70 leading-relaxed">"{{ $item->work_description }}"</p>
                     </div>
                 </div>
                 @endforeach
             </div>
         </section>
 
-        <!-- Daily Report -->
+        <!-- Daily Report: Flat -->
         <section class="space-y-4">
-            <h3 class="text-[0.65rem] font-black text-primary/40 uppercase tracking-[0.2em] flex items-center gap-2">
-                LAPORAN HARIAN <span class="h-[1px] flex-1 bg-primary/10"></span>
-            </h3>
-            <div class="bg-base-100 p-6 rounded-3xl shadow-sm border border-base-300">
-                <p class="text-base-content/80 leading-relaxed text-[0.75rem] font-bold italic">
-                    "{{ $logbook->daily_report }}"
-                </p>
-                <div class="mt-6 flex items-center gap-3 pt-4 border-t border-base-200">
-                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary/40">
-                         <i data-lucide="check-circle" class="h-4 w-4"></i>
-                    </div>
-                    <span class="text-[0.55rem] font-black text-base-content/30 uppercase tracking-widest">Sistem Verifikasi Otomatis</span>
-                </div>
+            <h3 class="text-[0.6rem] font-black text-primary/40 uppercase tracking-[0.25em]">Laporan Harian</h3>
+            <div class="bg-base-200/40 p-5 rounded-2xl border border-base-300 text-[0.75rem] font-bold italic leading-relaxed text-base-content/70">
+                "{{ $logbook->daily_report }}"
             </div>
         </section>
 
-        <!-- Supervisor Feedback -->
-        <section class="space-y-4 pb-10">
-            <h3 class="text-[0.65rem] font-black text-primary/40 uppercase tracking-[0.2em] flex items-center gap-2">
-                MASUKAN ATASAN <span class="h-[1px] flex-1 bg-primary/10"></span>
-            </h3>
+        <!-- Supervisor Feedback: Pure circle avatar, no card -->
+        <section class="space-y-5">
+            <h3 class="text-[0.6rem] font-black text-primary/40 uppercase tracking-[0.25em]">Masukan Atasan</h3>
             
             @if($logbook->latestReview)
-                <div class="bg-primary/5 p-6 rounded-3xl border border-primary/10 shadow-sm space-y-5">
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-2xl bg-white border border-base-300 p-1 shadow-sm shrink-0">
-                                @if($logbook->latestReview->reviewer?->foto)
-                                    <img src="{{ asset('storage/' . $logbook->latestReview->reviewer->foto) }}" alt="Supervisor" class="w-full h-full object-cover rounded-xl">
-                                @else
-                                    <div class="w-full h-full flex items-center justify-center bg-primary text-white font-black text-lg rounded-xl">
-                                        {{ substr($logbook->latestReview->reviewer?->nama ?? 'S', 0, 1) }}
-                                    </div>
-                                @endif
-                            </div>
-                            <div>
-                                <p class="font-black text-xs text-primary leading-tight mb-1">{{ $logbook->latestReview->reviewer?->nama ?? 'Supervisor' }}</p>
-                                <p class="text-[0.55rem] font-bold text-base-content/40 uppercase tracking-widest">{{ $logbook->latestReview->reviewer?->role ?? '-' }}</p>
-                            </div>
+                <div class="space-y-6">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/10 shrink-0 shadow-sm">
+                            @if($logbook->latestReview->reviewer?->foto)
+                                <img src="{{ asset('storage/' . $logbook->latestReview->reviewer->foto) }}" class="w-full h-full object-cover">
+                            @else
+                                <div class="w-full h-full flex items-center justify-center bg-primary text-white font-black text-xl">
+                                    {{ substr($logbook->latestReview->reviewer?->nama ?? 'S', 0, 1) }}
+                                </div>
+                            @endif
                         </div>
-                        <div class="flex text-amber-500 gap-0.5">
-                            @for($i = 1; $i <= 5; $i++)
-                                <i data-lucide="star" class="h-3 w-3 {{ $i <= ($logbook->latestReview->rating ?? 0) ? 'fill-current' : 'opacity-20' }}"></i>
-                            @endfor
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <p class="font-black text-sm text-primary">{{ $logbook->latestReview->reviewer?->nama ?? 'Supervisor' }}</p>
+                                <div class="flex text-amber-500 gap-0.5">
+                                    @for($i = 1; $i <= 5; $i++)
+                                        <i data-lucide="star" class="h-3.5 w-3.5 {{ $i <= ($logbook->latestReview->rating ?? 0) ? 'fill-current' : 'opacity-20' }}"></i>
+                                    @endfor
+                                </div>
+                            </div>
+                            <p class="text-[0.55rem] font-bold text-base-content/40 uppercase tracking-widest mt-0.5">{{ $logbook->latestReview->reviewer?->role ?? '-' }}</p>
                         </div>
                     </div>
-                    <div class="bg-white/60 p-4 rounded-2xl border border-primary/5">
-                        <p class="text-[0.7rem] font-bold italic text-primary/80 leading-relaxed">
-                            "{{ $logbook->latestReview->comment ?? 'Sangat detail dan rapi. Lanjutkan!' }}"
+                    <div class="bg-primary/5 p-5 rounded-2xl border border-primary/10 italic">
+                        <p class="text-sm font-bold text-primary/80 leading-relaxed italic">
+                            "{{ $logbook->latestReview->comment ?? 'Luar biasa!' }}"
                         </p>
                     </div>
                 </div>
             @else
-                <div class="bg-base-300/10 p-10 rounded-3xl border-2 border-dashed border-base-300 flex flex-col items-center justify-center text-center">
-                    <div class="w-12 h-12 rounded-full bg-base-200 flex items-center justify-center text-base-content/20 mb-3">
-                        <i data-lucide="clock" class="h-6 w-6"></i>
-                    </div>
-                    <p class="text-[0.65rem] font-black text-base-content/40 uppercase tracking-[0.2em]">Menunggu Review Atasan</p>
-                    <p class="text-[0.55rem] font-bold text-base-content/20 uppercase tracking-widest mt-1">Status: PENDING</p>
+                <div class="p-10 rounded-3xl border-2 border-dashed border-base-300 flex flex-col items-center justify-center text-center opacity-40">
+                    <i data-lucide="clock" class="h-8 w-8 mb-3 text-base-content/30"></i>
+                    <p class="text-[0.65rem] font-black uppercase tracking-[0.2em]">Menunggu Review Atasan</p>
                 </div>
             @endif
         </section>

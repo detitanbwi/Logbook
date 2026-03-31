@@ -64,7 +64,7 @@
         <div class="drawer-content flex flex-col">
             <!-- Top Navbar -->
             <header
-                class="sticky top-0 z-30 flex h-16 w-full justify-center bg-base-100/80 backdrop-blur-md border-b border-base-300">
+                class="sticky top-0 z-40 flex h-16 w-full justify-center bg-base-100/80 backdrop-blur-md border-b border-base-300">
                 <div class="navbar w-full max-w-[1240px] px-4 md:px-6">
                     <div class="flex-none lg:hidden">
                         <label for="app-drawer" aria-label="open sidebar" class="btn btn-square btn-ghost"
@@ -135,12 +135,16 @@
                     </div>
                 @endif
 
-                <div
-                    class="card bg-base-100 rounded-2xl border border-base-300 shadow-sm page-transition min-h-[calc(100vh-12rem)] md:min-h-0">
-                    <div class="card-body p-4 md:p-8">
-                        {{ $slot }}
+                @if($flat ?? false)
+                    {{ $slot }}
+                @else
+                    <div
+                        class="card bg-base-100 rounded-2xl border border-base-300 shadow-sm page-transition min-h-[calc(100vh-12rem)] md:min-h-0">
+                        <div class="card-body p-4 md:p-8">
+                            {{ $slot }}
+                        </div>
                     </div>
-                </div>
+                @endif
 
                 <!-- Footer / Extra space -->
                 <div class="h-12 md:h-0"></div>

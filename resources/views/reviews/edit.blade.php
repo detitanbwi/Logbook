@@ -1,15 +1,15 @@
-<x-layouts.app :title="$title" :active="$active" hideNav="true" :backUrl="route('reviews.index')">
+<x-layouts.app :title="$title" :active="$active" flat="true" hideNav="true" :backUrl="route('reviews.index')">
     <div class="w-full pb-24"
          x-data="reviewForm({{ $logbook->items->map(fn($i) => ['id' => $i->id, 'score' => $i->score ?? 0, 'target' => $i->kpi->target])->toJson() }})"
          @click="if(event.target.classList.contains('modal-trigger')) showImageModal(event.target.dataset.src, event.target.dataset.title)">
 
         <!-- Staff Identity - flat, no card -->
-        <div class="flex items-center gap-4 pb-5 border-b border-base-200">
-            <div class="w-14 h-14 rounded-2xl bg-base-200 overflow-hidden flex items-center justify-center shrink-0 border border-base-300">
+        <div class="flex items-center gap-4 pb-6 border-b border-base-200">
+            <div class="w-14 h-14 rounded-full bg-base-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm border border-base-200">
                 @if($logbook->employee->foto)
                     <img src="{{ asset('storage/' . $logbook->employee->foto) }}" class="w-full h-full object-cover">
                 @else
-                    <span class="text-xl font-black text-primary">{{ substr($logbook->employee->nama, 0, 1) }}</span>
+                    <div class="w-full h-full bg-primary flex items-center justify-center text-white text-xl font-black">{{ substr($logbook->employee->nama, 0, 1) }}</div>
                 @endif
             </div>
             <div class="flex-1 min-w-0">
