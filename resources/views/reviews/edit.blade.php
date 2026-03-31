@@ -195,10 +195,11 @@
                         @if($logbook->status === 'pending')
                             <template x-for="star in 5">
                                 <button type="button" @click="setStar(star)"
-                                        class="transition-all duration-200 hover:scale-125 active:scale-90 outline-none">
+                                        class="transition-all duration-200 hover:scale-125 active:scale-95 outline-none">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 transition-all duration-300" 
-                                         :class="star <= starRating ? 'text-amber-400 fill-amber-400 drop-shadow-lg' : 'text-base-content/10'"
-                                         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                         :fill="star <= starRating ? '#FFC107' : 'none'"
+                                         :stroke="star <= starRating ? '#FFC107' : '#E2E8F0'"
+                                         viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                                     </svg>
                                 </button>
@@ -206,8 +207,9 @@
                         @else
                             <template x-for="star in 5">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" 
-                                     :class="star <= starRating ? 'text-amber-400 fill-amber-400' : 'text-base-content/10'"
-                                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                     :fill="star <= starRating ? '#FFC107' : 'none'"
+                                     :stroke="star <= starRating ? '#FFC107' : '#E2E8F0'"
+                                     viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                                 </svg>
                             </template>
