@@ -81,22 +81,22 @@
 
             <!-- Anchored Bottom Nav -->
             @if(!($hideNav ?? false))
-            <nav class="fixed bottom-0 left-0 w-full z-50 px-4 pt-4 bg-white/95 backdrop-blur-2xl border-t border-primary/5 flex justify-around items-end rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,42,88,0.05)]" style="padding-bottom: calc(2rem + env(safe-area-inset-bottom));">
-                <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'dashboard' ? 'text-primary' : 'text-primary/25' }}">
+            <nav class="fixed bottom-0 left-0 w-full z-50 px-4 pt-4 bg-[#002A58] border-t border-white/10 flex justify-around items-end rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,20,45,0.35)]" style="padding-bottom: calc(2rem + env(safe-area-inset-bottom));">
+                <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'dashboard' ? 'text-white' : 'text-white/45' }}">
                     <span class="material-symbols-outlined text-[1.4rem]" style="font-variation-settings: 'FILL' {{ ($active ?? '') === 'dashboard' ? '1' : '0' }};">grid_view</span>
                     <span class="text-[0.55rem] font-black uppercase tracking-[0.1em] scale-90">Logs</span>
                 </a>
-                <a href="{{ route('logbooks.create') }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'create' ? 'text-primary' : 'text-primary/25' }}">
+                <a href="{{ route('logbooks.create') }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'create' ? 'text-white' : 'text-white/45' }}">
                     <span class="material-symbols-outlined text-[1.4rem]" style="font-variation-settings: 'FILL' {{ ($active ?? '') === 'create' ? '1' : '0' }};">add_circle</span>
                     <span class="text-[0.55rem] font-black uppercase tracking-[0.1em] scale-90">Create</span>
                 </a>
                 @if(auth()->user()->subordinates()->exists())
-                <a href="{{ route('reviews.index') }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'reviews' ? 'text-primary' : 'text-primary/25' }}">
+                <a href="{{ route('reviews.index') }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'reviews' ? 'text-white' : 'text-white/45' }}">
                     <span class="material-symbols-outlined text-[1.4rem]" style="font-variation-settings: 'FILL' {{ ($active ?? '') === 'reviews' ? '1' : '0' }};">rate_review</span>
                     <span class="text-[0.55rem] font-black uppercase tracking-[0.1em] scale-90">Reviews</span>
                 </a>
                 @endif
-                <a href="{{ route('employees.show', auth()->id()) }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'profile' ? 'text-primary' : 'text-primary/25' }}">
+                <a href="{{ route('employees.show', auth()->id()) }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'profile' ? 'text-white' : 'text-white/45' }}">
                     <span class="material-symbols-outlined text-[1.4rem]" style="font-variation-settings: 'FILL' {{ ($active ?? '') === 'profile' ? '1' : '0' }};">person</span>
                     <span class="text-[0.55rem] font-black uppercase tracking-[0.1em] scale-90">Profile</span>
                 </a>

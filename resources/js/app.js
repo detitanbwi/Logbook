@@ -3,6 +3,7 @@ import './bootstrap';
 import Alpine from 'alpinejs';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Geolocation } from '@capacitor/geolocation';
 
@@ -11,6 +12,28 @@ window.Alpine = Alpine;
 Alpine.start();
 
 const isNativePlatform = Capacitor.isNativePlatform();
+
+async function configureNativeSplashScreen() {
+	if (!isNativePlatform) {
+		return;
+	}
+
+	try {
+		// Fallback: never keep splash forever
+		setTimeout(() => {
+			SplashScreen.hide().catch(() => {});
+		}, 5000);
+
+		// Hide shortly after the page is ready
+		window.addEventListener('load', () => {
+			setTimeout(() => {
+				SplashScreen.hide().catch(() => {});
+			}, 300);
+		}, { once: true });
+	} catch (error) {
+		console.warn('SplashScreen setup failed:', error);
+	}
+}
 
 async function configureNativeStatusBar() {
 	if (!isNativePlatform) {
@@ -39,6 +62,11 @@ function isLikelyNotFoundPage() {
 	);
 }
 
+function isDashboardLogsPage() {
+	const normalizedPath = (window.location.pathname || '').replace(/\/+$/, '');
+	return normalizedPath === '/dashboard';
+}
+
 async function configureAndroidBackButton() {
 	if (!isNativePlatform) {
 		return;
@@ -51,10 +79,18 @@ async function configureAndroidBackButton() {
 				return;
 			}
 
+			if (isDashboardLogsPage()) {
+				const shouldExit = window.confirm('Tutup aplikasi?');
+				if (shouldExit) {
+					App.exitApp();
+				}
+				return;
+			}
+
 			if (canGoBack || window.history.length > 1) {
 				window.history.back();
+				return;
 			}
-			// Intentionally do nothing when no history to prevent auto-close.
 		});
 	} catch (error) {
 		console.warn('Back button setup failed:', error);
@@ -109,3 +145,4 @@ window.HRISNative = {
 
 configureNativeStatusBar();
 configureAndroidBackButton();
+configureNativeSplashScreen();

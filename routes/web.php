@@ -17,10 +17,10 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware(['auth', 'prevent-back-history'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Employee Resource
     Route::resource('employees', EmployeeController::class);
 

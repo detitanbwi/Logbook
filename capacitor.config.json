@@ -7,6 +7,13 @@
     "cleartext": true
   },
   "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#002A58",
+      "showSpinner": false,
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP"
+    },
     "StatusBar": {
       "overlaysWebView": false,
       "style": "DARK",
