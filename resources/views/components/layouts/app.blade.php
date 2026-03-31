@@ -294,16 +294,18 @@
         };
 
         // Listen for internal download clicks to show feedback and force external trigger
+        // Using window.location.href instead of window.open() for better compatibility with Android WebViews
         document.addEventListener('click', (e) => {
             const downloadLink = e.target.closest('a[download]');
             if (downloadLink) {
                 e.preventDefault();
                 const url = downloadLink.href;
-                window.showAlert('Membuka di Browser untuk mengunduh...', 'info');
                 
-                // Triggering external window open to force download handle
+                window.showAlert('Mengalihkan ke download...', 'info');
+                
+                // Overriding behavior to force navigation within the webview or trigger system download
                 setTimeout(() => {
-                    window.open(url, '_blank');
+                    window.location.href = url;
                 }, 500);
             }
         });
