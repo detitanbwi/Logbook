@@ -8,9 +8,6 @@
     <form action="{{ $logbook ? route('logbooks.update', $logbook->id) : route('logbooks.store') }}"
           method="POST"
           enctype="multipart/form-data"
-    <form action="{{ $logbook ? route('logbooks.update', $logbook->id) : route('logbooks.store') }}"
-          method="POST"
-          enctype="multipart/form-data"
           class="space-y-8 pb-10"
           x-data="{
               isSubmitting: false,
@@ -162,6 +159,103 @@
             </div>
         </div>
 
+        <!-- SECTION 6: LAMPIRAN FILE (OPSIONAL) -->
+        <div class="space-y-3" x-data="{
+            fileList: [],
+            maxSize: 10 * 1024 * 1024,
+            handleFiles(event) {
+                const newFiles = Array.from(event.target.files);
+                const invalid = newFiles.filter(f => f.size > this.maxSize);
+                if (invalid.length) {
+                    alert(invalid.map(f => f.name).join('\n') + '\n\nMelebihi batas 10MB, file ini tidak akan ditambahkan.');
+                }
+                const valid = newFiles.filter(f => f.size <= this.maxSize);
+                this.fileList = [...this.fileList, ...valid];
+                this.syncInput();
+                lucide.createIcons();
+            },
+            removeFile(index) {
+                this.fileList.splice(index, 1);
+                this.syncInput();
+            },
+            syncInput() {
+                const dt = new DataTransfer();
+                this.fileList.forEach(f => dt.items.add(f));
+                document.getElementById('attachments').files = dt.files;
+            },
+            formatSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            },
+            getIcon(name) {
+                const ext = name.split('.').pop().toLowerCase();
+                if (['jpg','jpeg','png','gif','webp','bmp'].includes(ext)) return 'image';
+                if (ext === 'pdf') return 'file-text';
+                if (['xls','xlsx'].includes(ext)) return 'table-2';
+                if (ext === 'csv') return 'file-spreadsheet';
+                if (['doc','docx'].includes(ext)) return 'file-type-2';
+                if (['ppt','pptx'].includes(ext)) return 'presentation';
+                if (['zip','rar','7z'].includes(ext)) return 'archive';
+                return 'file';
+            }
+        }">
+            <div class="flex items-center justify-between mx-1">
+                <h3 class="text-[0.65rem] font-black text-primary/50 uppercase tracking-[0.2em]">
+                    LAMPIRAN FILE <span class="text-base-content/20 font-bold normal-case tracking-normal">(opsional)</span>
+                </h3>
+                <span class="text-[0.55rem] font-bold text-base-content/20 uppercase tracking-widest">Maks. 10 MB/file</span>
+            </div>
+
+            <div class="bg-base-100 rounded-2xl border border-base-200 overflow-hidden">
+                <!-- Drop Zone / Click to Pick -->
+                <label for="attachments"
+                    class="flex flex-col items-center justify-center gap-3 p-6 cursor-pointer hover:bg-primary/[0.02] active:bg-primary/5 transition-colors border-b border-dashed border-base-200"
+                    :class="fileList.length === 0 ? 'border-b-0' : ''">
+                    <div class="w-12 h-12 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-center">
+                        <i data-lucide="paperclip" class="h-5 w-5 text-primary/50"></i>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-[0.65rem] font-black text-primary/50 uppercase tracking-[0.15em]">Pilih File Lampiran</p>
+                        <p class="text-[0.55rem] font-bold text-base-content/20 mt-0.5">PDF, Word, Excel, CSV, Gambar, ZIP, dll</p>
+                    </div>
+                    <input type="file" id="attachments" name="attachments[]" multiple class="hidden"
+                           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.ppt,.pptx,.zip,.rar,.7z"
+                           @change="handleFiles($event)">
+                </label>
+
+                <!-- File List Preview -->
+                <div x-show="fileList.length > 0" x-transition class="divide-y divide-base-100">
+                    <template x-for="(file, index) in fileList" :key="index">
+                        <div class="flex items-center gap-3 px-4 py-3">
+                            <div class="w-8 h-8 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center text-primary/40 shrink-0">
+                                <i :data-lucide="getIcon(file.name)" class="h-4 w-4"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-[0.65rem] font-bold text-base-content truncate leading-tight" x-text="file.name"></p>
+                                <p class="text-[0.55rem] font-bold text-base-content/30 uppercase tracking-widest mt-0.5" x-text="formatSize(file.size)"></p>
+                            </div>
+                            <button type="button" @click="removeFile(index)"
+                                class="btn btn-ghost btn-circle btn-xs text-error/30 hover:text-error hover:bg-error/10 shrink-0">
+                                <i data-lucide="x" class="h-3 w-3"></i>
+                            </button>
+                        </div>
+                    </template>
+
+                    <!-- Re-pick button -->
+                    <label for="attachments" class="flex items-center justify-center gap-2 px-4 py-3 cursor-pointer hover:bg-primary/[0.02] transition-colors">
+                        <i data-lucide="plus" class="h-3 w-3 text-primary/40"></i>
+                        <span class="text-[0.6rem] font-black text-primary/40 uppercase tracking-widest">Tambah File Lagi</span>
+                    </label>
+                </div>
+
+                <!-- Empty state -->
+                <div x-show="fileList.length === 0" class="px-4 py-3 text-center">
+                    <p class="text-[0.6rem] font-bold text-base-content/20 uppercase tracking-widest">Belum ada file dipilih</p>
+                </div>
+            </div>
+        </div>
+
         <!-- SUBMIT BUTTON -->
         <div class="pt-6">
             <div class="flex justify-center">
@@ -176,7 +270,6 @@
                 </button>
             </div>
         </div>
-    </form>
     </form>
 
     <script>
