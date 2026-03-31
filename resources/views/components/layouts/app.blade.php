@@ -155,18 +155,16 @@
                 <!-- Sidebar Header -->
                 <div class="mb-6 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
                     <div class="mb-3 flex items-center gap-3">
-                        <div
-                            class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/95 font-bold text-primary-content shadow-sm">
-                            <i data-lucide="droplets" class="h-5 w-5"></i>
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-base-300 p-1.5 shadow-sm">
+                            <img src="{{ asset('images/branding/logo.png') }}" class="h-full w-full object-contain" alt="Logo">
                         </div>
                         <div>
-                            <p class="text-[0.6rem] font-bold uppercase tracking-[0.2em] text-base-content/50">Workspace
-                            </p>
-                            <p class="text-lg font-black tracking-tight text-primary">HRIS Portal</p>
+                            <p class="text-[0.6rem] font-bold uppercase tracking-[0.2em] text-base-content/50">Workspace</p>
+                            <p class="text-lg font-black tracking-tight text-primary">Logbook Portal</p>
                         </div>
                     </div>
                     <p class="text-[0.6rem] text-base-content/60 uppercase tracking-widest font-bold">
-                        Role: <span class="text-primary">{{ ucfirst(auth()->user()->role) }}</span>
+                        Role: <span class="text-primary">{{ ucfirst(str_replace('_', ' ', auth()->user()->role)) }}</span>
                     </p>
                 </div>
 
