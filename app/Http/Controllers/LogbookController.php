@@ -135,7 +135,17 @@ class LogbookController extends Controller
     private function authorizeAccess(Logbook $logbook)
     {
         $user = auth()->user();
-        if ($user->role === 'staff' && $logbook->employee_id !== $user->id) abort(403);
-        if ($user->role !== 'staff' && $logbook->supervisor_id !== $user->id && $user->role !== 'super_admin') abort(403);
+        
+        // Owner of the logbook can always view it
+        if ($logbook->employee_id === $user->id) return;
+        
+        // Super Admin can view all
+        if ($user->role === 'super_admin') return;
+        
+        // Supervisor/Admin can view if it's their subordinate
+        if ($user->role !== 'staff' && $logbook->supervisor_id === $user->id) return;
+        
+        // Otherwise, access denied
+        abort(403);
     }
 }

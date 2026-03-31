@@ -29,20 +29,20 @@
                     "{{ $logbook->daily_report }}"
                 </p>
                 @if($logbook->main_photo_path)
-                <div class="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2">
-                    <div class="w-6 h-6 rounded-lg bg-primary/5 flex items-center justify-center text-primary/30 border border-primary/5">
-                        <span class="material-symbols-outlined text-[0.8rem]">image</span>
+                <div class="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-lg bg-primary/5 flex items-center justify-center text-primary/40 border border-primary/5">
+                        <i data-lucide="image" class="h-4 w-4"></i>
                     </div>
-                    <span class="text-[0.55rem] font-bold text-primary/40 uppercase tracking-widest">Evidence Attached</span>
+                    <span class="text-[0.6rem] font-black text-primary/40 uppercase tracking-[0.15em]">Evidence Attached</span>
                 </div>
                 @endif
             </a>
             @empty
-            <div class="text-center py-16 bg-surface-container/30 rounded-[2.5rem] border-2 border-dashed border-primary/10">
-                <div class="w-16 h-16 mx-auto primary-gradient rounded-full flex items-center justify-center text-white/20 mb-6 shadow-xl relative">
-                    <span class="material-symbols-outlined text-3xl">event_busy</span>
+            <div class="text-center py-16 bg-base-300/10 rounded-[2.5rem] border-2 border-dashed border-primary/10">
+                <div class="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center text-primary/20 mb-6 shadow-sm">
+                    <i data-lucide="calendar-x-2" class="h-8 w-8"></i>
                 </div>
-                <p class="text-[0.6rem] font-black text-primary/60 uppercase tracking-[0.3em]">Logbook Kosong</p>
+                <p class="text-[0.65rem] font-black text-primary/60 uppercase tracking-[0.3em]">Logbook Kosong</p>
             </div>
             @endforelse
 
@@ -53,9 +53,8 @@
     </div>
 
     <!-- Floating Action Button -->
-    <a href="{{ route('logbooks.create') }}" class="fixed bottom-28 right-6 bg-primary text-white flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl shadow-primary/40 z-[100] transition-all active:scale-90 group overflow-hidden">
-        <div class="absolute inset-0 primary-gradient opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        <span class="material-symbols-outlined text-xl font-black relative z-10">add</span>
-        <span class="text-[0.6rem] font-black tracking-widest uppercase relative z-10">Tambah</span>
+    <a href="{{ route('logbooks.create') }}" class="fixed bottom-28 right-6 bg-primary text-white flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl shadow-primary/40 z-[100] transition-all active:scale-95 group overflow-hidden border-none cursor-pointer">
+        <i data-lucide="plus" class="h-5 w-5 font-black text-white relative z-10 transition-transform group-hover:rotate-90"></i>
+        <span class="text-[0.65rem] font-black tracking-[0.2em] uppercase relative z-10">TAMBAH</span>
     </a>
 </x-layouts.app>
