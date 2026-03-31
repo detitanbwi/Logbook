@@ -59,11 +59,16 @@ class LogbookController extends Controller
         $startTime = Carbon::parse($date . ' ' . $request->start_time);
         $endTime = Carbon::parse($date . ' ' . $request->end_time);
 
+        $lat = $request->latitude;
+        $lng = $request->longitude;
+        $latitude = (isset($lat) && is_numeric($lat)) ? $lat : null;
+        $longitude = (isset($lng) && is_numeric($lng)) ? $lng : null;
+
         $logbook = Logbook::create([
             'employee_id' => auth()->id(),
             'supervisor_id' => auth()->user()->supervisor_id,
-            'latitude' => $request->latitude ?? 0,
-            'longitude' => $request->longitude ?? 0,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
             'start_time' => $startTime,
             'end_time' => $endTime,
             'daily_report' => $request->daily_report,

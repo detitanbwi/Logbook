@@ -13,9 +13,21 @@
               isSubmitting: false,
               items: @js($logbook ? $logbook->kpis->map(fn($k) => ['kpi_id' => $k->kpi_id, 'details' => $k->details]) : [['kpi_id' => '', 'details' => '']]),
               addItem() { this.items.push({kpi_id: '', details: ''}) },
-              removeItem(index) { this.items.splice(index, 1) }
+              removeItem(index) { this.items.splice(index, 1) },
+              validateAndSubmit(e) {
+                  const lat = document.getElementById('latitude').value;
+                  const lng = document.getElementById('longitude').value;
+                  
+                  if (!lat || lat === '-' || isNaN(lat) || !lng || lng === '-' || isNaN(lng)) {
+                      alert('LokASI GPS WAJIB DIDETEKSI! Silakan klik tombol [Deteksi Lokasi] terlebih dahulu agar koordinat Anda tercatat.');
+                      e.preventDefault();
+                      return false;
+                  }
+                  
+                  this.isSubmitting = true;
+              }
           }"
-          @submit="isSubmitting = true">
+          @submit="validateAndSubmit($event)">
         @csrf
         @if($logbook) @method('PUT') @endif
 
