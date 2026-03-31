@@ -11,8 +11,12 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
+@plugin 'daisyui' {
+    themes: light --default;
+}
+
 @theme {
-    /* Colors from Stitch Design System */
+    /* Colors from Stitch Design System - Preserved for legacy if needed */
     --color-primary: #002a58;
     --color-primary-container: #004080;
     --color-surface: #f7f9fb;
@@ -24,9 +28,14 @@
     --color-error: #ba1a1a;
     --color-outline-variant: #c3c6d2;
 
+    /* DaisyUI Primary Theme Ovveride */
+    --color-primary: #002a58;
+    --color-primary-content: #ffffff;
+
     /* Spacing & Borders */
     --radius-md: 0.75rem;
     --radius-xl: 1.5rem;
+    --radius-2xl: 1rem;
 
     /* Typography */
     --font-heading: 'Manrope', system-ui, sans-serif;
@@ -35,9 +44,10 @@
 
 @layer base {
     body {
-        @apply bg-surface text-on-surface font-body;
+        @apply bg-base-200 text-base-content font-body;
     }
 
+    /* Keep Material Symbols for backward compatibility if needed, but favor Lucide */
     .material-symbols-outlined {
         font-family: 'Material Symbols Outlined';
         font-weight: normal;
@@ -54,22 +64,22 @@
     }
 
     h1, h2, h3, h4, h5, h6 {
-        @apply font-heading font-semibold;
+        @apply font-heading font-bold tracking-tight;
     }
 }
 
-/* Custom Utilities for Editorial HR Design */
+/* Custom Utilities for Fatan-like Design */
 @utility glass-morphism {
-    @apply bg-surface-container-lowest/80 backdrop-blur-xl border-outline-variant/15;
+    @apply bg-base-100/90 backdrop-blur-md border-base-300;
 }
 
 @utility primary-gradient {
-    @apply bg-linear-to-b from-primary to-primary-container;
+    @apply bg-linear-to-b from-primary to-primary/90;
 }
 
-/* No-border Rule for inputs as per design system */
-input, textarea, select {
-    @apply bg-surface-container-highest border-none focus:ring-1 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all duration-200 outline-hidden;
+/* No-border Rule for inputs as per design system - DaisyUI handles most of this */
+input:not([type="checkbox"]):not([type="radio"]), textarea, select {
+    @apply rounded-xl border-base-300 bg-base-100 focus:border-primary/30 focus:ring-1 focus:ring-primary/10 transition-all duration-200;
 }
 
 /* Hide Spinners for type="number" */
@@ -79,23 +89,11 @@ input::-webkit-inner-spin-button {
     margin: 0;
 }
 
-/* Clean time input visuals on mobile WebView */
-input[type='time'] {
-    appearance: none;
-    -webkit-appearance: none;
-    min-height: 2.75rem;
-}
-
-input[type='time']::-webkit-calendar-picker-indicator {
-    opacity: 0.8;
-    filter: grayscale(1) contrast(0.9);
-}
-
 input[type=number] {
     -moz-appearance: textfield;
 }
 
 /* Editorial Shadows */
 @utility editorial-shadow {
-    box-shadow: 0 40px 40px 0 rgba(25, 28, 30, 0.06);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }

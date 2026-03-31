@@ -1,107 +1,115 @@
-<x-layouts.app :title="'Data Karyawan'" :breadcrumb="'Data Karyawan'">
-    <div class="animate-in fade-in slide-in-from-bottom duration-1000">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12 md:mb-20">
+<x-layouts.app :title="'Data Karyawan'">
+    <div class="animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <!-- Header Section -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
             <div class="w-full max-w-2xl text-center md:text-left">
-                <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-primary mb-3 md:mb-4 leading-tight">Data Karyawan</h1>
-                <p class="text-on-surface/40 font-medium leading-relaxed text-sm">Kelola aset sumber daya manusia perusahaan dengan presisi dan manajemen terpadu.</p>
+                <p class="text-[0.65rem] font-bold text-primary/60 uppercase tracking-[0.2em] mb-2">Human Resources</p>
+                <h1 class="text-3xl md:text-4xl font-black tracking-tight text-primary leading-tight">Data Karyawan</h1>
+                <p class="text-base-content/50 font-medium leading-relaxed text-sm mt-2">Kelola aset sumber daya manusia perusahaan dengan presisi dan manajemen terpadu dalam sistem HRIS.</p>
             </div>
             
             @if(auth()->user()->role !== 'staff')
-            <a href="{{ route('employees.create') }}" class="inline-flex items-center justify-center gap-4 px-6 py-4 md:px-10 md:py-5 primary-gradient text-white rounded-xl text-[0.65rem] font-bold tracking-[0.2em] uppercase shadow-2xl shadow-primary/30 active:scale-95 transition-all duration-300 w-full md:w-auto">
-                <span class="material-symbols-outlined font-bold text-sm">person_add</span>
-                <span>Tambah Karyawan</span>
+            <a href="{{ route('employees.create') }}" class="btn btn-primary rounded-2xl gap-3 px-8 shadow-lg shadow-primary/20 hover:scale-[1.03] transition-all w-full md:w-auto">
+                <i data-lucide="user-plus" class="h-5 w-5"></i>
+                <span class="text-xs font-black uppercase tracking-widest">Tambah Karyawan</span>
             </a>
             @endif
         </div>
 
-        <div class="bg-white rounded-xl editorial-shadow overflow-hidden border border-outline-variant/10">
+        <!-- Table Section -->
+        <div class="card bg-base-100 rounded-3xl shadow-sm border border-base-300 overflow-hidden">
             <div class="overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left border-collapse min-w-[1000px] lg:min-w-0">
+                <table class="table table-zebra w-full min-w-[900px]">
                     <thead>
-                    <tr class="bg-white border-b border-outline-variant/5">
-                        <th class="px-10 py-8 text-[0.6rem] font-bold text-on-surface/30 tracking-[0.4em] uppercase">FOTO</th>
-                        <th class="px-10 py-8 text-[0.6rem] font-bold text-on-surface/30 tracking-[0.4em] uppercase">NAMA</th>
-                        <th class="px-10 py-8 text-[0.6rem] font-bold text-on-surface/30 tracking-[0.4em] uppercase">NPP</th>
-                        <th class="px-10 py-8 text-[0.6rem] font-bold text-on-surface/30 tracking-[0.4em] uppercase">ROLE</th>
-                        <th class="px-10 py-8 text-[0.6rem] font-bold text-on-surface/30 tracking-[0.4em] uppercase">ATASAN</th>
-                        <th class="px-10 py-8 text-[0.6rem] font-bold text-on-surface/30 tracking-[0.4em] uppercase">AKSI</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-outline-variant/5">
-                    @forelse($employees as $employee)
-                    <tr class="group hover:bg-surface-container-low transition-colors duration-300">
-                        <td class="px-10 py-6">
-                            <div class="w-12 h-12 rounded-xl bg-surface-container-highest flex items-center justify-center overflow-hidden border border-outline-variant/10 shadow-sm group-hover:scale-110 transition-transform">
-                                @if($employee->foto)
-                                    <img src="{{ asset('storage/' . $employee->foto) }}" alt="Profile" class="w-full h-full object-cover">
+                        <tr class="bg-base-200/50 border-b border-base-300">
+                            <th class="px-8 py-6 text-[0.65rem] font-black text-base-content/40 tracking-[0.2em] uppercase border-none">Personel</th>
+                            <th class="px-8 py-6 text-[0.65rem] font-black text-base-content/40 tracking-[0.2em] uppercase border-none">NPP</th>
+                            <th class="px-8 py-6 text-[0.65rem] font-black text-base-content/40 tracking-[0.2em] uppercase border-none">Role Sistem</th>
+                            <th class="px-8 py-6 text-[0.65rem] font-black text-base-content/40 tracking-[0.2em] uppercase border-none">Atasan</th>
+                            <th class="px-8 py-6 text-[0.65rem] font-black text-base-content/40 tracking-[0.2em] uppercase border-none text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-base-200">
+                        @forelse($employees as $employee)
+                        <tr class="hover:bg-base-200/30 transition-colors group">
+                            <td class="px-8 py-5 border-none">
+                                <div class="flex items-center gap-4">
+                                    <div class="avatar border-2 border-primary/10 rounded-xl overflow-hidden shadow-sm group-hover:scale-105 transition-transform">
+                                        <div class="w-12 h-12 bg-base-200 flex items-center justify-center">
+                                            @if($employee->foto)
+                                                <img src="{{ asset('storage/' . $employee->foto) }}" alt="Profile" />
+                                            @else
+                                                <i data-lucide="user" class="h-6 w-6 text-base-content/20"></i>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-black text-primary leading-tight lowercase first-letter:uppercase">{{ $employee->nama }}</p>
+                                        <p class="text-[0.6rem] font-bold text-base-content/30 tracking-widest uppercase mt-1">ID_{{ $employee->id }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5 border-none">
+                                <span class="text-sm font-black text-base-content/60 font-mono tracking-tight">{{ $employee->npp }}</span>
+                            </td>
+                            <td class="px-8 py-5 border-none">
+                                @php
+                                    $roleBadges = [
+                                        'super_admin' => 'badge-primary text-white border-none',
+                                        'admin' => 'bg-primary/10 text-primary border-none',
+                                        'staff' => 'bg-base-300 text-base-content/40 border-none'
+                                    ];
+                                @endphp
+                                <span class="badge {{ $roleBadges[$employee->role] ?? 'badge-ghost' }} badge-sm font-black text-[0.55rem] tracking-[0.15em] uppercase py-3 px-4">
+                                    {{ str_replace('_', ' ', $employee->role) }}
+                                </span>
+                            </td>
+                            <td class="px-8 py-5 border-none">
+                                @if($employee->supervisor)
+                                    <p class="text-sm font-black text-base-content/60 leading-tight">{{ $employee->supervisor->nama }}</p>
+                                    <p class="text-[0.6rem] font-bold text-base-content/20 uppercase tracking-widest mt-0.5">Direct Supervisor</p>
                                 @else
-                                    <span class="material-symbols-outlined text-on-surface/20">person</span>
+                                    <span class="text-xs font-black text-base-content/20 uppercase tracking-[0.3em]">—</span>
                                 @endif
-                            </div>
-                        </td>
-                        <td class="px-10 py-6">
-                            <p class="text-sm font-bold text-primary tracking-tight leading-tight mb-1">{{ $employee->nama }}</p>
-                            <p class="text-[0.6rem] font-bold text-on-surface/30 tracking-widest uppercase">EMP_{{ $employee->id }}</p>
-                        </td>
-                        <td class="px-10 py-6 text-sm font-bold text-primary tabular-nums tracking-wider opacity-60">
-                            {{ $employee->npp }}
-                        </td>
-                        <td class="px-10 py-6">
-                            @php
-                                $roleColors = [
-                                    'super_admin' => 'bg-primary text-white shadow-primary/20',
-                                    'admin' => 'bg-primary-container/10 text-primary-container border border-primary-container/20',
-                                    'staff' => 'bg-surface-container-highest text-on-surface/50 border border-outline-variant/20'
-                                ];
-                            @endphp
-                            <span class="inline-flex px-3 py-1.5 {{ $roleColors[$employee->role] }} rounded-lg text-[0.55rem] font-extrabold tracking-[0.15em] uppercase">
-                                {{ str_replace('_', ' ', $employee->role) }}
-                            </span>
-                        </td>
-                        <td class="px-10 py-6">
-                            @if($employee->supervisor)
-                                <p class="text-sm font-bold text-on-surface/60 group-hover:text-primary transition-colors leading-tight">{{ $employee->supervisor->nama }}</p>
-                                <p class="text-[0.6rem] font-bold text-on-surface/20 uppercase tracking-widest">Supervisor</p>
-                            @else
-                                <span class="text-[0.6rem] font-bold text-on-surface/10 uppercase tracking-[0.3em]">Manajemen Pusat</span>
-                            @endif
-                        </td>
-                        <td class="px-10 py-6">
-                            <div class="flex items-center gap-3">
-                                <a href="{{ route('employees.show', $employee->id) }}" class="w-10 h-10 rounded-xl bg-white border border-outline-variant/10 flex items-center justify-center text-on-surface/30 hover:text-primary hover:border-primary/30 transition-all duration-300 editorial-shadow">
-                                    <span class="material-symbols-outlined text-sm">visibility</span>
-                                </a>
-                                @if(auth()->user()->role !== 'staff' && (auth()->user()->role === 'super_admin' || $employee->role === 'staff'))
-                                <a href="{{ route('employees.edit', $employee->id) }}" class="w-10 h-10 rounded-xl bg-white border border-outline-variant/10 flex items-center justify-center text-on-surface/30 hover:text-primary hover:border-primary/30 transition-all duration-300 editorial-shadow">
-                                    <span class="material-symbols-outlined text-sm">edit</span>
-                                </a>
-                                @endif
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="px-10 py-32 text-center">
-                            <div class="flex flex-col items-center gap-6 opacity-20">
-                                <span class="material-symbols-outlined text-8xl">inbox</span>
-                                <p class="text-[0.65rem] font-bold tracking-[0.4em] uppercase">Data Personel Tidak Ditemukan</p>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                            </td>
+                            <td class="px-8 py-5 border-none">
+                                <div class="flex items-center justify-center gap-2">
+                                    <a href="{{ route('employees.show', $employee->id) }}" 
+                                       class="btn btn-ghost btn-square btn-sm rounded-xl text-base-content/30 hover:text-primary hover:bg-primary/10 transition-all">
+                                        <i data-lucide="eye" class="h-4 w-4"></i>
+                                    </a>
+                                    @if(auth()->user()->role !== 'staff' && (auth()->user()->role === 'super_admin' || $employee->role === 'staff'))
+                                    <a href="{{ route('employees.edit', $employee->id) }}" 
+                                       class="btn btn-ghost btn-square btn-sm rounded-xl text-base-content/30 hover:text-primary hover:bg-primary/10 transition-all">
+                                        <i data-lucide="edit-2" class="h-4 w-4"></i>
+                                    </a>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="px-8 py-32 text-center">
+                                <div class="flex flex-col items-center gap-6 opacity-20">
+                                    <i data-lucide="users" class="h-16 w-16"></i>
+                                    <p class="text-xs font-black tracking-[0.4em] uppercase">Data Personel Tidak Ditemukan</p>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
 
         @if($employees->hasPages())
-        <div class="mt-12 px-10 py-10 glass-morphism rounded-xl flex items-center justify-between border border-outline-variant/10">
-            <div class="text-[0.65rem] font-bold text-on-surface/30 tracking-widest uppercase">
-                Showing {{ $employees->firstItem() }}-{{ $employees->lastItem() }} of {{ $employees->total() }} Personel
+        <div class="mt-8 flex flex-col md:flex-row items-center justify-between gap-6 px-4">
+            <div class="text-[0.65rem] font-black text-base-content/30 tracking-widest uppercase">
+                Showing {{ $employees->firstItem() }}-{{ $employees->lastItem() }} of {{ $employees->total() }} Employees
             </div>
             
-            <div class="flex items-center gap-4">
-                {{ $employees->links('pagination::simple-bootstrap-5') }}
+            <div class="join">
+                {{ $employees->links('pagination::simple-tailwind') }}
             </div>
         </div>
         @endif

@@ -1,166 +1,213 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>{{ $title ?? 'HRIS Editorial' }}</title>
+    <title>{{ $title ?? 'HRIS Logbook' }}</title>
 
-    <!-- Material Symbols Icons -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="icon" type="image/png" href="{{ asset('images/branding/logo.png') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
         [x-cloak] { display: none !important; }
-        .primary-gradient { background: linear-gradient(180deg, #002a58 0%, #004080 100%); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        html, body { max-width: 100%; overflow-x: hidden; }
+        html, body { max-width: 100%; }
 
-        /* Smooth transitions for mobile */
-        .page-enter { animation: fadeInUp 0.4s ease-out; }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(10px); }
+        /* Custom animation for page content */
+        .page-transition { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body class="bg-surface font-sans text-[#191c1e] antialiased min-h-screen">
+<body class="bg-base-200 text-base-content antialiased min-h-screen" style="font-family: 'Plus Jakarta Sans', sans-serif;">
 
-    @if(auth()->user()->role === 'staff')
-        {{-- MOBILE-FIRST STAFF LAYOUT --}}
-        <div class="flex flex-col min-h-screen" style="{{ ($hideNav ?? false) ? '' : 'padding-bottom: calc(6rem + env(safe-area-inset-bottom));' }}">
-            <!-- Global Staff Header -->
-            <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-primary/5 px-6 flex items-center justify-between" style="padding-top: env(safe-area-inset-top); height: calc(4rem + env(safe-area-inset-top));">
-                <div class="flex items-center gap-3">
-                    @if($backUrl ?? false)
-                        <a href="{{ $backUrl }}" class="w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-primary/40 hover:text-primary active:scale-90 transition-all">
-                            <span class="material-symbols-outlined font-black">arrow_back_ios_new</span>
-                        </a>
-                    @else
-                        <div class="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/10 shadow-sm">
-                            @if(auth()->user()->foto)
-                                <img src="{{ asset('storage/' . auth()->user()->foto) }}" alt="Avatar" class="w-full h-full object-cover">
-                            @else
-                                <div class="w-full h-full primary-gradient flex items-center justify-center text-white text-[10px] font-black">{{ substr(auth()->user()->nama, 0, 1) }}</div>
-                            @endif
+    <div class="drawer lg:drawer-open min-h-screen" x-data="{ sidebarOpen: false }">
+        <input id="app-drawer" type="checkbox" class="drawer-toggle" :checked="sidebarOpen" />
+
+        <div class="drawer-content flex flex-col">
+            <!-- Top Navbar -->
+            <header class="sticky top-0 z-30 flex h-16 w-full justify-center bg-base-100/80 backdrop-blur-md border-b border-base-300">
+                <div class="navbar w-full max-w-[1240px] px-4 md:px-6">
+                    <div class="flex-none lg:hidden">
+                        <label for="app-drawer" aria-label="open sidebar" class="btn btn-square btn-ghost" @click="sidebarOpen = true">
+                            <i data-lucide="menu" class="h-6 w-6 text-primary"></i>
+                        </label>
+                    </div>
+
+                    <div class="flex-1 px-2 mx-2 flex items-center gap-3">
+                        <img src="{{ asset('images/branding/logo.png') }}" class="h-8 w-auto object-contain" alt="Logo">
+                        <h1 class="text-base font-bold text-base-content lg:text-lg">{{ $title ?? 'HRIS' }}</h1>
+                    </div>
+
+                    <div class="flex-none items-center gap-2">
+                        @if(auth()->user()->role === 'staff' && !($backUrl ?? false))
+                            <div class="hidden md:flex flex-col items-end mr-3">
+                                <span class="text-[0.65rem] font-bold text-base-content/40 uppercase tracking-widest leading-none">Logbook Portal</span>
+                                <span class="text-xs font-bold text-primary">{{ auth()->user()->nama }}</span>
+                            </div>
+                        @endif
+
+                        <div class="dropdown dropdown-end">
+                            <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar border-2 border-primary/10 shadow-sm focus:border-primary/30">
+                                <div class="w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                                    @if(auth()->user()->foto)
+                                        <img src="{{ asset('storage/' . auth()->user()->foto) }}" alt="Avatar" />
+                                    @else
+                                        <span class="text-xs font-black">{{ substr(auth()->user()->nama, 0, 1) }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <ul tabindex="0" class="menu dropdown-content bg-base-100 rounded-2xl z-40 w-52 p-2 shadow-xl border border-base-300 mt-4">
+                                <li>
+                                    <a href="{{ route('employees.show', auth()->id()) }}" class="flex items-center gap-3 py-3 px-4 hover:bg-base-200 rounded-xl transition-all">
+                                        <i data-lucide="user-circle-2" class="h-4 w-4 text-base-content/60"></i>
+                                        <span class="text-xs font-bold uppercase tracking-widest">Profil Saya</span>
+                                    </a>
+                                </li>
+                                <li class="border-t border-base-200 mt-1 pt-1">
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="w-full flex items-center gap-3 py-3 px-4 text-error hover:bg-error/10 rounded-xl transition-all">
+                                            <i data-lucide="log-out" class="h-4 w-4"></i>
+                                            <span class="text-xs font-bold uppercase tracking-widest">Keluar</span>
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
                         </div>
-                    @endif
-                    <div class="flex flex-col">
-                        <span class="text-[0.65rem] font-black text-primary/40 uppercase tracking-widest leading-none mb-0.5">Logbook Portal</span>
-                        <h1 class="text-sm font-black text-primary uppercase tracking-tight">{{ $title }}</h1>
                     </div>
                 </div>
-
-                @if($backUrl ?? false)
-                    <a href="{{ $backUrl }}" class="text-[0.65rem] font-black text-primary/30 uppercase tracking-widest hover:text-red-500 transition-colors">Batal</a>
-                @else
-                    <form method="POST" action="{{ route('logout') }}" class="inline">
-                        @csrf
-                        <button type="submit" class="w-10 h-10 -mr-2 rounded-full flex items-center justify-center text-primary/20 hover:text-red-500 active:scale-90 transition-all">
-                            <span class="material-symbols-outlined font-black text-[1.4rem]">logout</span>
-                        </button>
-                    </form>
-                @endif
             </header>
 
-            <!-- Content Area -->
-            <main class="flex-1 p-5 page-enter max-w-lg mx-auto w-full">
+            <!-- Main Content -->
+            <main class="mx-auto w-full max-w-[1240px] p-4 md:p-6 lg:p-8 flex-1">
                 @if(session('success'))
-                    <div class="mb-4 p-4 bg-green-50 border border-green-100 text-green-700 rounded-2xl flex items-center gap-3 text-[0.6rem] font-black uppercase tracking-wide">
-                        <span class="material-symbols-outlined text-sm">check_circle</span>
-                        {{ session('success') }}
+                    <div class="alert alert-success bg-green-50 border-green-200 text-green-700 rounded-2xl shadow-sm mb-6 flex gap-3 text-xs font-bold uppercase tracking-wide">
+                        <i data-lucide="check-circle" class="h-5 w-5"></i>
+                        <span>{{ session('success') }}</span>
                     </div>
                 @endif
 
-                {{ $slot }}
-            </main>
-
-            <!-- Anchored Bottom Nav -->
-            @if(!($hideNav ?? false))
-            <nav class="fixed bottom-0 left-0 w-full z-50 px-4 pt-4 bg-[#002A58] border-t border-white/10 flex justify-around items-end rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,20,45,0.35)]" style="padding-bottom: calc(2rem + env(safe-area-inset-bottom));">
-                <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'dashboard' ? 'text-white' : 'text-white/45' }}">
-                    <span class="material-symbols-outlined text-[1.4rem]" style="font-variation-settings: 'FILL' {{ ($active ?? '') === 'dashboard' ? '1' : '0' }};">grid_view</span>
-                    <span class="text-[0.55rem] font-black uppercase tracking-[0.1em] scale-90">Logs</span>
-                </a>
-                <a href="{{ route('logbooks.create') }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'create' ? 'text-white' : 'text-white/45' }}">
-                    <span class="material-symbols-outlined text-[1.4rem]" style="font-variation-settings: 'FILL' {{ ($active ?? '') === 'create' ? '1' : '0' }};">add_circle</span>
-                    <span class="text-[0.55rem] font-black uppercase tracking-[0.1em] scale-90">Create</span>
-                </a>
-                @if(auth()->user()->subordinates()->exists())
-                <a href="{{ route('reviews.index') }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'reviews' ? 'text-white' : 'text-white/45' }}">
-                    <span class="material-symbols-outlined text-[1.4rem]" style="font-variation-settings: 'FILL' {{ ($active ?? '') === 'reviews' ? '1' : '0' }};">rate_review</span>
-                    <span class="text-[0.55rem] font-black uppercase tracking-[0.1em] scale-90">Reviews</span>
-                </a>
-                @endif
-                <a href="{{ route('employees.show', auth()->id()) }}" class="flex flex-col items-center gap-1 group transition-all w-20 {{ ($active ?? '') === 'profile' ? 'text-white' : 'text-white/45' }}">
-                    <span class="material-symbols-outlined text-[1.4rem]" style="font-variation-settings: 'FILL' {{ ($active ?? '') === 'profile' ? '1' : '0' }};">person</span>
-                    <span class="text-[0.55rem] font-black uppercase tracking-[0.1em] scale-90">Profile</span>
-                </a>
-            </nav>
-            @endif
-        </div>
-
-    @else
-        {{-- DESKTOP-FIRST ADMIN LAYOUT --}}
-        <div class="flex h-screen overflow-hidden" x-data="{ sidebarOpen: false }">
-            <!-- Sidebar Backdrop -->
-            <div x-show="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-primary/20 backdrop-blur-sm z-40 lg:hidden"></div>
-
-            <!-- Sidebar -->
-            <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-                   class="fixed lg:static inset-y-0 left-0 w-72 bg-white border-r border-primary/5 transition-transform duration-300 z-50 p-8 flex flex-col">
-                <div class="flex items-center gap-3 mb-12">
-                    <div class="w-10 h-10 primary-gradient rounded-xl flex items-center justify-center text-white">
-                        <span class="material-symbols-outlined font-bold">water_drop</span>
+                <div class="card bg-base-100 rounded-2xl border border-base-300 shadow-sm page-transition min-h-[calc(100vh-12rem)] md:min-h-0">
+                    <div class="card-body p-4 md:p-8">
+                        {{ $slot }}
                     </div>
-                    <span class="text-xs font-black tracking-widest uppercase text-primary">HRIS Portal</span>
                 </div>
 
-                <nav class="flex-1 space-y-2">
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-4 px-6 py-4 rounded-2xl {{ request()->routeIs('dashboard') ? 'bg-primary text-white shadow-lg' : 'text-outline hover:bg-surface-container' }}">
-                        <span class="material-symbols-outlined">grid_view</span>
-                        <span class="text-xs font-bold uppercase tracking-widest">Dashboard</span>
-                    </a>
-                    <a href="{{ route('employees.index') }}" class="flex items-center gap-4 px-6 py-4 rounded-2xl {{ request()->routeIs('employees.*') ? 'bg-primary text-white shadow-lg' : 'text-outline hover:bg-surface-container' }}">
-                        <span class="material-symbols-outlined">badge</span>
-                        <span class="text-xs font-bold uppercase tracking-widest">Karyawan</span>
-                    </a>
-                    <a href="{{ route('reviews.index') }}" class="flex items-center gap-4 px-6 py-4 rounded-2xl {{ request()->routeIs('reviews.*') ? 'bg-primary text-white shadow-lg' : 'text-outline hover:bg-surface-container' }}">
-                        <span class="material-symbols-outlined">rate_review</span>
-                        <span class="text-xs font-bold uppercase tracking-widest">Reviews</span>
-                    </a>
-                </nav>
+                <!-- Footer / Extra space -->
+                <div class="h-12 md:h-0"></div>
+            </main>
+        </div>
 
-                <div class="mt-auto pt-6 border-t border-primary/5">
+        <div class="drawer-side z-50">
+            <label for="app-drawer" aria-label="close sidebar" class="drawer-overlay" @click="sidebarOpen = false"></label>
+            <aside class="flex h-screen sticky top-0 w-80 flex-col border-r border-base-300 bg-base-100 p-4 text-base-content shadow-sm overflow-hidden">
+                <!-- Sidebar Header -->
+                <div class="mb-6 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
+                    <div class="mb-3 flex items-center gap-3">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/95 font-bold text-primary-content shadow-sm">
+                            <i data-lucide="droplets" class="h-5 w-5"></i>
+                        </div>
+                        <div>
+                            <p class="text-[0.6rem] font-bold uppercase tracking-[0.2em] text-base-content/50">Workspace</p>
+                            <p class="text-lg font-black tracking-tight text-primary">HRIS Portal</p>
+                        </div>
+                    </div>
+                    <p class="text-[0.6rem] text-base-content/60 uppercase tracking-widest font-bold">
+                        Role: <span class="text-primary">{{ ucfirst(auth()->user()->role) }}</span>
+                    </p>
+                </div>
+
+                <!-- Navigation Section -->
+                <p class="mb-3 px-3 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-base-content/40">Main Menu</p>
+                <ul class="menu w-full gap-1.5 p-0">
+                    {{-- Common Links --}}
+                    <li>
+                        <a href="{{ route('dashboard') }}"
+                           class="flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm transition-all duration-200 hover:border-base-300 hover:bg-base-200 {{ request()->routeIs('dashboard') ? 'border-primary/20 bg-primary/10 font-bold text-primary shadow-sm' : 'text-base-content/70' }}">
+                            <i data-lucide="layout-grid" class="h-4 w-4"></i>
+                            <span class="text-xs uppercase tracking-widest">Dashboard</span>
+                        </a>
+                    </li>
+
+                    @if(auth()->user()->role !== 'staff')
+                        {{-- Admin & Super Admin Specific --}}
+                        <li>
+                            <a href="{{ route('employees.index') }}"
+                               class="flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm transition-all duration-200 hover:border-base-300 hover:bg-base-200 {{ request()->routeIs('employees.*') ? 'border-primary/20 bg-primary/10 font-bold text-primary shadow-sm' : 'text-base-content/70' }}">
+                                <i data-lucide="users" class="h-4 w-4"></i>
+                                <span class="text-xs uppercase tracking-widest">Karyawan</span>
+                            </a>
+                        </li>
+                    @else
+                        {{-- Staff Specific --}}
+                        <li>
+                            <a href="{{ route('logbooks.create') }}"
+                               class="flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm transition-all duration-200 hover:border-base-300 hover:bg-base-200 {{ request()->routeIs('logbooks.create') ? 'border-primary/20 bg-primary/10 font-bold text-primary shadow-sm' : 'text-base-content/70' }}">
+                                <i data-lucide="plus-circle" class="h-4 w-4"></i>
+                                <span class="text-xs uppercase tracking-widest">Buat Logbook</span>
+                            </a>
+                        </li>
+                    @endif
+
+                    {{-- Review Section (Visible to Admin/Super Admin or anyone with Subordinates) --}}
+                    @if(auth()->user()->role !== 'staff' || auth()->user()->subordinates()->exists())
+                        <li>
+                            <a href="{{ route('reviews.index') }}"
+                               class="flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm transition-all duration-200 hover:border-base-300 hover:bg-base-200 {{ request()->routeIs('reviews.*') ? 'border-primary/20 bg-primary/10 font-bold text-primary shadow-sm' : 'text-base-content/70' }}">
+                                <i data-lucide="clipboard-check" class="h-4 w-4"></i>
+                                <span class="text-xs uppercase tracking-widest">Review Log</span>
+                            </a>
+                        </li>
+                    @endif
+
+                    @if(auth()->user()->role !== 'staff')
+                        <li>
+                            <a href="{{ route('kpis.index') }}"
+                               class="flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm transition-all duration-200 hover:border-base-300 hover:bg-base-200 {{ request()->routeIs('kpis.*') ? 'border-primary/20 bg-primary/10 font-bold text-primary shadow-sm' : 'text-base-content/70' }}">
+                                <i data-lucide="target" class="h-4 w-4"></i>
+                                <span class="text-xs uppercase tracking-widest">KPI Target</span>
+                            </a>
+                        </li>
+                    @endif
+
+                    {{-- Common Profile Link --}}
+                    <li>
+                        <a href="{{ route('employees.show', auth()->id()) }}"
+                           class="flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm transition-all duration-200 hover:border-base-300 hover:bg-base-200 {{ request()->routeIs('employees.show') && request()->route('employee') == auth()->id() ? 'border-primary/20 bg-primary/10 font-bold text-primary shadow-sm' : 'text-base-content/70' }}">
+                            <i data-lucide="user-circle" class="h-4 w-4"></i>
+                            <span class="text-xs uppercase tracking-widest">Profil Saya</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Sidebar Footer -->
+                <div class="mt-auto pt-6 border-t border-base-300">
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
-                        <button type="submit" class="w-full flex items-center gap-4 px-6 py-4 text-red-500/60 hover:bg-red-50 rounded-xl transition-all">
-                            <span class="material-symbols-outlined">logout</span>
+                        <button type="submit" class="group w-full flex items-center gap-3 px-4 py-3 text-error/70 hover:bg-error/10 rounded-xl transition-all">
+                            <i data-lucide="log-out" class="h-4 w-4 group-hover:scale-110 transition-transform"></i>
                             <span class="text-xs font-black uppercase tracking-widest">Logout</span>
                         </button>
                     </form>
                 </div>
             </aside>
-
-            <!-- Main Admin Area -->
-            <main class="flex-1 overflow-y-auto bg-surface p-8 lg:p-12">
-                <header class="flex items-center justify-between mb-12 lg:hidden">
-                    <button @click="sidebarOpen = true" class="w-12 h-12 flex items-center justify-center text-primary bg-white rounded-xl shadow-sm">
-                        <span class="material-symbols-outlined">menu</span>
-                    </button>
-                    <h1 class="text-sm font-black text-primary uppercase">{{ $title }}</h1>
-                </header>
-
-                <div class="max-w-6xl mx-auto">
-                    {{ $slot }}
-                </div>
-            </main>
         </div>
-    @endif
+    </div>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+        lucide.createIcons();
+    </script>
 
 </body>
 </html>
