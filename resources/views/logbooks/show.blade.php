@@ -55,16 +55,28 @@
             <h3 class="text-[0.65rem] font-black text-primary/40 uppercase tracking-[0.2em] flex items-center gap-2">
                 FOTO DOKUMENTASI <span class="h-[1px] flex-1 bg-primary/10"></span>
             </h3>
-            <div class="relative aspect-video rounded-3xl overflow-hidden bg-base-300 shadow-xl border border-base-300">
+            <div class="relative aspect-video rounded-3xl overflow-hidden bg-base-300 shadow-xl border border-base-300" id="photo-container">
                 @if($logbook->main_photo_path)
-                    <img src="{{ asset('storage/' . $logbook->main_photo_path) }}" alt="Documentation" class="w-full h-full object-cover">
+                    @php
+                        $photoUrl = asset('storage/' . $logbook->main_photo_path);
+                    @endphp
+                    <img src="{{ $photoUrl }}" 
+                         alt="Documentation" 
+                         class="w-full h-full object-cover"
+                         id="doc-photo"
+                         onerror="this.style.display='none'; document.getElementById('photo-error').style.display='flex';">
+                    <div id="photo-error" class="w-full h-full absolute inset-0 flex flex-col items-center justify-center bg-base-200 text-base-content/30" style="display:none;">
+                        <i data-lucide="image-off" class="h-10 w-10 mb-3"></i>
+                        <p class="text-[0.6rem] font-black uppercase tracking-widest mb-1">Foto tidak dapat dimuat</p>
+                        <p class="text-[0.5rem] font-mono text-base-content/20 break-all px-4">{{ $photoUrl }}</p>
+                    </div>
                 @else
                     <div class="w-full h-full flex flex-col items-center justify-center text-base-content/20 bg-base-200">
                         <i data-lucide="camera" class="h-10 w-10 mb-2"></i>
                         <p class="text-[0.6rem] font-black uppercase tracking-widest">Tidak ada foto</p>
                     </div>
                 @endif
-                <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
                 <div class="absolute bottom-4 left-4 flex items-center gap-2 text-white/90">
                     <i data-lucide="camera" class="h-3 w-3"></i>
                     <span class="text-[0.55rem] font-black uppercase tracking-widest">Entry ID #{{ $logbook->id }}</span>
@@ -75,6 +87,7 @@
                 </div>
             </div>
         </section>
+
 
         <!-- KPI items -->
         <section class="space-y-4">
