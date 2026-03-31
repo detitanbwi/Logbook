@@ -114,20 +114,27 @@
 
             <!-- LAMPIRAN FILE (with download) -->
             @php
-                $fileAttachments = $logbook->attachments->filter(fn($a) => $a->file_type === 'file');
+                $otherAttachments = $logbook->attachments->filter(fn($a) => $a->file_path !== $logbook->main_photo_path);
             @endphp
-            @if($fileAttachments->count() > 0)
+            @if($otherAttachments->count() > 0)
             <div class="py-5 space-y-3">
-                <p class="text-[0.6rem] font-black text-primary/40 uppercase tracking-[0.2em]">Lampiran File</p>
+                <p class="text-[0.6rem] font-black text-primary/40 uppercase tracking-[0.2em]">Lampiran File ({{ $otherAttachments->count() }})</p>
                 <div class="space-y-2">
-                    @foreach($fileAttachments as $attachment)
-                    @php $ext = strtolower(pathinfo($attachment->file_path, PATHINFO_EXTENSION)); @endphp
+                    @foreach($otherAttachments as $attachment)
+                    @php 
+                        $ext = strtolower(pathinfo($attachment->file_path, PATHINFO_EXTENSION));
+                        $icon = 'file';
+                        if (in_array($ext, ['jpg','jpeg','png','gif','webp'])) $icon = 'image';
+                        elseif ($ext === 'pdf') $icon = 'file-text';
+                        elseif (in_array($ext, ['xls','xlsx','csv'])) $icon = 'table-2';
+                        elseif (in_array($ext, ['doc','docx'])) $icon = 'file-type-2';
+                    @endphp
                     <div class="flex items-center gap-3 p-4 bg-base-200/50 rounded-2xl border border-base-300">
-                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                            <i data-lucide="file-text" class="h-5 w-5"></i>
+                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/10">
+                            <i data-lucide="{{ $icon }}" class="h-5 w-5"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-xs font-black text-primary truncate">{{ basename($attachment->file_path) }}</p>
+                            <p class="text-xs font-black text-primary truncate leading-tight">{{ basename($attachment->file_path) }}</p>
                             <p class="text-[0.55rem] font-bold text-base-content/30 uppercase tracking-widest mt-0.5">{{ strtoupper($ext) }} FILE</p>
                         </div>
                         <a href="{{ asset('storage/' . $attachment->file_path) }}" download

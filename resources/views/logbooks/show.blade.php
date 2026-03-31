@@ -123,6 +123,41 @@
             </div>
         </div>
 
+        <!-- Attachments Card -->
+        @php
+            $fileAttachments = $logbook->attachments->filter(fn($a) => $a->file_type === 'file');
+        @endphp
+        @if($fileAttachments->count() > 0)
+        <div class="bg-base-100 p-4 rounded-xl border border-base-200 shadow-sm space-y-3">
+            <p class="text-[0.6rem] font-bold text-base-content/20 uppercase tracking-widest">Lampiran File ({{ $fileAttachments->count() }})</p>
+            <div class="space-y-2">
+                @foreach($fileAttachments as $attachment)
+                @php 
+                    $ext = strtolower(pathinfo($attachment->file_path, PATHINFO_EXTENSION));
+                    $icon = 'file';
+                    if (in_array($ext, ['jpg','jpeg','png','gif','webp'])) $icon = 'image';
+                    elseif ($ext === 'pdf') $icon = 'file-text';
+                    elseif (in_array($ext, ['xls','xlsx','csv'])) $icon = 'table-2';
+                    elseif (in_array($ext, ['doc','docx'])) $icon = 'file-type-2';
+                @endphp
+                <div class="flex items-center gap-3 p-3 bg-base-50 rounded-xl border border-base-200/50">
+                    <div class="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center text-primary/40 shrink-0 border border-primary/10">
+                        <i data-lucide="{{ $icon }}" class="h-5 w-5"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[0.7rem] font-black text-primary truncate leading-tight">{{ basename($attachment->file_path) }}</p>
+                        <p class="text-[0.55rem] font-bold text-base-content/30 uppercase tracking-widest mt-1">{{ strtoupper($ext) }} FILE</p>
+                    </div>
+                    <a href="{{ asset('storage/' . $attachment->file_path) }}" download
+                       class="btn btn-ghost btn-sm btn-square text-primary/40 hover:text-primary hover:bg-primary/10 rounded-lg">
+                        <i data-lucide="download" class="h-4 w-4"></i>
+                    </a>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         <!-- Supervisor Review Card -->
         @if($logbook->latestReview)
         <div class="bg-base-100 p-4 rounded-xl border border-base-200 shadow-sm space-y-4">
