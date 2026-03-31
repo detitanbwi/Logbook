@@ -136,14 +136,19 @@ class LogbookController extends Controller
     {
         $user = auth()->user();
         
+        // Cast to int to prevent type mismatch (DB int vs session value)
+        $userId = (int) $user->id;
+        $employeeId = (int) $logbook->employee_id;
+        $supervisorId = (int) $logbook->supervisor_id;
+        
         // Owner of the logbook can always view it
-        if ($logbook->employee_id === $user->id) return;
+        if ($employeeId === $userId) return;
         
         // Super Admin can view all
         if ($user->role === 'super_admin') return;
         
-        // Supervisor/Admin can view if it's their subordinate
-        if ($user->role !== 'staff' && $logbook->supervisor_id === $user->id) return;
+        // Supervisor/Admin can view if it's their subordinate's logbook
+        if ($user->role !== 'staff' && $supervisorId === $userId) return;
         
         // Otherwise, access denied
         abort(403);

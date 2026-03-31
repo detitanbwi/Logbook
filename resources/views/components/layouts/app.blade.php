@@ -193,10 +193,10 @@
                     @else
                         {{-- Staff Specific --}}
                         <li>
-                            <a href="{{ route('logbooks.create') }}"
-                                class="flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm transition-all duration-200 hover:border-base-300 hover:bg-base-200 {{ request()->routeIs('logbooks.create') ? 'border-primary/20 bg-primary/10 font-bold text-primary shadow-sm' : 'text-base-content/70' }}">
-                                <i data-lucide="plus-circle" class="h-4 w-4"></i>
-                                <span class="text-xs uppercase tracking-widest">Buat Logbook</span>
+                            <a href="{{ route('logbooks.index') }}"
+                                class="flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm transition-all duration-200 hover:border-base-300 hover:bg-base-200 {{ request()->routeIs('logbooks.*') ? 'border-primary/20 bg-primary/10 font-bold text-primary shadow-sm' : 'text-base-content/70' }}">
+                                <i data-lucide="book-open" class="h-4 w-4"></i>
+                                <span class="text-xs uppercase tracking-widest">Logbook</span>
                             </a>
                         </li>
                     @endif
