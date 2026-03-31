@@ -184,11 +184,12 @@
                 const valid = newFiles.filter(f => f.size <= this.maxSize);
                 this.fileList = [...this.fileList, ...valid];
                 this.syncInput();
-                lucide.createIcons();
+                this.$nextTick(() => { lucide.createIcons(); });
             },
             removeFile(index) {
                 this.fileList.splice(index, 1);
                 this.syncInput();
+                this.$nextTick(() => { lucide.createIcons(); });
             },
             syncInput() {
                 const dt = new DataTransfer();
@@ -248,8 +249,8 @@
                                 <p class="text-[0.55rem] font-bold text-base-content/30 uppercase tracking-widest mt-0.5" x-text="formatSize(file.size)"></p>
                             </div>
                             <button type="button" @click="removeFile(index)"
-                                class="btn btn-ghost btn-circle btn-xs text-error/30 hover:text-error hover:bg-error/10 shrink-0">
-                                <i data-lucide="x" class="h-3 w-3"></i>
+                                class="btn btn-ghost btn-circle btn-xs text-error hover:bg-error/10 shrink-0 bg-error/[0.03]">
+                                <i data-lucide="x" class="h-4 w-4"></i>
                             </button>
                         </div>
                     </template>
