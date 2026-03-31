@@ -1,16 +1,10 @@
 <x-layouts.app :title="'KPI Management'" :breadcrumb="'Manajemen KPI'">
     <div class="animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <!-- Header Section -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
-            <div class="w-full max-w-2xl text-center md:text-left">
-                <p class="text-[0.65rem] font-bold text-primary/60 uppercase tracking-[0.2em] mb-2">KPI Management</p>
-                <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-primary leading-tight">Key Performance Indicators</h1>
-                <p class="text-base-content/60 font-medium leading-relaxed text-sm mt-2">Menetapkan standar performa kerja untuk mencapai target perusahaan.</p>
-            </div>
-            
-            <a href="{{ route('kpis.create') }}" class="btn btn-primary rounded-2xl gap-3 px-8 shadow-lg shadow-primary/20 hover:scale-[1.03] transition-all w-full md:w-auto">
+        <!-- Action Section -->
+        <div class="flex justify-start mb-6">
+            <a href="{{ route('kpis.create') }}" class="btn btn-primary rounded-xl h-14 px-8 gap-3 shadow-lg shadow-primary/20 hover:scale-[1.03] transition-all w-full md:w-auto">
                 <i data-lucide="plus-circle" class="h-5 w-5"></i>
-                <span class="text-xs font-bold uppercase tracking-widest">Tambah KPI Baru</span>
+                <span class="text-xs font-black uppercase tracking-[0.2em]">Buat KPI Baru</span>
             </a>
         </div>
 

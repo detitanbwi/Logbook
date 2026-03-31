@@ -1,20 +1,14 @@
 <x-layouts.app :title="'Data Karyawan'">
     <div class="animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <!-- Header Section -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
-            <div class="w-full max-w-2xl text-center md:text-left">
-                <p class="text-[0.65rem] font-bold text-primary/60 uppercase tracking-[0.2em] mb-2">Human Resources</p>
-                <h1 class="text-3xl md:text-4xl font-black tracking-tight text-primary leading-tight">Data Karyawan</h1>
-                <p class="text-base-content/50 font-medium leading-relaxed text-sm mt-2">Kelola aset sumber daya manusia perusahaan dengan presisi dan manajemen terpadu dalam sistem HRIS.</p>
-            </div>
-            
-            @if(auth()->user()->role !== 'staff')
-            <a href="{{ route('employees.create') }}" class="btn btn-primary rounded-2xl gap-3 px-8 shadow-lg shadow-primary/20 hover:scale-[1.03] transition-all w-full md:w-auto">
+        <!-- Action Section -->
+        @if(auth()->user()->role !== 'staff')
+        <div class="flex justify-start mb-6">
+            <a href="{{ route('employees.create') }}" class="btn btn-primary rounded-xl h-14 px-8 gap-3 shadow-lg shadow-primary/20 hover:scale-[1.03] transition-all w-full md:w-auto">
                 <i data-lucide="user-plus" class="h-5 w-5"></i>
-                <span class="text-xs font-black uppercase tracking-widest">Tambah Karyawan</span>
+                <span class="text-xs font-black uppercase tracking-[0.2em]">Tambah Karyawan</span>
             </a>
-            @endif
         </div>
+        @endif
 
         <!-- Table Section -->
         <div class="card bg-base-100 rounded-3xl shadow-sm border border-base-300 overflow-hidden">
