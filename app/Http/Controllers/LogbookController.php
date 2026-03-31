@@ -8,6 +8,8 @@ use App\Models\LogbookAttachment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class LogbookController extends Controller
 {
@@ -48,8 +50,8 @@ class LogbookController extends Controller
             'items.*.kpi_id' => 'required|exists:kpis,id',
             'items.*.details' => 'required|string',
             'daily_report' => 'required|string',
-            'main_photo' => 'nullable|image|max:2048',
-            'attachments.*' => 'nullable|file|max:5120',
+            'main_photo' => 'nullable|image', // Removed max:2048 to allow all camera sizes
+            'attachments.*' => 'nullable|file|max:10240', // Increased to 10MB
         ]);
 
         // Combine with today's date if only time is provided
@@ -78,7 +80,24 @@ class LogbookController extends Controller
         }
 
         if ($request->hasFile('main_photo')) {
-            $path = $request->file('main_photo')->store('logbook_photos', 'public');
+            $file = $request->file('main_photo');
+            $filename = time() . '_' . uniqid() . '.jpg';
+            $path = 'logbook_photos/' . $filename;
+            
+            // Image Optimization using Intervention Image v3
+            $manager = new ImageManager(new Driver());
+            $image = $manager->read($file);
+            
+            // Resize if too large (max width 1280px) while maintaining aspect ratio
+            if ($image->width() > 1280) {
+                $image->scale(width: 1280);
+            }
+            
+            // Encode as JPEG with 60% quality
+            $encoded = $image->toJpeg(60);
+            
+            Storage::disk('public')->put($path, $encoded);
+
             LogbookAttachment::create([
                 'logbook_id' => $logbook->id,
                 'file_path' => $path,

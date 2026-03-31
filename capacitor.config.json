@@ -1,9 +1,9 @@
 {
   "appId": "com.wirodev.tirtamoico.logbook",
-  "appName": "My Logbook",
+  "appName": "Logbook Portal",
   "webDir": "public",
   "server": {
-    "url": "http://192.168.1.6/hris/public",
+    "url": "https://logbook.wirodev.com",
     "cleartext": true
   },
   "plugins": {

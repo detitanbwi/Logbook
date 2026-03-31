@@ -52,6 +52,7 @@ class DashboardController extends Controller
         // Admin/Super Admin Dashboard
         return view('dashboard.index', [
             'totalEmployees' => \App\Models\User::where('role', 'staff')->count(),
+            'totalAdmins' => \App\Models\User::where('role', 'admin')->count(),
             'totalKpis' => \App\Models\Kpi::count(),
             'pendingReviews' => \App\Models\Logbook::where('status', 'pending')->count(),
             'title' => 'Dashboard Overview',
