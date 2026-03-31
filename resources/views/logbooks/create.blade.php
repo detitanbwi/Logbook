@@ -90,6 +90,11 @@
 
                     <img id="image-preview" :src="imageSrc" alt="Preview" class="absolute inset-0 w-full h-full object-cover z-0" x-show="hasImage" x-transition>
                     
+                    <!-- Watermark -->
+                    <div x-show="hasImage" class="absolute bottom-4 left-4 z-20 pointer-events-none">
+                        <span class="text-[0.6rem] font-black text-white bg-black/60 shadow-lg border border-white/20 px-3 py-1.5 rounded-xl tracking-[0.2em] uppercase backdrop-blur-md">WIRODEV DEMO</span>
+                    </div>
+                    
                     <!-- View Full Size Button -->
                     <div class="absolute top-3 right-3 z-30" x-show="hasImage">
                         <button type="button" @click="modalOpen = true" class="btn btn-circle btn-sm btn-primary shadow-lg hover:scale-110 transition-transform bg-primary/95 backdrop-blur-sm border-none ring-4 ring-base-100/30">
@@ -110,8 +115,12 @@
                                 <i data-lucide="x" class="h-4 w-4"></i>
                             </button>
                         </div>
-                        <div class="pt-16 pb-4 px-4 bg-black/5 flex items-center justify-center min-h-[50vh]">
-                            <img :src="imageSrc" alt="Full Preview" class="w-full h-auto object-contain max-h-[75vh] rounded-2xl shadow-sm">
+                        <div class="pt-16 pb-4 px-4 bg-black/5 flex items-center justify-center min-h-[50vh] relative">
+                            <img :src="imageSrc" alt="Full Preview" class="w-full h-auto object-contain max-h-[75vh] rounded-2xl shadow-sm z-10">
+                            <!-- Floating Watermark in Modal -->
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-20">
+                                <span class="text-4xl sm:text-6xl font-black text-white/20 -rotate-12 select-none tracking-[0.3em] whitespace-nowrap drop-shadow-lg uppercase">WIRODEV DEMO</span>
+                            </div>
                         </div>
                     </div>
                 </div>
