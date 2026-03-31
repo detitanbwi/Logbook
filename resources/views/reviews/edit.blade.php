@@ -178,14 +178,14 @@
                                 <input type="range" name="items[{{ $index }}][score]"
                                        x-model.number="items[{{ $index }}].score"
                                        min="0" :max="items[{{ $index }}].target" step="1"
-                                       class="range range-primary h-2 rounded-full">
+                                       class="range range-primary h-2 rounded-full bg-base-200">
                                 <div class="flex justify-between text-[0.5rem] font-black text-base-content/20 uppercase tracking-widest px-1">
                                     <span>0</span>
                                     <span>{{ $item->kpi->target }}</span>
                                 </div>
                             </div>
                             @else
-                            <div class="w-full h-2 bg-base-300 rounded-full overflow-hidden">
+                            <div class="w-full h-2 bg-base-200 rounded-full overflow-hidden">
                                 <div class="h-full bg-primary rounded-full" :style="'width: ' + ((items[{{ $index }}].score / items[{{ $index }}].target) * 100) + '%'"></div>
                             </div>
                             @endif

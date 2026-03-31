@@ -113,7 +113,10 @@ class LogbookController extends Controller
 
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
-                $path = $file->store('logbook_files', 'public');
+                // Formatting name as [Timestamp]_Filename
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('logbook_files', $filename, 'public');
+                
                 LogbookAttachment::create([
                     'logbook_id' => $logbook->id,
                     'file_path' => $path,
