@@ -293,11 +293,18 @@
             }, 3000);
         };
 
-        // Listen for internal download clicks to show feedback
+        // Listen for internal download clicks to show feedback and force external trigger
         document.addEventListener('click', (e) => {
             const downloadLink = e.target.closest('a[download]');
             if (downloadLink) {
-                window.showAlert('Mengunduh file...', 'info');
+                e.preventDefault();
+                const url = downloadLink.href;
+                window.showAlert('Membuka di Browser untuk mengunduh...', 'info');
+                
+                // Triggering external window open to force download handle
+                setTimeout(() => {
+                    window.open(url, '_blank');
+                }, 500);
             }
         });
     </script>
