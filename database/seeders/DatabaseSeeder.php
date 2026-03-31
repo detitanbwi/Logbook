@@ -48,7 +48,7 @@ class DatabaseSeeder extends Seeder
         // --- START CUSTOM SEEDER FOR STAFF HIERARCHY ---
         
         $staffMembers = [];
-        $roles = ['staff', 'admin', 'manager'];
+        $roles = ['staff', 'admin']; // Fixed: Removed 'manager' to match migration ENUM
         $nppStart = 20260002;
 
         for ($i = 0; $i < 10; $i++) {
@@ -70,7 +70,7 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role' => $roles[array_rand($roles)],
                 'status_perkawinan' => 'menikah',
-                'supervisor_id' => $bossId, // Fix: Changed from atasan_id to supervisor_id
+                'supervisor_id' => $bossId,
             ]);
 
             $user->kpis()->attach([$kpi1->id, $kpi2->id, $kpi3->id]);
