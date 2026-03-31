@@ -45,8 +45,38 @@ class DatabaseSeeder extends Seeder
         // Assign KPIs to Super Admin
         $superAdmin->kpis()->attach([$kpi1->id, $kpi2->id, $kpi3->id]);
 
-        User::factory(10)->create()->each(function (User $u) use ($kpi1) {
-            $u->kpis()->attach([$kpi1->id]);
-        });
+        // --- START CUSTOM SEEDER FOR STAFF HIERARCHY ---
+        
+        $staffMembers = [];
+        $roles = ['staff', 'admin', 'manager'];
+        $nppStart = 20260002;
+
+        for ($i = 0; $i < 10; $i++) {
+            $currentUserNpp = (string)($nppStart + $i);
+            
+            // Logic for boss: 
+            // First user has Super Admin as boss.
+            // Subsequent users use User 2 or 3 (index 0 or 1 in $staffMembers) as boss randomly.
+            $bossId = $superAdmin->id;
+            if (count($staffMembers) >= 2) {
+                // Randomly pick index 0 or 1 as the boss
+                $bossIndex = rand(0, 1);
+                $bossId = $staffMembers[$bossIndex]->id;
+            }
+
+            $user = User::create([
+                'npp' => $currentUserNpp,
+                'nama' => 'Karyawan ' . ($i + 1),
+                'password' => Hash::make('password'),
+                'role' => $roles[array_rand($roles)],
+                'status_perkawinan' => 'menikah',
+                'atasan_id' => $bossId, // Assigning the boss
+            ]);
+
+            $user->kpis()->attach([$kpi1->id, $kpi2->id, $kpi3->id]);
+            $staffMembers[] = $user;
+        }
+
+        // --- END CUSTOM SEEDER ---
     }
 }
