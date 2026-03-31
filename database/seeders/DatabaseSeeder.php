@@ -70,7 +70,7 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role' => $roles[array_rand($roles)],
                 'status_perkawinan' => 'menikah',
-                'atasan_id' => $bossId, // Assigning the boss
+                'supervisor_id' => $bossId, // Fix: Changed from atasan_id to supervisor_id
             ]);
 
             $user->kpis()->attach([$kpi1->id, $kpi2->id, $kpi3->id]);
