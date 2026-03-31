@@ -262,10 +262,56 @@
         </div>
     @endif
 
-    <!-- Initialize Lucide Icons -->
+    <!-- Global Toast Container -->
+    <div id="toast-container" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-full max-w-[90%] pointer-events-none"></div>
+
+    <!-- Initialize Lucide Icons & Global Helpers -->
     <script>
         lucide.createIcons();
+
+        // Global Alert/Toast Helper
+        window.showAlert = function(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgColor = type === 'success' ? 'bg-success' : (type === 'error' ? 'bg-error' : 'bg-primary');
+            const icon = type === 'success' ? 'check-circle' : (type === 'error' ? 'x-circle' : 'info');
+            
+            toast.className = `flex items-center gap-3 px-6 py-4 ${bgColor} text-white rounded-2xl shadow-2xl animate-bounce-in pointer-events-auto transform transition-all duration-300`;
+            toast.innerHTML = `
+                <i data-lucide="${icon}" class="h-5 w-5"></i>
+                <span class="text-xs font-black uppercase tracking-widest">${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4', 'scale-95');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+
+        // Listen for internal download clicks to show feedback
+        document.addEventListener('click', (e) => {
+            const downloadLink = e.target.closest('a[download]');
+            if (downloadLink) {
+                window.showAlert('Mengunduh file...', 'info');
+            }
+        });
     </script>
+
+    <style>
+        @keyframes bounce-in {
+            0% { opacity: 0; transform: translateY(20px) scale(0.9); }
+            60% { opacity: 1; transform: translateY(-5px) scale(1.02); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-bounce-in {
+            animation: bounce-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+    </style>
 </body>
 
 </html>
