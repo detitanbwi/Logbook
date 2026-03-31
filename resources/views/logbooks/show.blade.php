@@ -51,7 +51,7 @@
         </section>
 
         <!-- Documentation Photo -->
-        <section class="space-y-4">
+        <section class="space-y-4" x-data="{ modalOpen: false }">
             <h3 class="text-[0.65rem] font-black text-primary/40 uppercase tracking-[0.2em] flex items-center gap-2">
                 FOTO DOKUMENTASI <span class="h-[1px] flex-1 bg-primary/10"></span>
             </h3>
@@ -70,6 +70,13 @@
                         <p class="text-[0.6rem] font-black uppercase tracking-widest mb-1">Foto tidak dapat dimuat</p>
                         <p class="text-[0.5rem] font-mono text-base-content/20 break-all px-4">{{ $photoUrl }}</p>
                     </div>
+                    <!-- Expand Button -->
+                    <div class="absolute top-3 right-3 z-30">
+                        <button type="button" @click="modalOpen = true"
+                            class="btn btn-circle btn-sm btn-primary shadow-lg hover:scale-110 transition-transform bg-primary/90 backdrop-blur-sm border-none">
+                            <i data-lucide="maximize-2" class="h-4 w-4 text-white"></i>
+                        </button>
+                    </div>
                 @else
                     <div class="w-full h-full flex flex-col items-center justify-center text-base-content/20 bg-base-200">
                         <i data-lucide="camera" class="h-10 w-10 mb-2"></i>
@@ -86,6 +93,32 @@
                     <span class="text-[0.5rem] font-black text-white bg-black/40 border border-white/10 px-2 py-1 rounded-lg tracking-[0.2em] uppercase backdrop-blur-md">WIRODEV DEMO</span>
                 </div>
             </div>
+
+            <!-- Fullscreen Photo Modal -->
+            @if($logbook->main_photo_path)
+            <dialog class="modal modal-middle" :class="modalOpen ? 'modal-open' : ''">
+                <div class="modal-box p-0 bg-transparent shadow-none max-w-4xl w-full">
+                    <div class="relative bg-base-100 rounded-3xl overflow-hidden shadow-2xl w-full">
+                        <div class="p-4 flex justify-between items-center bg-base-100/90 backdrop-blur-md absolute top-0 left-0 right-0 z-30 border-b border-base-200">
+                            <h3 class="font-black text-xs tracking-wider uppercase ml-2 text-base-content/70">Pratinjau Foto</h3>
+                            <button type="button" @click="modalOpen = false" class="btn btn-sm btn-circle btn-ghost bg-base-200 hover:bg-error/20 hover:text-error transition-colors">
+                                <i data-lucide="x" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                        <div class="pt-16 pb-4 px-4 bg-black/5 flex items-center justify-center min-h-[50vh] relative">
+                            <img src="{{ $photoUrl }}" alt="Full Preview" class="w-full h-auto object-contain max-h-[75vh] rounded-2xl shadow-sm z-10">
+                            <!-- Watermark overlay in modal -->
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-20">
+                                <span class="text-4xl sm:text-6xl font-black text-white/15 -rotate-12 select-none tracking-[0.3em] whitespace-nowrap uppercase">WIRODEV DEMO</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-backdrop" @click="modalOpen = false">
+                    <button type="button" class="cursor-default bg-black/60 backdrop-blur-sm w-full h-full">close</button>
+                </div>
+            </dialog>
+            @endif
         </section>
 
 
