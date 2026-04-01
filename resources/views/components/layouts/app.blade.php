@@ -325,20 +325,37 @@
                         console.log("OneSignal: Target External ID -> " + userId);
                         
                         const syncExternalId = (attempts = 0) => {
-                            if (attempts > 10) {
+                            if (attempts > 15) {
                                 console.error("OneSignal: External ID sync timeout.");
                                 return;
                             }
 
                             try {
-                                if (typeof os.login === 'function') {
-                                    os.login(userId.toString());
-                                    console.log("OneSignal: login(" + userId + ") called.");
-                                } else if (typeof os.setExternalUserId === 'function') {
-                                    os.setExternalUserId(userId.toString());
-                                    console.log("OneSignal: setExternalUserId(" + userId + ") called.");
+                                // Find the method in any possible location
+                                let loginFunc = null;
+                                let loginTarget = os;
+
+                                // Check list of targets
+                                const targets = [os, os.OneSignalPlugin, os.default, window.plugins ? window.plugins.OneSignal : null];
+                                
+                                for (const t of targets) {
+                                    if (!t) continue;
+                                    if (typeof t.login === 'function') {
+                                        loginFunc = t.login;
+                                        loginTarget = t;
+                                        break;
+                                    } else if (typeof t.setExternalUserId === 'function') {
+                                        loginFunc = t.setExternalUserId;
+                                        loginTarget = t;
+                                        break;
+                                    }
+                                }
+
+                                if (loginFunc) {
+                                    loginFunc.call(loginTarget, userId.toString());
+                                    console.log("OneSignal: Login successful using " + (loginFunc === loginTarget.login ? "login" : "setExternalUserId"));
                                 } else {
-                                    console.warn("OneSignal: Sync method not found, retrying... (" + attempts + ")");
+                                    console.warn("OneSignal: Sync method not found in any target, retrying... (" + attempts + ")");
                                     setTimeout(() => syncExternalId(attempts + 1), 2000);
                                 }
                             } catch (e) {
@@ -347,8 +364,8 @@
                             }
                         };
 
-                        // Wait 3 seconds for SDK to settle before first attempt
-                        setTimeout(syncExternalId, 3000);
+                        // Wait for registration before trying to sync ID
+                        setTimeout(syncExternalId, 4000);
                     @endauth
 
                     // Permission Request
