@@ -32,10 +32,7 @@ class OneSignalService
             return false;
         }
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Basic ' . $this->restKey,
-            'Content-Type' => 'application/json',
-        ])->post('https://onesignal.com/api/v1/notifications', [
+        $payload = [
             'app_id' => $this->appId,
             'include_external_user_ids' => [(string) $userId],
             'channel_for_external_user_ids' => 'push',
@@ -43,8 +40,23 @@ class OneSignalService
             'contents' => ['en' => $message],
             'small_icon' => 'ic_notification',
             'large_icon' => 'ic_notification_large',
-            'android_accent_color' => '002A58', // Warna Brand (Biru Tua)
+            'android_accent_color' => '002A58',
             'data' => $data,
+        ];
+
+        Log::info('OneSignal Sending Request...', [
+            'url' => 'https://onesignal.com/api/v1/notifications',
+            'payload' => $payload
+        ]);
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Basic ' . $this->restKey,
+            'Content-Type' => 'application/json',
+        ])->post('https://onesignal.com/api/v1/notifications', $payload);
+
+        Log::info('OneSignal Response:', [
+            'status' => $response->status(),
+            'body' => $response->json()
         ]);
 
         if ($response->successful()) {
