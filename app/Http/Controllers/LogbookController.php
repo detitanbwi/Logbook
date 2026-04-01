@@ -27,7 +27,8 @@ class LogbookController extends Controller
     {
         $logbooks = auth()->user()->logbooks()
             ->with(['items.kpi', 'latestReview'])
-            ->latest('start_time')
+            ->orderByDesc('start_time')
+            ->orderByDesc('id')
             ->paginate(10);
 
         return view('logbooks.index', [

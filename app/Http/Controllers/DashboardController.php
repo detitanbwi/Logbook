@@ -23,7 +23,8 @@ class DashboardController extends Controller
             // Get logbooks (all by default, specific date when filter is set)
             $logbooksQuery = $user->logbooks()
                 ->with(['items.kpi', 'latestReview'])
-                ->latest('start_time');
+                ->orderByDesc('start_time')
+                ->orderByDesc('id');
 
             if ($filterDate) {
                 $logbooksQuery->whereDate('start_time', $filterDate->toDateString());
