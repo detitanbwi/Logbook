@@ -322,12 +322,33 @@
 
                     @auth
                         const userId = "{{ auth()->id() }}";
-                        // Login (v5: login, v4: setExternalUserId)
-                        if (typeof os.login === 'function') {
-                            os.login(userId.toString());
-                        } else if (typeof os.setExternalUserId === 'function') {
-                            os.setExternalUserId(userId.toString());
-                        }
+                        console.log("OneSignal: Target External ID -> " + userId);
+                        
+                        const syncExternalId = (attempts = 0) => {
+                            if (attempts > 10) {
+                                console.error("OneSignal: External ID sync timeout.");
+                                return;
+                            }
+
+                            try {
+                                if (typeof os.login === 'function') {
+                                    os.login(userId.toString());
+                                    console.log("OneSignal: login(" + userId + ") called.");
+                                } else if (typeof os.setExternalUserId === 'function') {
+                                    os.setExternalUserId(userId.toString());
+                                    console.log("OneSignal: setExternalUserId(" + userId + ") called.");
+                                } else {
+                                    console.warn("OneSignal: Sync method not found, retrying... (" + attempts + ")");
+                                    setTimeout(() => syncExternalId(attempts + 1), 2000);
+                                }
+                            } catch (e) {
+                                console.error("OneSignal: Sync error", e);
+                                setTimeout(() => syncExternalId(attempts + 1), 2000);
+                            }
+                        };
+
+                        // Wait 3 seconds for SDK to settle before first attempt
+                        setTimeout(syncExternalId, 3000);
                     @endauth
 
                     // Permission Request
