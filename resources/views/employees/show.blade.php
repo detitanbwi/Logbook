@@ -172,7 +172,49 @@
             </div>
             @endif
 
-        </div>
+            {{-- ONESIGNAL DEBUG (Temporary) --}}
+             <div class="py-5 bg-primary/5 rounded-3xl p-5 mt-6 border border-primary/20 shadow-inner">
+                 <div class="flex items-center gap-2 mb-4">
+                     <i data-lucide="bell-ring" class="h-4 w-4 text-primary"></i>
+                     <p class="text-[0.65rem] font-bold text-primary uppercase tracking-[0.2em]">OneSignal Debug</p>
+                 </div>
+                 <div class="space-y-4">
+                     <div class="flex justify-between items-center bg-white/40 p-2 rounded-xl">
+                         <span class="text-[0.6rem] text-primary/60 uppercase font-bold">Permissions</span>
+                         <p id="debug-permission" class="text-[0.7rem] font-bold text-primary">Checking...</p>
+                     </div>
+                     <div class="flex flex-col bg-white/40 p-2 rounded-xl">
+                         <span class="text-[0.6rem] text-primary/60 uppercase font-bold mb-1">OneSignal ID</span>
+                         <p id="debug-onesignal-id" class="text-[0.65rem] font-mono break-all">None</p>
+                     </div>
+                     <div class="flex flex-col bg-white/40 p-2 rounded-xl">
+                         <span class="text-[0.6rem] text-primary/60 uppercase font-bold mb-1">Push Token</span>
+                         <p id="debug-subscription-id" class="text-[0.65rem] font-mono break-all font-bold text-emerald-600">None</p>
+                     </div>
+                 </div>
+                 <script>
+                     function updateOneSignalDebug() {
+                         const os = window.OneSignal || (window.plugins && window.plugins.OneSignal);
+                         if (os) {
+                             const pStatus = os.Notifications?.permission ? "Granted" : "Denied/Prompt";
+                             document.getElementById('debug-permission').innerText = pStatus;
+                             
+                             if (os.User) {
+                                document.getElementById('debug-onesignal-id').innerText = os.User.OneSignalId || 'Waiting...';
+                                document.getElementById('debug-subscription-id').innerText = os.User.PushSubscription?.id || 'No Token Yet';
+                             } else if (os.getDeviceState) {
+                                os.getDeviceState(function(state) {
+                                   document.getElementById('debug-onesignal-id').innerText = state.userId || 'V4 Pending...';
+                                   document.getElementById('debug-subscription-id').innerText = state.pushToken || 'No V4 Token';
+                                });
+                             }
+                         }
+                     }
+                     setInterval(updateOneSignalDebug, 1000);
+                 </script>
+             </div>
+ 
+         </div>
 
         <!-- Delete Confirmation Modal -->
         <div class="modal z-[100]" :class="showDeleteModal ? 'modal-open' : ''">

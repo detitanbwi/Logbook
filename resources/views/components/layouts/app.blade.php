@@ -14,6 +14,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
 
+    <!-- OneSignal Bridge File (Virtual file, DO NOT DELETE) -->
+    <script src="cordova.js"></script>
+
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -110,7 +113,7 @@
                                     </a>
                                 </li>
                                 <li class="border-t border-base-200 mt-1 pt-1">
-                                    <form method="POST" action="{{ route('logout') }}">
+                                    <form method="POST" action="{{ route('logout') }}" onsubmit="return handleLogout(event)">
                                         @csrf
                                         <button type="submit"
                                             class="w-full flex items-center gap-3 py-3 px-4 text-error hover:bg-error/10 rounded-xl transition-all">
@@ -238,7 +241,7 @@
 
                 <!-- Sidebar Footer -->
                 <div class="mt-auto pt-6 border-t border-base-300">
-                    <form action="{{ route('logout') }}" method="POST">
+                    <form action="{{ route('logout') }}" method="POST" onsubmit="return handleLogout(event)">
                         @csrf
                         <button type="submit"
                             class="group w-full flex items-center gap-3 px-4 py-3 text-error/70 hover:bg-error/10 rounded-xl transition-all">
@@ -269,6 +272,144 @@
     <script>
         lucide.createIcons();
 
+        // OneSignal Initialization
+        document.addEventListener("deviceready", OneSignalInit, false);
+        function OneSignalInit() {
+            console.log("OneSignal: Device Ready triggered");
+            
+            let os = window.OneSignal || (window.plugins && window.plugins.OneSignal);
+            
+            if (os) {
+                console.log("OneSignal: SDK Found", os);
+                
+                // Nesting Check (Common in Module implementations)
+                if (os.default) {
+                    console.log("OneSignal: Found nested default object", os.default);
+                    // Merge properties if they are missing at top level
+                    for(let k in os.default) { if(!os[k]) os[k] = os.default[k]; }
+                }
+                
+                if (os.OneSignalPlugin) {
+                    console.log("OneSignal: Found OneSignalPlugin object", os.OneSignalPlugin);
+                    // Merge properties if they are missing at top level
+                    for(let k in os.OneSignalPlugin) { if(!os[k]) os[k] = os.OneSignalPlugin[k]; }
+                }
+
+                console.log("OneSignal: Scanned Keys:", Object.keys(os));
+                
+                window.showAlert("OneSignal Ready", "success");
+
+                try {
+                    const appId = "{{ config('services.onesignal.app_id') }}";
+                    
+                    // The "Golden" search for the init function
+                    let initFunc = null;
+                    let target = os;
+
+                    if (typeof os.initialize === 'function') { initFunc = os.initialize; }
+                    else if (os.default && typeof os.default.initialize === 'function') { initFunc = os.default.initialize; target = os.default; }
+                    else if (os.OneSignalPlugin && typeof os.OneSignalPlugin.initialize === 'function') { initFunc = os.OneSignalPlugin.initialize; target = os.OneSignalPlugin; }
+                    else if (typeof os.setAppId === 'function') { initFunc = os.setAppId; }
+                    else if (typeof os.initWithContext === 'function') { initFunc = os.initWithContext; }
+                    
+                    if (initFunc) {
+                        console.log("OneSignal: Executing initialization...");
+                        initFunc.call(target, appId);
+                        console.log("OneSignal: Initialization command sent.");
+                    } else {
+                        console.error("OneSignal: TRULY no initialization function found!", os);
+                    }
+
+                    @auth
+                        const userId = "{{ auth()->id() }}";
+                        // Login (v5: login, v4: setExternalUserId)
+                        if (typeof os.login === 'function') {
+                            os.login(userId.toString());
+                        } else if (typeof os.setExternalUserId === 'function') {
+                            os.setExternalUserId(userId.toString());
+                        }
+                    @endauth
+
+                    // Permission Request
+                    if (os.Notifications && os.Notifications.requestPermission) {
+                        os.Notifications.requestPermission(true).then((success) => {
+                            window.showAlert("Push Permission: " + (success ? "GRANTED" : "DENIED"), success ? "success" : "error");
+                        });
+                    } else if (typeof os.promptForPushNotificationsWithUserResponse === 'function') {
+                        os.promptForPushNotificationsWithUserResponse(true);
+                    }
+                    
+                    // Listener (v5: Notifications, v4: handleNotificationOpened)
+                    if (os.Notifications && os.Notifications.addEventListener) {
+                        os.Notifications.addEventListener('click', (event) => {
+                             console.log('Notification clicked:', event);
+                        });
+                    } else if (typeof os.handleNotificationOpened === 'function') {
+                        os.handleNotificationOpened( (openResult) => {
+                            console.log('Notification opened:', openResult);
+                        });
+                    }
+
+                    // Debug Player/Subscription ID
+                    let checkCount = 0;
+                    const checkInterval = setInterval(async () => {
+                        checkCount++;
+                        
+                        try {
+                            const osUser = os.User;
+                            let pushId = null;
+                            let osId = osUser ? osUser.oneSignalId : null;
+                            
+                            if (osUser && osUser.pushSubscription && typeof osUser.pushSubscription.getIdAsync === 'function') {
+                                pushId = await osUser.pushSubscription.getIdAsync();
+                            }
+                            
+                            // Check v4 fallback if necessary
+                            if (!pushId && typeof os.getDeviceState === 'function') {
+                                os.getDeviceState((state) => {
+                                    if (state && state.userId) pushId = state.userId;
+                                });
+                            }
+
+                            if (pushId) {
+                                console.log("OneSignal Status: Registered Successfully!");
+                                console.log("Subscription ID: " + pushId);
+                                if (osId) console.log("OneSignal User ID: " + osId);
+                                
+                                // Update UI Debug panel
+                                const idLabel = document.getElementById('debug-onesignal-id');
+                                const subLabel = document.getElementById('debug-subscription-id');
+                                if (idLabel) idLabel.innerText = osId || "Ready";
+                                if (subLabel) {
+                                    subLabel.innerText = pushId;
+                                    subLabel.style.color = "#10b981"; 
+                                }
+
+                                window.showAlert("OneSignal Registered!", "success");
+                                clearInterval(checkInterval);
+                            } else {
+                                console.log("OneSignal Status: Waiting for registration... (" + checkCount + ")");
+                                if (checkCount >= 20) {
+                                    console.warn("OneSignal: Registration timeout.");
+                                    clearInterval(checkInterval);
+                                }
+                            }
+                        } catch (e) {
+                            console.error("OneSignal Polling Error:", e);
+                        }
+                    }, 2000);
+
+
+                } catch (e) {
+                    console.error("OneSignal: Initialization Error", e);
+                    window.showAlert("OneSignal Error: " + e.message, "error");
+                }
+            } else {
+                console.error("OneSignal: window.OneSignal not found!");
+                window.showAlert("OneSignal SDK Missing", "error");
+            }
+        }
+
         // Global Alert/Toast Helper
         window.showAlert = function(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -293,23 +434,19 @@
             }, 3000);
         };
 
-        // Listen for internal download clicks to show feedback and force external trigger
-        // Using window.location.href instead of window.open() for better compatibility with Android WebViews
-        document.addEventListener('click', (e) => {
-            const downloadLink = e.target.closest('a[download]');
-            if (downloadLink) {
-                e.preventDefault();
-                const url = downloadLink.href;
-                
-                window.showAlert('Mengalihkan ke download...', 'info');
-                
-                // Overriding behavior to force navigation within the webview or trigger system download
-                setTimeout(() => {
-                    window.location.href = url;
-                }, 500);
+        // Logout Cleanup for OneSignal
+        window.handleLogout = function(event) {
+            if (window.OneSignal) {
+                window.OneSignal.removeExternalUserId();
             }
-        });
+            return true;
+        };
+
     </script>
+    @stack('scripts')
+</body>
+
+</html>
 
     <style>
         @keyframes bounce-in {

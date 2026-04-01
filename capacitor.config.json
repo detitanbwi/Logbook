@@ -4,7 +4,10 @@
   "webDir": "public",
   "server": {
     "url": "https://logbook.wirodev.com",
-    "cleartext": true
+    "cleartext": true,
+    "allowNavigation": [
+      "logbook.wirodev.com"
+    ]
   },
   "plugins": {
     "SplashScreen": {

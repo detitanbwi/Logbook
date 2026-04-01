@@ -11,8 +11,18 @@ use Carbon\Carbon;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 
+use App\Services\OneSignalService;
+use Exception;
+
 class LogbookController extends Controller
 {
+    protected $oneSignal;
+
+    public function __construct(OneSignalService $oneSignal)
+    {
+        $this->oneSignal = $oneSignal;
+    }
+
     public function index()
     {
         $logbooks = auth()->user()->logbooks()
@@ -125,6 +135,21 @@ class LogbookController extends Controller
             }
         }
 
+        // Trigger Notification to Supervisor
+        try {
+            if ($logbook->supervisor_id) {
+                $this->oneSignal->sendToUser(
+                    $logbook->supervisor_id,
+                    'Logbook Baru',
+                    auth()->user()->nama . ' telah mengirim logbook baru untuk direview.',
+                    ['logbook_id' => $logbook->id]
+                );
+            }
+        } catch (Exception $e) {
+            // Silently fail notification but log it
+            \Illuminate\Support\Facades\Log::warning('Failed to send notification: ' . $e->getMessage());
+        }
+
         return redirect()->route('logbooks.index')->with('success', 'Logbook berhasil dikirim.');
     }
 
@@ -138,6 +163,20 @@ class LogbookController extends Controller
             'title' => 'Detail Logbook',
             'active' => 'logbooks'
         ]);
+    }
+
+    public function download(LogbookAttachment $attachment)
+    {
+        $this->authorizeAccess($attachment->logbook);
+        
+        if (!Storage::disk('public')->exists($attachment->file_path)) {
+            abort(404, 'File tidak ditemukan.');
+        }
+
+        return Storage::disk('public')->download(
+            $attachment->file_path, 
+            basename($attachment->file_path)
+        );
     }
 
     private function authorizeAccess(Logbook $logbook)

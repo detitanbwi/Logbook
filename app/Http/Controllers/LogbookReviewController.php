@@ -8,8 +8,18 @@ use App\Models\LogbookItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+use App\Services\OneSignalService;
+use Exception;
+
 class LogbookReviewController extends Controller
 {
+    protected $oneSignal;
+
+    public function __construct(OneSignalService $oneSignal)
+    {
+        $this->oneSignal = $oneSignal;
+    }
+
     public function index()
     {
         // Allow access if user is NOT staff OR if they have subordinates to review
@@ -86,6 +96,19 @@ class LogbookReviewController extends Controller
 
             $logbook->update(['status' => $status]);
         });
+
+        // Trigger Notification to Staff
+        try {
+            $statusLabel = $validated['status'] === 'approved' ? 'DISETUJUI' : 'DITOLAK';
+            $this->oneSignal->sendToUser(
+                $logbook->employee_id,
+                'Review Logbook',
+                'Logbook Anda telah ' . $statusLabel . ' oleh ' . auth()->user()->nama . '.',
+                ['logbook_id' => $logbook->id]
+            );
+        } catch (Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to send review notification: ' . $e->getMessage());
+        }
 
         return redirect()->route('reviews.index')->with('success', 'Penilaian logbook berhasil diproses.');
     }

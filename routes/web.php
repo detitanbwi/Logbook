@@ -29,6 +29,7 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
 
     // Logbook Resource [FASE 3]
     Route::resource('logbooks', \App\Http\Controllers\LogbookController::class);
+    Route::get('/logbooks/download/{attachment}', [\App\Http\Controllers\LogbookController::class, 'download'])->name('logbooks.download');
 
     // Review Resource [FASE 3]
     Route::prefix('reviews')->name('reviews.')->group(function () {

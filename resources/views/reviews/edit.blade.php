@@ -137,7 +137,7 @@
                             <p class="text-xs font-black text-primary truncate leading-tight">{{ basename($attachment->file_path) }}</p>
                             <p class="text-[0.55rem] font-bold text-base-content/30 uppercase tracking-widest mt-0.5">{{ strtoupper($ext) }} FILE</p>
                         </div>
-                        <a href="{{ asset('storage/' . $attachment->file_path) }}" download
+                        <a href="{{ route('logbooks.download', $attachment->id) }}" download
                            class="btn btn-ghost btn-sm btn-square text-primary/40 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors">
                             <i data-lucide="download" class="h-4 w-4"></i>
                         </a>
