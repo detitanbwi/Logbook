@@ -138,6 +138,14 @@
                     </div>
                 @endif
 
+                @if(session('error'))
+                    <div
+                        class="alert alert-error bg-red-50 border-red-200 text-red-700 rounded-2xl shadow-sm mb-6 flex gap-3 text-xs font-bold uppercase tracking-wide">
+                        <i data-lucide="x-circle" class="h-5 w-5"></i>
+                        <span>{{ session('error') }}</span>
+                    </div>
+                @endif
+
                 @if($flat ?? false)
                     {{ $slot }}
                 @else

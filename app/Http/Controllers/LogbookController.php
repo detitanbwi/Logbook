@@ -41,6 +41,11 @@ class LogbookController extends Controller
     public function create()
     {
         $user = auth()->user();
+
+        if (!$user->supervisor_id) {
+            return redirect()->route('logbooks.index')->with('error', 'Anda belum memiliki atasan (Supervisor). Silakan hubungi Admin untuk penugasan atasan.');
+        }
+
         $assignedKpis = $user->kpis;
 
         return view('logbooks.create', [
@@ -74,6 +79,10 @@ class LogbookController extends Controller
         $lng = $request->longitude;
         $latitude = (isset($lat) && is_numeric($lat)) ? $lat : null;
         $longitude = (isset($lng) && is_numeric($lng)) ? $lng : null;
+
+        if (!auth()->user()->supervisor_id) {
+            return redirect()->route('logbooks.index')->with('error', 'Gagal membuat logbook: Anda belum memiliki atasan.');
+        }
 
         $logbook = Logbook::create([
             'employee_id' => auth()->id(),

@@ -53,8 +53,15 @@
     </div>
 
     <!-- Floating Action Button -->
+    @if(auth()->user()->supervisor_id)
     <a href="{{ route('logbooks.create') }}" class="fixed bottom-28 right-6 bg-primary text-white flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl shadow-primary/40 z-[100] transition-all active:scale-95 group overflow-hidden border-none cursor-pointer">
         <i data-lucide="plus" class="h-5 w-5 font-black text-white relative z-10 transition-transform group-hover:rotate-90"></i>
         <span class="text-[0.65rem] font-black tracking-[0.2em] uppercase relative z-10">TAMBAH</span>
     </a>
+    @else
+    <button onclick="alert('Anda belum memiliki atasan (Supervisor). Silakan hubungi Admin untuk penugasan atasan.')" class="fixed bottom-28 right-6 bg-gray-400 text-white flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl z-[100] transition-all border-none cursor-not-allowed uppercase opacity-80 backdrop-blur-sm">
+        <i data-lucide="plus" class="h-5 w-5 font-black text-white"></i>
+        <span class="text-[0.65rem] font-black tracking-[0.2em]">TAMBAH</span>
+    </button>
+    @endif
 </x-layouts.app>
