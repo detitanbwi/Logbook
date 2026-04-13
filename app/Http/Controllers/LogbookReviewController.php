@@ -116,6 +116,8 @@ class LogbookReviewController extends Controller
     private function authorizeReview(Logbook $logbook)
     {
         if (auth()->user()->role === 'super_admin') return;
-        if ($logbook->supervisor_id !== auth()->id()) abort(403);
+
+        // Cast to int to prevent type mismatch (DB int vs session value)
+        if ((int) $logbook->supervisor_id !== (int) auth()->id()) abort(403);
     }
 }
