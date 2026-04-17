@@ -86,21 +86,83 @@
         </div>
 
         <!-- SECTION 3: FOTO DOKUMENTASI -->
-        <div class="space-y-3" x-data="{ hasImage: {{ $logbook?->main_photo ? 'true' : 'false' }}, imageSrc: '{{ $logbook?->main_photo ? asset('storage/' . $logbook->main_photo) : '' }}', modalOpen: false }">
+        <div class="space-y-3" x-data="{ 
+            hasImage: {{ $logbook?->main_photo ? 'true' : 'false' }}, 
+            imageSrc: '{{ $logbook?->main_photo ? asset('storage/' . $logbook->main_photo) : '' }}', 
+            cameraActive: false,
+            stream: null,
+            async openCamera() {
+                if (window.HRISNative && window.HRISNative.isNativePlatform) {
+                    document.getElementById('main_photo').click();
+                    return;
+                }
+                this.cameraActive = true;
+                this.$nextTick(async () => {
+                    try {
+                        this.stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { 
+                                facingMode: 'environment',
+                                width: { ideal: 1280 },
+                                height: { ideal: 720 }
+                            }, 
+                            audio: false 
+                        });
+                        this.$refs.video.srcObject = this.stream;
+                        this.$refs.video.play();
+                    } catch (err) {
+                        console.error('Kamera error:', err);
+                        alert('Gagal mengakses kamera. Pastikan izin kamera sudah diberikan dan Anda menggunakan HTTPS/Localhost.');
+                        this.cameraActive = false;
+                    }
+                });
+            },
+            capture() {
+                const video = this.$refs.video;
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw current frame
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                this.imageSrc = dataUrl;
+                this.hasImage = true;
+                
+                // Set to hidden file input
+                canvas.toBlob((blob) => {
+                    const file = new File([blob], 'camera_capture.jpg', { type: 'image/jpeg' });
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    document.getElementById('main_photo').files = dt.files;
+                }, 'image/jpeg', 0.8);
+
+                this.closeCamera();
+            },
+            closeCamera() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                this.cameraActive = false;
+            }
+        }" @keydown.escape.window="closeCamera()">
             <h3 class="text-[0.65rem] font-black text-primary/50 uppercase tracking-[0.2em] ml-1">DOKUMENTASI FOTO</h3>
             <div class="bg-base-100 p-3 rounded-2xl border border-base-200">
                 <div class="relative aspect-[16/9] rounded-xl bg-base-200 overflow-hidden group border-2 border-dashed border-base-300 transition-all" :class="hasImage ? 'border-primary/50' : 'hover:border-primary/30'">
+                    <!-- File input (Hidden, triggered via JS) -->
                     <input type="file" name="main_photo" id="main_photo" class="hidden" accept="image/*" capture="environment" 
                            @change="const file = $event.target.files[0]; if(file) { const reader = new FileReader(); reader.onload = (e) => { imageSrc = e.target.result; hasImage = true; }; reader.readAsDataURL(file); }" 
                            {{ $logbook?->main_photo ? '' : 'required' }}>
                     
-                    <label for="main_photo" class="absolute inset-0 flex flex-col items-center justify-center cursor-pointer transition-all z-10"
+                    <button type="button" @click="openCamera" class="absolute inset-0 flex flex-col items-center justify-center cursor-pointer transition-all z-10"
                            :class="hasImage ? 'opacity-0 hover:opacity-100 bg-base-300/60 backdrop-blur-sm' : 'hover:bg-base-300/30'">
                         <div class="w-12 h-12 bg-base-100 rounded-xl shadow-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                             <i data-lucide="camera" class="h-6 w-6 text-primary/80"></i>
                         </div>
                         <span class="text-[0.55rem] font-black text-base-content uppercase tracking-[0.15em] bg-base-100/90 py-1.5 px-3 rounded-lg shadow-sm" x-text="hasImage ? 'GANTI FOTO' : 'AMBIL FOTO'"></span>
-                    </label>
+                    </button>
 
                     <img id="image-preview" :src="imageSrc" alt="Preview" class="absolute inset-0 w-full h-full object-cover z-0" x-show="hasImage" x-transition>
                     
@@ -110,7 +172,39 @@
                     </div>
                 </div>
             </div>
+
+            <!-- BROWSER CAMERA MODAL -->
+            <div x-show="cameraActive" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" x-transition>
+                <div class="bg-base-100 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex flex-col">
+                    <!-- Modal Header -->
+                    <div class="px-6 py-4 border-b border-base-200 flex items-center justify-between">
+                        <h4 class="text-[0.65rem] font-black text-primary uppercase tracking-[0.2em]">Kamera Dokumentasi</h4>
+                        <button type="button" @click="closeCamera" class="btn btn-ghost btn-circle btn-sm text-error/50 hover:text-error hover:bg-error/10">
+                            <i data-lucide="x" class="h-4 w-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- Video Preview Area -->
+                    <div class="relative bg-black aspect-[3/4] flex items-center justify-center overflow-hidden">
+                        <video x-ref="video" playsinline class="w-full h-full object-cover"></video>
+                        
+                        <!-- Overlay Guide -->
+                        <div class="absolute inset-8 border-2 border-dashed border-white/20 rounded-2xl pointer-events-none"></div>
+                    </div>
+
+                    <!-- Modal Actions -->
+                    <div class="p-8 flex flex-col items-center gap-4 bg-base-100">
+                        <button type="button" @click="capture" class="w-20 h-20 rounded-full border-4 border-primary/20 p-1 bg-white shadow-xl shadow-primary/20 active:scale-95 transition-all">
+                            <div class="w-full h-full rounded-full bg-primary flex items-center justify-center">
+                                <i data-lucide="camera" class="h-8 w-8 text-white"></i>
+                            </div>
+                        </button>
+                        <p class="text-[0.55rem] font-black text-base-content/30 uppercase tracking-[0.2em]">Ketuk tombol untuk ambil foto</p>
+                    </div>
+                </div>
+            </div>
         </div>
+
 
         <!-- SECTION 4: TARGET KPI -->
         <div class="space-y-3">
