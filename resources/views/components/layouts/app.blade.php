@@ -262,16 +262,6 @@
         </div>
     </div>
 
-    <!-- Global Demo Watermark -->
-    @if(config('demo.enabled', true))
-        <div class="fixed inset-0 pointer-events-none z-[9999] flex items-center justify-center overflow-hidden select-none"
-            style="opacity: 0.2;">
-            <div
-                class="text-5xl md:text-7xl font-bold text-base-content -rotate-45 uppercase tracking-[0.4em] whitespace-nowrap">
-                {{ config('demo.text', 'WIRODEV DEMO') }}
-            </div>
-        </div>
-    @endif
 
     <!-- Global Toast Container -->
     <div id="toast-container" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-full max-w-[90%] pointer-events-none"></div>

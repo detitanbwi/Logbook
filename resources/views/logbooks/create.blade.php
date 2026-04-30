@@ -166,10 +166,6 @@
 
                     <img id="image-preview" :src="imageSrc" alt="Preview" class="absolute inset-0 w-full h-full object-cover z-0" x-show="hasImage" x-transition>
                     
-                    <!-- Watermark -->
-                    <div x-show="hasImage" class="absolute bottom-3 left-3 z-20 pointer-events-none">
-                        <span class="text-[0.5rem] font-black text-white bg-black/60 shadow-lg border border-white/20 px-2 py-1 rounded-lg tracking-[0.2em] uppercase backdrop-blur-md">WIRODEV DEMO</span>
-                    </div>
                 </div>
             </div>
 
