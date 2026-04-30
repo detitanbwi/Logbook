@@ -3,10 +3,10 @@
   "appName": "Logbook Portal",
   "webDir": "public",
   "server": {
-    "url": "https://logbook.wirodev.com",
+    "url": "https://pamtirtamoico.my.id",
     "cleartext": true,
     "allowNavigation": [
-      "logbook.wirodev.com"
+      "pamtirtamoico.my.id"
     ]
   },
   "plugins": {
