@@ -1,140 +1,171 @@
 <x-layouts.app :title="$title" :active="$active">
-    <div class="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <!-- Dashboard Header -->
-        <div class="card bg-base-100 rounded-[2.5rem] p-10 border border-base-300 relative overflow-hidden flex flex-col items-center text-center shadow-sm">
-            <div class="w-24 h-24 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-8 shadow-inner relative z-10">
-                <i data-lucide="clipboard-check" class="h-10 w-10"></i>
+    <div class="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <!-- Dashboard Header (Smaller Banner) -->
+        <div class="card bg-base-100 rounded-3xl p-6 border border-base-300 relative overflow-hidden flex flex-row items-center justify-between shadow-sm">
+            <div class="flex items-center gap-6 relative z-10">
+                <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
+                    <i data-lucide="clipboard-check" class="h-8 w-8"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl lg:text-2xl font-black text-primary uppercase tracking-tight leading-none">Review Logbook</h1>
+                    <p class="text-[0.6rem] font-bold text-base-content/30 uppercase tracking-[0.3em] mt-2">
+                        Performa & Akuntabilitas Tim
+                    </p>
+                </div>
             </div>
-            <h1 class="text-3xl lg:text-4xl font-black text-primary uppercase tracking-tight relative z-10 leading-none">Review Logbook</h1>
-            <p class="text-[0.7rem] font-bold text-base-content/30 uppercase tracking-[0.4em] mt-3 relative z-10">
-                Manajemen Performa & Akuntabilitas Tim
-            </p>
 
-            <div class="mt-10 flex items-center gap-3 px-8 py-4 bg-primary/5 rounded-2xl border border-primary/10 relative z-10">
-                <p class="text-2xl font-black text-primary leading-none">{{ $logbooks->total() }}</p>
-                <p class="text-[0.65rem] font-bold text-primary/60 uppercase tracking-widest pt-1">Entri Logbook</p>
+            <div class="hidden sm:flex items-center gap-3 px-6 py-3 bg-primary/5 rounded-xl border border-primary/10 relative z-10">
+                <p class="text-xl font-black text-primary leading-none">{{ $logbooks->total() }}</p>
+                <p class="text-[0.6rem] font-bold text-primary/60 uppercase tracking-widest">Entry</p>
             </div>
 
             <!-- Decorative blobs -->
-            <div class="absolute -top-12 -left-12 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
-            <div class="absolute -bottom-8 -right-8 w-48 h-48 bg-primary/5 rounded-full blur-2xl"></div>
+            <div class="absolute -top-12 -left-12 w-48 h-48 bg-primary/5 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-8 -right-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl"></div>
         </div>
 
-        <!-- Subordinate Logs List -->
-        <div class="space-y-8">
-            <div class="flex items-center gap-4 px-2">
-                <h3 class="text-[0.7rem] font-black text-base-content/40 uppercase tracking-[0.25em] whitespace-nowrap">Daftar Antrian</h3>
-                <div class="h-[1px] w-full bg-base-300"></div>
-            </div>
+        <!-- Action Section -->
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+            <form action="{{ route('reviews.index') }}" method="GET" 
+                  x-data 
+                  @input.debounce.500ms="$el.submit()"
+                  class="relative w-full md:w-80 group">
+                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-base-content/40 group-focus-within:text-primary transition-colors"></i>
+                <input type="text" 
+                       name="search" 
+                       value="{{ request('search') }}" 
+                       placeholder="Cari nama karyawan..." 
+                       autocomplete="off"
+                       class="input input-bordered h-14 w-full pl-12 pr-4 bg-base-100 border-2 border-base-300 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-sm font-semibold"
+                />
+            </form>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                @forelse($logbooks as $log)
-                    <div class="card bg-base-100 rounded-3xl p-8 border border-base-300 hover:border-primary/30 transition-all group relative overflow-hidden shadow-sm hover:shadow-md">
-                        <div class="flex items-start justify-between mb-8 relative z-10">
-                            <div class="flex items-center gap-5">
-                                <div class="avatar border-2 border-primary/10 rounded-2xl overflow-hidden bg-base-200 shrink-0 shadow-sm">
-                                    <div class="w-16 h-16">
-                                        @if($log->employee->foto)
-                                            <img src="{{ asset('storage/' . $log->employee->foto) }}" class="object-cover">
-                                        @else
-                                            <div class="w-full h-full flex items-center justify-center bg-primary/10 text-primary text-sm font-black">
-                                                {{ substr($log->employee->nama, 0, 1) }}
-                                            </div>
-                                        @endif
+        </div>
+
+        <!-- Table Section -->
+        <div class="card bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="table w-full min-w-[1000px]">
+                    <thead>
+                        <tr class="bg-base-200 border-b border-base-300">
+                            @php
+                                $headers = [
+                                    ['label' => 'Karyawan', 'sort' => 'nama'],
+                                    ['label' => 'Tanggal Log', 'sort' => 'created_at'],
+                                    ['label' => 'Durasi', 'sort' => null],
+                                    ['label' => 'Status', 'sort' => 'status'],
+                                    ['label' => 'Terakhir Diubah', 'sort' => 'terakhir_diubah'],
+                                ];
+                            @endphp
+                            @foreach($headers as $h)
+                                <th class="px-6 py-4 text-[0.65rem] font-black text-base-content/50 uppercase tracking-widest border-none">
+                                    @if($h['sort'])
+                                        <a href="{{ route('reviews.index', array_merge(request()->query(), ['sort' => $h['sort'], 'direction' => (request('sort') == $h['sort'] && request('direction') == 'asc') ? 'desc' : 'asc'])) }}" class="flex items-center gap-2 hover:text-primary transition-colors">
+                                            {{ $h['label'] }}
+                                            @if(request('sort') == $h['sort'])
+                                                <i data-lucide="{{ request('direction') == 'asc' ? 'chevron-up' : 'chevron-down' }}" class="h-3 w-3"></i>
+                                            @else
+                                                <i data-lucide="chevrons-up-down" class="h-3 w-3 opacity-30"></i>
+                                            @endif
+                                        </a>
+                                    @else
+                                        {{ $h['label'] }}
+                                    @endif
+                                </th>
+                            @endforeach
+                            <th class="px-6 py-4 text-[0.65rem] font-black text-base-content/50 uppercase tracking-widest border-none text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-base-200">
+                        @forelse($logbooks as $log)
+                        <tr class="hover:bg-primary/5 transition-colors group">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar border border-primary/10 rounded-lg overflow-hidden bg-base-200">
+                                        <div class="w-10 h-10">
+                                            @if($log->employee->foto)
+                                                <img src="{{ asset('storage/' . $log->employee->foto) }}">
+                                            @else
+                                                <div class="w-full h-full flex items-center justify-center bg-primary/10 text-primary text-xs font-black">
+                                                    {{ substr($log->employee->nama, 0, 1) }}
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-base-content">{{ $log->employee->nama }}</p>
+                                        <p class="text-[0.6rem] font-bold text-base-content/30 uppercase tracking-widest leading-none mt-1">NPP: {{ $log->employee->npp }}</p>
                                     </div>
                                 </div>
-                                <div class="flex flex-col gap-1.5">
-                                    <h4 class="text-sm font-black text-primary uppercase tracking-tight leading-tight">
-                                        {{ $log->employee->nama }}
-                                    </h4>
-                                    <p class="text-[0.6rem] font-bold text-base-content/40 uppercase tracking-widest leading-none">
-                                        ID_{{ $log->employee->npp }}
-                                    </p>
-                                    
-                                    @php
-                                        $statusConfig = [
-                                            'pending' => ['bg' => 'bg-warning/20', 'text' => 'text-warning-content', 'icon' => 'clock'],
-                                            'approved' => ['bg' => 'bg-success/10', 'text' => 'text-success', 'icon' => 'check-circle'],
-                                            'rejected' => ['bg' => 'bg-error/10', 'text' => 'text-error', 'icon' => 'x-circle'],
-                                        ];
-                                        $currentStatus = $statusConfig[$log->status] ?? $statusConfig['pending'];
-                                    @endphp
-                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl {{ $currentStatus['bg'] }} {{ $currentStatus['text'] }} w-fit mt-1">
-                                        <i data-lucide="{{ $currentStatus['icon'] }}" class="h-3 w-3"></i>
-                                        <span class="text-[0.6rem] font-black uppercase tracking-widest whitespace-nowrap">
-                                            {{ $log->status === 'pending' ? 'Butuh Review' : $log->status }}
-                                            @if($log->latestReview) &bull; {{ $log->latestReview->rating }}/5 ★ @endif
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="text-sm font-bold text-base-content/70">{{ $log->start_time->isoFormat('D MMM Y') }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-bold text-primary">{{ $log->start_time->format('H:i') }} - {{ $log->end_time->format('H:i') }}</span>
+                                    <span class="text-[0.6rem] font-black text-base-content/20 uppercase tracking-widest">{{ number_format($log->start_time->diffInMinutes($log->end_time) / 60, 1) }} Jam</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                @php
+                                    $statusConfig = [
+                                        'pending' => ['bg' => 'bg-warning/20', 'text' => 'text-warning-content', 'label' => 'BUTUH REVIEW'],
+                                        'approved' => ['bg' => 'bg-success/10', 'text' => 'text-success', 'label' => 'DISETUJUI'],
+                                        'rejected' => ['bg' => 'bg-error/10', 'text' => 'text-error', 'label' => 'DITOLAK'],
+                                    ];
+                                    $s = $statusConfig[$log->status] ?? $statusConfig['pending'];
+                                @endphp
+                                <span class="badge {{ $s['bg'] }} {{ $s['text'] }} border-none font-black text-[0.55rem] tracking-widest py-3 px-3 rounded-md">
+                                    {{ $s['label'] }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                @if($log->latestReview)
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-bold text-base-content/70">{{ $log->latestReview->reviewed_at->isoFormat('D MMM Y, HH:mm') }}</span>
+                                        <span class="text-[0.6rem] font-black text-primary/40 uppercase tracking-widest">Reviewer: {{ $log->latestReview->reviewer->nama ?? 'Sistem' }}</span>
+                                    </div>
+                                @else
+                                    <span class="text-[0.6rem] font-black text-base-content/20 uppercase tracking-[0.3em]">Belum Dinilai</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center justify-center">
+                                    <a href="{{ route('reviews.edit', $log->id) }}"
+                                        class="btn {{ $log->status === 'pending' ? 'btn-primary shadow-md' : 'btn-outline border-base-300' }} btn-sm rounded-lg gap-2">
+                                        <i data-lucide="{{ $log->status === 'pending' ? 'edit-3' : 'eye' }}" class="h-4 w-4"></i>
+                                        <span class="text-[0.65rem] font-black uppercase tracking-wider">
+                                            {{ $log->status === 'pending' ? 'Beri Nilai' : 'Ubah Nilai' }}
                                         </span>
-                                    </span>
+                                    </a>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-base-200/60 p-6 rounded-2xl border border-base-300 mb-8 relative z-10 min-h-[5rem] flex items-center">
-                            <p class="text-[0.8rem] font-bold text-base-content/60 italic leading-relaxed line-clamp-2">
-                                "{{ $log->daily_report }}"
-                            </p>
-                        </div>
-
-                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6 relative z-10 pt-4 border-t border-base-200">
-                            <div class="grid grid-cols-2 gap-y-4 gap-x-8">
-                                <div class="flex flex-col border-l-2 border-primary/20 pl-4">
-                                    <span class="text-[0.55rem] font-bold text-base-content/30 uppercase tracking-[0.15em] mb-1">Durasi</span>
-                                    <span class="text-xs font-black text-primary uppercase tracking-tight leading-none">
-                                        {{ $log->start_time->format('H:i') }} - {{ $log->end_time->format('H:i') }}
-                                    </span>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="px-6 py-32 text-center">
+                                <div class="flex flex-col items-center gap-4 opacity-20">
+                                    <i data-lucide="clipboard-list" class="h-16 w-16"></i>
+                                    <p class="text-sm font-bold tracking-[0.4em] uppercase">Data Logbook Tidak Ditemukan</p>
                                 </div>
-                                <div class="flex flex-col border-l-2 border-primary/20 pl-4">
-                                    <span class="text-[0.55rem] font-bold text-base-content/30 uppercase tracking-[0.15em] mb-1">Total Jam</span>
-                                    <span class="text-xs font-black text-primary uppercase tracking-tight leading-none">
-                                        {{ number_format($log->start_time->diffInMinutes($log->end_time) / 60, 1) }}h
-                                    </span>
-                                </div>
-                                <div class="flex flex-col border-l-2 border-primary/20 pl-4">
-                                    <span class="text-[0.55rem] font-bold text-base-content/30 uppercase tracking-[0.15em] mb-1">Entri Log</span>
-                                    <span class="text-xs font-black text-primary uppercase tracking-tight leading-none">
-                                        {{ $log->start_time->isoFormat('D MMM Y') }}
-                                    </span>
-                                </div>
-                                <div class="flex flex-col border-l-2 border-primary/20 pl-4">
-                                    <span class="text-[0.55rem] font-bold text-base-content/30 uppercase tracking-[0.15em] mb-1">KPI Items</span>
-                                    <span class="text-xs font-black text-primary uppercase tracking-tight leading-none">
-                                        {{ $log->items->count() }} Poin
-                                    </span>
-                                </div>
-                            </div>
-
-                            @if($log->status === 'pending')
-                                <a href="{{ route('reviews.edit', $log->id) }}"
-                                    class="btn btn-primary rounded-2xl gap-3 px-8 shadow-lg shadow-primary/20 hover:scale-[1.03] active:scale-95 transition-all text-xs font-black uppercase tracking-widest h-14">
-                                    <i data-lucide="edit-3" class="h-4 w-4"></i>
-                                    Update Review
-                                </a>
-                            @else
-                                <a href="{{ route('reviews.edit', $log->id) }}"
-                                    class="btn btn-ghost bg-base-200 hover:bg-base-300 rounded-2xl gap-3 px-8 text-xs font-black uppercase tracking-widest h-14 text-primary/60 border border-base-300">
-                                    <i data-lucide="eye" class="h-4 w-4"></i>
-                                    Lihat Detail
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                @empty
-                    <div class="col-span-full card p-16 rounded-[2.5rem] border-2 border-dashed border-base-300 text-center bg-base-100">
-                        <div class="w-20 h-20 bg-base-200 rounded-full flex items-center justify-center mx-auto mb-6 text-base-content/20">
-                            <i data-lucide="check-square" class="h-10 w-10"></i>
-                        </div>
-                        <h4 class="text-xl font-black text-primary/40 uppercase tracking-widest mb-2">Semua logbook telah ditinjau</h4>
-                        <p class="text-xs font-bold text-base-content/30 uppercase tracking-[0.3em]">Kerja bagus, Supervisor!</p>
-                    </div>
-                @endforelse
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-
-            @if($logbooks->hasPages())
-            <div class="pt-8 flex justify-center">
-                {{ $logbooks->links('pagination::simple-tailwind') }}
-            </div>
-            @endif
         </div>
+
+        @if($logbooks->hasPages())
+        <div class="mt-8 flex flex-col md:flex-row items-center justify-between gap-6 px-4 bg-base-200/50 p-6 rounded-2xl border border-base-200">
+            <div class="text-[0.7rem] font-bold text-base-content/40 uppercase tracking-widest">
+                Menampilkan <span class="text-primary">{{ $logbooks->firstItem() }}-{{ $logbooks->lastItem() }}</span> dari {{ $logbooks->total() }} Logbook
+            </div>
+            <div class="pagination-wrapper flex items-center">
+                {{ $logbooks->links() }}
+            </div>
+        </div>
+        @endif
     </div>
 </x-layouts.app>

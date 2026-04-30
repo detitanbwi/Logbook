@@ -14,15 +14,23 @@ class EmployeeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         if (auth()->user()->role === 'staff') {
             abort(403, 'Akses ditolak.');
         }
 
+        $search = $request->query('search');
+        $perPage = $request->query('per_page', 25);
+
         $employees = User::with('supervisor')
+            ->when($search, function($query, $search) {
+                return $query->where('nama', 'like', "%{$search}%")
+                            ->orWhere('npp', 'like', "%{$search}%");
+            })
             ->orderBy('nama')
-            ->paginate(10);
+            ->paginate($perPage)
+            ->withQueryString();
 
         return view('employees.index', compact('employees'));
     }

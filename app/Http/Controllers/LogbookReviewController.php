@@ -20,7 +20,7 @@ class LogbookReviewController extends Controller
         $this->oneSignal = $oneSignal;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         // Allow access if user is NOT staff OR if they have subordinates to review
         if (auth()->user()->role === 'staff' && !auth()->user()->subordinates()->exists()) {
@@ -28,6 +28,9 @@ class LogbookReviewController extends Controller
         }
 
         $user = auth()->user();
+        $search = $request->query('search');
+        $sort = $request->query('sort', 'created_at');
+        $direction = $request->query('direction', 'desc');
 
         // Supervisors see logbooks from their subordinates
         $query = Logbook::with(['employee', 'items.kpi', 'latestReview'])
@@ -38,7 +41,30 @@ class LogbookReviewController extends Controller
             $query = Logbook::with(['employee', 'items.kpi', 'latestReview', 'supervisor']);
         }
 
-        $logbooks = $query->latest()->paginate(10);
+        // Apply Search (Nama)
+        if ($search) {
+            $query->whereHas('employee', function($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply Sorting
+        if ($sort === 'nama') {
+            $query->join('users', 'logbooks.employee_id', '=', 'users.id')
+                ->select('logbooks.*')
+                ->orderBy('users.nama', $direction);
+        } elseif ($sort === 'terakhir_diubah') {
+            $query->leftJoin('logbook_reviews', function($join) {
+                $join->on('logbooks.id', '=', 'logbook_reviews.logbook_id')
+                    ->whereRaw('logbook_reviews.id = (SELECT MAX(id) FROM logbook_reviews WHERE logbook_id = logbooks.id)');
+            })
+            ->select('logbooks.*')
+            ->orderBy('logbook_reviews.reviewed_at', $direction);
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $logbooks = $query->paginate(20)->withQueryString();
 
         return view('reviews.index', [
             'logbooks' => $logbooks,
