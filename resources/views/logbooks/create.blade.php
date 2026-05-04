@@ -12,6 +12,11 @@
           x-data="{
               isSubmitting: false,
               items: @js($logbook ? $logbook->kpis->map(fn($k) => ['kpi_id' => $k->kpi_id, 'details' => $k->details]) : [['kpi_id' => '', 'details' => '']]),
+              init() {
+                  this.$watch('items', () => { 
+                      setTimeout(() => lucide.createIcons(), 50); 
+                  });
+              },
               addItem() { this.items.push({kpi_id: '', details: ''}) },
               removeItem(index) { this.items.splice(index, 1) },
               validateAndSubmit(e) {
@@ -376,9 +381,6 @@
     </form>
 
     <script>
-        // Use Lucide for newly added items
-        $watch('items', () => { setTimeout(() => lucide.createIcons(), 50); });
-
         async function getLocation() {
             const status = document.getElementById('gps-status');
             const latInput = document.getElementById('latitude');
