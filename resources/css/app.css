@@ -1,46 +1,13 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import '@fontsource/inter/400.css';
 @import '@fontsource/inter/500.css';
 @import '@fontsource/inter/700.css';
 @import '@fontsource/inter/800.css';
 @import '@fontsource/manrope/700.css';
 @import '@fontsource/manrope/800.css';
-
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
-
-@plugin 'daisyui' {
-    themes: light --default;
-}
-
-@theme {
-    /* Colors from Stitch Design System - Preserved for legacy if needed */
-    --color-primary: #002a58;
-    --color-primary-container: #004080;
-    --color-surface: #f7f9fb;
-    --color-surface-container-lowest: #ffffff;
-    --color-surface-container-low: #f2f4f6;
-    --color-surface-container-high: #e6e8ea;
-    --color-surface-container-highest: #e0e3e5;
-    --color-on-surface: #191c1e;
-    --color-error: #ba1a1a;
-    --color-outline-variant: #c3c6d2;
-
-    /* DaisyUI Primary Theme Ovveride */
-    --color-primary: #002a58;
-    --color-primary-content: #ffffff;
-
-    /* Spacing & Borders */
-    --radius-md: 0.75rem;
-    --radius-xl: 1.5rem;
-    --radius-2xl: 1rem;
-
-    /* Typography */
-    --font-heading: 'Manrope', system-ui, sans-serif;
-    --font-body: 'Inter', system-ui, sans-serif;
-}
 
 @layer base {
     body {
@@ -68,13 +35,19 @@
     }
 }
 
-/* Custom Utilities for Fatan-like Design */
-@utility glass-morphism {
-    @apply bg-base-100/90 backdrop-blur-md border-base-300;
-}
+@layer components {
+    /* Custom Utilities for Fatan-like Design */
+    .glass-morphism {
+        @apply bg-base-100/90 backdrop-blur-md border-base-300;
+    }
 
-@utility primary-gradient {
-    @apply bg-linear-to-b from-primary to-primary/90;
+    .primary-gradient {
+        @apply bg-gradient-to-b from-primary to-primary/90;
+    }
+
+    .editorial-shadow {
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
 }
 
 /* No-border Rule for inputs as per design system - DaisyUI handles most of this */
@@ -91,9 +64,4 @@ input::-webkit-inner-spin-button {
 
 input[type=number] {
     -moz-appearance: textfield;
-}
-
-/* Editorial Shadows */
-@utility editorial-shadow {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
