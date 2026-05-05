@@ -295,7 +295,7 @@
 
                 console.log("OneSignal: Scanned Keys:", Object.keys(os));
                 
-                window.showAlert("OneSignal Ready", "success");
+                // window.showAlert("OneSignal Ready", "success");
 
                 try {
                     const appId = "{{ config('services.onesignal.app_id') }}";
@@ -369,7 +369,7 @@
                     // Permission Request
                     if (os.Notifications && os.Notifications.requestPermission) {
                         os.Notifications.requestPermission(true).then((success) => {
-                            window.showAlert("Push Permission: " + (success ? "GRANTED" : "DENIED"), success ? "success" : "error");
+                            // window.showAlert("Push Permission: " + (success ? "GRANTED" : "DENIED"), success ? "success" : "error");
                         });
                     } else if (typeof os.promptForPushNotificationsWithUserResponse === 'function') {
                         os.promptForPushNotificationsWithUserResponse(true);
@@ -421,7 +421,7 @@
                                     subLabel.style.color = "#10b981"; 
                                 }
 
-                                window.showAlert("OneSignal Registered!", "success");
+                                // window.showAlert("OneSignal Registered!", "success");
                                 clearInterval(checkInterval);
                             } else {
                                 console.log("OneSignal Status: Waiting for registration... (" + checkCount + ")");
@@ -438,11 +438,11 @@
 
                 } catch (e) {
                     console.error("OneSignal: Initialization Error", e);
-                    window.showAlert("OneSignal Error: " + e.message, "error");
+                    // window.showAlert("OneSignal Error: " + e.message, "error");
                 }
             } else {
                 console.error("OneSignal: window.OneSignal not found!");
-                window.showAlert("OneSignal SDK Missing", "error");
+                // window.showAlert("OneSignal SDK Missing", "error");
             }
         }
 

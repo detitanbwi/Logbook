@@ -3,10 +3,10 @@
   "appName": "Logbook Portal",
   "webDir": "public",
   "server": {
-    "url": "https://pamtirtamoico.my.id",
+    "url": "https://logbook.pamtirtamoico.my.id",
     "cleartext": true,
     "allowNavigation": [
-      "pamtirtamoico.my.id"
+      "logbook.pamtirtamoico.my.id"
     ]
   },
   "plugins": {
