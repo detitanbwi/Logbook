@@ -21,7 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, \Illuminate\Http\Request $request) {
-            return redirect()->route('login')->with('error', 'Sesi Anda telah berakhir. Silakan login kembali.');
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException && $e->getStatusCode() === 419) {
+                return redirect()->route('login')->with('error', 'Sesi Anda telah berakhir. Silakan login kembali.');
+            }
+            
+            if ($e instanceof \Illuminate\Session\TokenMismatchException) {
+                return redirect()->route('login')->with('error', 'Sesi Anda telah berakhir. Silakan login kembali.');
+            }
         });
     })->create();

@@ -146,6 +146,20 @@
                     </div>
                 @endif
 
+                @if($errors->any())
+                    <div class="alert alert-error bg-red-50 border-red-200 text-red-700 rounded-2xl shadow-sm mb-6 flex flex-col items-start gap-2 text-xs font-bold tracking-wide">
+                        <div class="flex items-center gap-3 uppercase">
+                            <i data-lucide="alert-circle" class="h-5 w-5"></i>
+                            <span>Mohon periksa kembali form Anda:</span>
+                        </div>
+                        <ul class="list-disc list-inside ml-8 text-[0.65rem]">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 @if($flat ?? false)
                     {{ $slot }}
                 @else

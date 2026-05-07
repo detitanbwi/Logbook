@@ -11,7 +11,7 @@
           class="space-y-8 pb-10"
           x-data="{
               isSubmitting: false,
-              items: @js($logbook ? $logbook->kpis->map(fn($k) => ['kpi_id' => $k->kpi_id, 'details' => $k->details]) : [['kpi_id' => '', 'details' => '']]),
+              items: @js(old('items', $logbook ? $logbook->items->map(fn($k) => ['kpi_id' => $k->kpi_id, 'details' => $k->work_description])->toArray() : [['kpi_id' => '', 'details' => '']])),
               init() {
                   this.$watch('items', () => { 
                       setTimeout(() => lucide.createIcons(), 50); 
@@ -29,7 +29,7 @@
                       return false;
                   }
                   
-                  this.isSubmitting = true;
+                  setTimeout(() => { this.isSubmitting = true; }, 50);
               }
           }"
           @submit="validateAndSubmit($event)">

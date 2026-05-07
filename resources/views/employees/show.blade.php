@@ -172,7 +172,8 @@
             </div>
             @endif
 
-            {{-- ONESIGNAL DEBUG (Temporary) --}}
+            {{-- ONESIGNAL DEBUG (Temporary) - Commented out as requested --}}
+            {{-- 
              <div class="py-5 bg-primary/5 rounded-3xl p-5 mt-6 border border-primary/20 shadow-inner">
                  <div class="flex items-center gap-2 mb-4">
                      <i data-lucide="bell-ring" class="h-4 w-4 text-primary"></i>
@@ -213,6 +214,7 @@
                      setInterval(updateOneSignalDebug, 1000);
                  </script>
              </div>
+             --}}
  
          </div>
 
