@@ -21,6 +21,11 @@
               addItem() { this.items.push({kpi_id: '', details: ''}) },
               removeItem(index) { this.items.splice(index, 1) },
               validateAndSubmit(e) {
+                  if (this.isMocked) {
+                      alert('Kirim Gagal! Fake GPS terdeteksi. Silakan gunakan lokasi asli untuk melanjutkan.');
+                      e.preventDefault();
+                      return false;
+                  }
                   const lat = document.getElementById('latitude').value;
                   const lng = document.getElementById('longitude').value;
                   
