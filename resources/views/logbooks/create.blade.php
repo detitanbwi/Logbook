@@ -38,7 +38,8 @@
                   setTimeout(() => { this.isSubmitting = true; }, 50);
               }
           }"
-          @submit="validateAndSubmit($event)">
+          @submit="validateAndSubmit($event)"
+          x-on:mock-status-changed.window="isMocked = $event.detail.isMocked">
         @csrf
         @if($logbook) @method('PUT') @endif
 

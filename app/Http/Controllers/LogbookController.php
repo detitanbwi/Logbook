@@ -71,6 +71,10 @@ class LogbookController extends Controller
             'attachments.*' => 'nullable|file|max:10240', // Increased to 10MB
         ]);
 
+        if ($request->is_mocked) {
+            return redirect()->back()->withInput()->with('error', 'Kirim Gagal! Sistem mendeteksi penggunaan Fake GPS. Mohon gunakan lokasi asli.');
+        }
+
         // Combine with today's date if only time is provided
         $date = $request->date ?? now()->toDateString();
         $startTime = Carbon::parse($date . ' ' . $request->start_time);
