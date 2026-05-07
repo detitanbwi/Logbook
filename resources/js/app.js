@@ -124,6 +124,7 @@ window.HRISNative = {
 			try {
 				const securityStatus = await Security.checkMockLocation();
 				isMocked = securityStatus.isMock;
+                console.log('Security check status:', securityStatus);
 			} catch (e) {
 				console.warn('Security check failed:', e);
 			}

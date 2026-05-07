@@ -63,6 +63,7 @@
                     <div class="text-right">
                         <p class="text-[0.5rem] font-bold text-base-content/20 uppercase tracking-[0.2em] mb-0.5">STATUS GPS</p>
                         <p id="gps-status" class="text-[0.65rem] font-black text-primary uppercase tracking-wide">Ready</p>
+                        <p id="gps-debug" class="text-[0.5rem] font-mono text-base-content/20 uppercase mt-0.5"></p>
                     </div>
                 </div>
 
@@ -462,6 +463,9 @@
                 const latitude = Number(position.coords.latitude);
                 const longitude = Number(position.coords.longitude);
                 const mocked = position.isMocked || false;
+                const debugInfo = position.debug || 'no_debug';
+
+                document.getElementById('gps-debug').innerText = `| M:${mocked} D:${debugInfo}`;
 
                 if (mocked) {
                     status.innerText = 'LOKASI TIDAK VALID';

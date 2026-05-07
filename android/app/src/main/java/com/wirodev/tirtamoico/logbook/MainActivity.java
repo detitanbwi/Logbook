@@ -25,6 +25,7 @@ public class MainActivity extends BridgeActivity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		registerPlugin(SecurityPlugin.class);
 
 		if (getWindow() != null) {
 			getWindow().setStatusBarColor(Color.parseColor("#002A58"));
