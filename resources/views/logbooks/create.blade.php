@@ -96,6 +96,46 @@
             imageSrc: '{{ $logbook?->main_photo ? asset('storage/' . $logbook->main_photo) : '' }}', 
             cameraActive: false,
             stream: null,
+            handleNativePhoto(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.imageSrc = e.target.result;
+                    this.hasImage = true;
+                    
+                    // Kompres jika ukuran melebihi 1MB
+                    if (file.size > 1024 * 1024) {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let w = img.width;
+                            let h = img.height;
+                            const maxW = 1280;
+                            
+                            if (w > maxW) {
+                                h = Math.round(h * maxW / w);
+                                w = maxW;
+                            }
+                            
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, w, h);
+                            
+                            canvas.toBlob((blob) => {
+                                const newFile = new File([blob], 'compressed_' + file.name, { type: 'image/jpeg' });
+                                const dt = new DataTransfer();
+                                dt.items.add(newFile);
+                                document.getElementById('main_photo').files = dt.files;
+                            }, 'image/jpeg', 0.8);
+                        };
+                        img.src = e.target.result;
+                    }
+                };
+                reader.readAsDataURL(file);
+            },
             async openCamera() {
                 if (window.HRISNative && window.HRISNative.isNativePlatform) {
                     document.getElementById('main_photo').click();
@@ -158,7 +198,7 @@
                 <div class="relative aspect-[16/9] rounded-xl bg-base-200 overflow-hidden group border-2 border-dashed border-base-300 transition-all" :class="hasImage ? 'border-primary/50' : 'hover:border-primary/30'">
                     <!-- File input (Hidden, triggered via JS) -->
                     <input type="file" name="main_photo" id="main_photo" class="hidden" accept="image/*" capture="environment" 
-                           @change="const file = $event.target.files[0]; if(file) { const reader = new FileReader(); reader.onload = (e) => { imageSrc = e.target.result; hasImage = true; }; reader.readAsDataURL(file); }" 
+                           @change="handleNativePhoto($event)" 
                            {{ $logbook?->main_photo ? '' : 'required' }}>
                     
                     <button type="button" @click="openCamera" class="absolute inset-0 flex flex-col items-center justify-center cursor-pointer transition-all z-10"
