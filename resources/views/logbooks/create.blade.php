@@ -52,10 +52,7 @@
 
         <!-- SECTION 1: LOKASI -->
         <div class="space-y-3">
-            <div class="flex items-center justify-between ml-1">
-                <h3 class="text-[0.65rem] font-black text-primary/50 uppercase tracking-[0.2em]">LOKASI GPS</h3>
-                <span class="text-[0.5rem] font-black text-error/30 uppercase tracking-widest">VER 2.1 (DEBUG)</span>
-            </div>
+            <h3 class="text-[0.65rem] font-black text-primary/50 uppercase tracking-[0.2em] ml-1">LOKASI GPS</h3>
             <div class="bg-base-100 p-4 rounded-2xl border border-base-200">
                 <!-- Location Check -->
                 <div class="flex items-center justify-between gap-4 mb-4">
@@ -66,7 +63,6 @@
                     <div class="text-right">
                         <p class="text-[0.5rem] font-bold text-base-content/20 uppercase tracking-[0.2em] mb-0.5">STATUS GPS</p>
                         <p id="gps-status" class="text-[0.65rem] font-black text-primary uppercase tracking-wide">Ready</p>
-                        <p id="gps-debug" class="text-[0.5rem] font-mono text-base-content/20 uppercase mt-0.5"></p>
                     </div>
                 </div>
 
@@ -466,9 +462,6 @@
                 const latitude = Number(position.coords.latitude);
                 const longitude = Number(position.coords.longitude);
                 const mocked = position.isMocked || false;
-                const debugInfo = position.debug || 'no_debug';
-
-                document.getElementById('gps-debug').innerText = `| M:${mocked} D:${debugInfo}`;
 
                 if (mocked) {
                     status.innerText = 'LOKASI TIDAK VALID';
