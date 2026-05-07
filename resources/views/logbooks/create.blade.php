@@ -11,6 +11,7 @@
           class="space-y-8 pb-10"
           x-data="{
               isSubmitting: false,
+              isMocked: false,
               items: @js(old('items', $logbook ? $logbook->items->map(fn($k) => ['kpi_id' => $k->kpi_id, 'details' => $k->work_description])->toArray() : [['kpi_id' => '', 'details' => '']])),
               init() {
                   this.$watch('items', () => { 
@@ -35,6 +36,19 @@
           @submit="validateAndSubmit($event)">
         @csrf
         @if($logbook) @method('PUT') @endif
+
+        <!-- BANNER FAKE GPS -->
+        <template x-if="isMocked">
+            <div class="bg-error/10 border border-error/20 p-4 rounded-2xl flex items-center gap-4 animate-pulse">
+                <div class="w-12 h-12 bg-error rounded-xl flex items-center justify-center shadow-lg shadow-error/20">
+                    <i data-lucide="alert-triangle" class="h-6 w-6 text-white"></i>
+                </div>
+                <div>
+                    <h4 class="text-[0.65rem] font-black text-error uppercase tracking-wider">Fake GPS Terdeteksi!</h4>
+                    <p class="text-[0.55rem] font-bold text-error/70 uppercase leading-relaxed">Gunakan lokasi asli Anda untuk dapat mengirim logbook.</p>
+                </div>
+            </div>
+        </template>
 
         <!-- SECTION 1: LOKASI -->
         <div class="space-y-3">
@@ -66,6 +80,7 @@
 
                 <input type="hidden" name="latitude" id="latitude" value="-">
                 <input type="hidden" name="longitude" id="longitude" value="-">
+                <input type="hidden" name="is_mocked" :value="isMocked ? 1 : 0">
             </div>
         </div>
 
@@ -409,7 +424,7 @@
             <div class="flex justify-center">
                 <button type="submit" 
                         class="btn btn-primary rounded-xl w-full max-w-xs h-14 px-10 shadow-xl shadow-primary/20 text-white font-black tracking-widest uppercase transition-all active:scale-95 disabled:bg-base-300 disabled:text-base-content/30"
-                        :disabled="isSubmitting">
+                        :disabled="isSubmitting || isMocked">
                     <span x-show="!isSubmitting">Kirim Logbook</span>
                     <span x-show="isSubmitting" class="flex items-center gap-2">
                         <span class="loading loading-spinner loading-xs"></span>
@@ -446,8 +461,32 @@
 
                 const latitude = Number(position.coords.latitude);
                 const longitude = Number(position.coords.longitude);
+                const mocked = position.isMocked || false;
 
-                status.innerText = 'AKURASI TINGGI';
+                if (mocked) {
+                    status.innerText = 'LOKASI TIDAK VALID';
+                    status.classList.add('text-error');
+                    // Access Alpine data to update state
+                    const form = document.querySelector('form');
+                    if (form && form.__x) {
+                        form.__x.$data.isMocked = true;
+                    } else if (window.Alpine) {
+                        // For Alpine v3
+                        const data = Alpine.$data(form);
+                        if (data) data.isMocked = true;
+                    }
+                } else {
+                    status.innerText = 'AKURASI TINGGI';
+                    status.classList.remove('text-error');
+                    const form = document.querySelector('form');
+                    if (form && form.__x) {
+                        form.__x.$data.isMocked = false;
+                    } else if (window.Alpine) {
+                        const data = Alpine.$data(form);
+                        if (data) data.isMocked = false;
+                    }
+                }
+
                 latInput.value = latitude;
                 lngInput.value = longitude;
 

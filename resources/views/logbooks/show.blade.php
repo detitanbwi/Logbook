@@ -54,6 +54,18 @@
                 </button>
             </div>
             @endif
+
+            @if($logbook->is_mocked)
+            <div class="p-4 bg-error/5 flex items-center gap-4">
+                <div class="w-8 h-8 rounded-lg bg-error/10 flex items-center justify-center text-error shrink-0 border border-error/20">
+                    <i data-lucide="alert-octagon" class="h-4 w-4"></i>
+                </div>
+                <div>
+                    <p class="text-[0.6rem] uppercase font-black text-error tracking-widest mb-0.5">KEAMANAN LOKASI</p>
+                    <p class="text-[0.65rem] font-black text-error uppercase">Terdeteksi Fake GPS (Palsu)</p>
+                </div>
+            </div>
+            @endif
         </div>
 
         <!-- Documentation Card -->

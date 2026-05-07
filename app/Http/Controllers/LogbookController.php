@@ -60,6 +60,7 @@ class LogbookController extends Controller
         $validated = $request->validate([
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
+            'is_mocked' => 'nullable|boolean',
             'start_time' => 'required',
             'end_time' => 'required',
             'items' => 'required|array|min:1',
@@ -89,6 +90,7 @@ class LogbookController extends Controller
             'supervisor_id' => auth()->user()->supervisor_id,
             'latitude' => $latitude,
             'longitude' => $longitude,
+            'is_mocked' => $request->is_mocked ?? false,
             'start_time' => $startTime,
             'end_time' => $endTime,
             'daily_report' => $request->daily_report,

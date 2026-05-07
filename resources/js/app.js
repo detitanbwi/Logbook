@@ -1,7 +1,8 @@
 import './bootstrap';
 
 import Alpine from 'alpinejs';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+const Security = registerPlugin('Security');
 import { App } from '@capacitor/app';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -116,7 +117,21 @@ window.HRISNative = {
 				throw new Error('LOCATION_PERMISSION_DENIED');
 			}
 
-			return Geolocation.getCurrentPosition({ ...defaults, ...options });
+			const location = await Geolocation.getCurrentPosition({ ...defaults, ...options });
+			
+			// Cek apakah lokasi palsu via plugin Security
+			let isMocked = false;
+			try {
+				const securityStatus = await Security.checkMockLocation();
+				isMocked = securityStatus.isMock;
+			} catch (e) {
+				console.warn('Security check failed:', e);
+			}
+
+			return {
+				...location,
+				isMocked
+			};
 		}
 
 		return new Promise((resolve, reject) => {

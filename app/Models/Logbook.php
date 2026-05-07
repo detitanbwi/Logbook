@@ -14,6 +14,7 @@ class Logbook extends Model
         'supervisor_id',
         'latitude',
         'longitude',
+        'is_mocked',
         'start_time',
         'end_time',
         'main_photo_path',
