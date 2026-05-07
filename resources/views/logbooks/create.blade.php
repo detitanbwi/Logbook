@@ -12,6 +12,9 @@
           x-data="{
               isSubmitting: false,
               isMocked: false,
+              gpsStatus: 'Ready',
+              latDisplay: '-',
+              lngDisplay: '-',
               items: @js(old('items', $logbook ? $logbook->items->map(fn($k) => ['kpi_id' => $k->kpi_id, 'details' => $k->work_description])->toArray() : [['kpi_id' => '', 'details' => '']])),
               init() {
                   this.$watch('items', () => { 
@@ -20,6 +23,35 @@
               },
               addItem() { this.items.push({kpi_id: '', details: ''}) },
               removeItem(index) { this.items.splice(index, 1) },
+              async detectLocation() {
+                  if (!window.HRISNative || typeof window.HRISNative.getCurrentPosition !== 'function') {
+                      this.gpsStatus = 'GPS TIDAK TERSEDIA';
+                      return;
+                  }
+
+                  this.gpsStatus = 'MENCARI...';
+                  try {
+                      const position = await window.HRISNative.getCurrentPosition({
+                          enableHighAccuracy: true,
+                          timeout: 10000,
+                          maximumAge: 0,
+                      });
+
+                      const latitude = Number(position.coords.latitude);
+                      const longitude = Number(position.coords.longitude);
+                      this.isMocked = position.isMocked || false;
+
+                      document.getElementById('latitude').value = latitude;
+                      document.getElementById('longitude').value = longitude;
+                      this.latDisplay = latitude.toFixed(6) + '°';
+                      this.lngDisplay = longitude.toFixed(6) + '°';
+                      
+                      this.gpsStatus = this.isMocked ? 'LOKASI TIDAK VALID' : 'AKURASI TINGGI';
+                  } catch (error) {
+                      this.gpsStatus = 'IZIN DITOLAK';
+                      alert('Izin lokasi belum diberikan.');
+                  }
+              },
               validateAndSubmit(e) {
                   if (this.isMocked) {
                       alert('Kirim Gagal! Fake GPS terdeteksi. Silakan gunakan lokasi asli untuk melanjutkan.');
@@ -30,7 +62,7 @@
                   const lng = document.getElementById('longitude').value;
                   
                   if (!lat || lat === '-' || isNaN(lat) || !lng || lng === '-' || isNaN(lng)) {
-                      alert('LokASI GPS WAJIB DIDETEKSI! Silakan klik tombol [Deteksi Lokasi] terlebih dahulu agar koordinat Anda tercatat.');
+                      alert('LOKASI GPS WAJIB DIDETEKSI!');
                       e.preventDefault();
                       return false;
                   }
@@ -38,8 +70,7 @@
                   setTimeout(() => { this.isSubmitting = true; }, 50);
               }
           }"
-          @submit="validateAndSubmit($event)"
-          x-on:mock-status-changed.window="isMocked = $event.detail.isMocked">
+          @submit="validateAndSubmit($event)">
         @csrf
         @if($logbook) @method('PUT') @endif
 
@@ -58,17 +89,21 @@
 
         <!-- SECTION 1: LOKASI -->
         <div class="space-y-3">
-            <h3 class="text-[0.65rem] font-black text-primary/50 uppercase tracking-[0.2em] ml-1">LOKASI GPS</h3>
+            <div class="flex items-center justify-between ml-1">
+                <h3 class="text-[0.65rem] font-black text-primary/50 uppercase tracking-[0.2em]">LOKASI GPS</h3>
+                <span :class="isMocked ? 'text-error' : 'text-success'" class="text-[0.5rem] font-black uppercase tracking-widest" x-text="isMocked ? 'SYSTEM LOCKED' : 'SYSTEM READY'"></span>
+            </div>
             <div class="bg-base-100 p-4 rounded-2xl border border-base-200">
                 <!-- Location Check -->
                 <div class="flex items-center justify-between gap-4 mb-4">
-                    <button type="button" onclick="getLocation()" class="btn btn-primary btn-sm h-11 rounded-xl gap-2 px-5 shadow-lg shadow-primary/10 hover:scale-[1.03] transition-all">
+                <div class="flex items-center justify-between gap-4 mb-4">
+                    <button type="button" @click="detectLocation" class="btn btn-primary btn-sm h-11 rounded-xl gap-2 px-5 shadow-lg shadow-primary/10 hover:scale-[1.03] transition-all">
                         <i data-lucide="map-pin" class="h-4 w-4"></i>
                         <span class="text-[0.6rem] font-black uppercase tracking-wider">Deteksi Lokasi</span>
                     </button>
                     <div class="text-right">
                         <p class="text-[0.5rem] font-bold text-base-content/20 uppercase tracking-[0.2em] mb-0.5">STATUS GPS</p>
-                        <p id="gps-status" class="text-[0.65rem] font-black text-primary uppercase tracking-wide">Ready</p>
+                        <p class="text-[0.65rem] font-black uppercase tracking-wide" :class="isMocked ? 'text-error' : 'text-primary'" x-text="gpsStatus"></p>
                     </div>
                 </div>
 
@@ -76,11 +111,11 @@
                 <div class="flex items-center gap-6 pt-4 border-t border-base-200/60">
                     <div>
                         <label class="block text-[0.55rem] font-bold text-base-content/30 uppercase tracking-widest mb-1">LATITUDE</label>
-                        <p id="lat-display" class="text-xs font-black text-base-content font-mono">-</p>
+                        <p class="text-xs font-black text-base-content font-mono" x-text="latDisplay">-</p>
                     </div>
                     <div>
                         <label class="block text-[0.55rem] font-bold text-base-content/30 uppercase tracking-widest mb-1">LONGITUDE</label>
-                        <p id="lng-display" class="text-xs font-black text-base-content font-mono">-</p>
+                        <p class="text-xs font-black text-base-content font-mono" x-text="lngDisplay">-</p>
                     </div>
                 </div>
 
@@ -442,68 +477,6 @@
     </form>
 
     <script>
-        async function getLocation() {
-            const status = document.getElementById('gps-status');
-            const latInput = document.getElementById('latitude');
-            const lngInput = document.getElementById('longitude');
-            const latDisplay = document.getElementById('lat-display');
-            const lngDisplay = document.getElementById('lng-display');
-
-            if (!window.HRISNative || typeof window.HRISNative.getCurrentPosition !== 'function') {
-                status.innerText = 'GPS TIDAK TERSEDIA';
-                status.classList.add('text-error');
-                return;
-            }
-
-            status.innerText = 'MENCARI...';
-            status.classList.remove('text-error');
-
-            try {
-                const position = await window.HRISNative.getCurrentPosition({
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0,
-                });
-
-                const latitude = Number(position.coords.latitude);
-                const longitude = Number(position.coords.longitude);
-                const mocked = position.isMocked || false;
-
-                if (mocked) {
-                    status.innerText = 'LOKASI TIDAK VALID';
-                    status.classList.add('text-error');
-                    // Access Alpine data to update state
-                    const form = document.querySelector('form');
-                    if (form && form.__x) {
-                        form.__x.$data.isMocked = true;
-                    } else if (window.Alpine) {
-                        // For Alpine v3
-                        const data = Alpine.$data(form);
-                        if (data) data.isMocked = true;
-                    }
-                } else {
-                    status.innerText = 'AKURASI TINGGI';
-                    status.classList.remove('text-error');
-                    const form = document.querySelector('form');
-                    if (form && form.__x) {
-                        form.__x.$data.isMocked = false;
-                    } else if (window.Alpine) {
-                        const data = Alpine.$data(form);
-                        if (data) data.isMocked = false;
-                    }
-                }
-
-                latInput.value = latitude;
-                lngInput.value = longitude;
-
-                latDisplay.innerText = `${latitude.toFixed(6)}°`;
-                lngDisplay.innerText = `${longitude.toFixed(6)}°`;
-            } catch (error) {
-                status.innerText = 'IZIN DITOLAK';
-                status.classList.add('text-error');
-                alert('Izin lokasi belum diberikan. Aktifkan izin lokasi untuk melanjutkan.');
-            }
-        }
 
         function previewImage(event) {
             const preview = document.getElementById('image-preview');
