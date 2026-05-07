@@ -96,7 +96,6 @@
             <div class="bg-base-100 p-4 rounded-2xl border border-base-200">
                 <!-- Location Check -->
                 <div class="flex items-center justify-between gap-4 mb-4">
-                <div class="flex items-center justify-between gap-4 mb-4">
                     <button type="button" @click="detectLocation" class="btn btn-primary btn-sm h-11 rounded-xl gap-2 px-5 shadow-lg shadow-primary/10 hover:scale-[1.03] transition-all">
                         <i data-lucide="map-pin" class="h-4 w-4"></i>
                         <span class="text-[0.6rem] font-black uppercase tracking-wider">Deteksi Lokasi</span>
