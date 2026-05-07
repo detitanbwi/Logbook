@@ -121,17 +121,21 @@ window.HRISNative = {
 			
 			// Cek apakah lokasi palsu via plugin Security
 			let isMocked = false;
+			let debug = 'start';
 			try {
 				const securityStatus = await Security.checkMockLocation();
 				isMocked = securityStatus.isMock;
+				debug = securityStatus.debug || 'success_no_msg';
                 console.log('Security check status:', securityStatus);
 			} catch (e) {
+				debug = 'error:' + e.message;
 				console.warn('Security check failed:', e);
 			}
 
 			return {
 				...location,
-				isMocked
+				isMocked,
+				debug
 			};
 		}
 

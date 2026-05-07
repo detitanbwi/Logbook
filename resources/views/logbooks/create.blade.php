@@ -52,7 +52,10 @@
 
         <!-- SECTION 1: LOKASI -->
         <div class="space-y-3">
-            <h3 class="text-[0.65rem] font-black text-primary/50 uppercase tracking-[0.2em] ml-1">LOKASI GPS</h3>
+            <div class="flex items-center justify-between ml-1">
+                <h3 class="text-[0.65rem] font-black text-primary/50 uppercase tracking-[0.2em]">LOKASI GPS</h3>
+                <span class="text-[0.5rem] font-black text-error/30 uppercase tracking-widest">VER 2.1 (DEBUG)</span>
+            </div>
             <div class="bg-base-100 p-4 rounded-2xl border border-base-200">
                 <!-- Location Check -->
                 <div class="flex items-center justify-between gap-4 mb-4">
